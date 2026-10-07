@@ -156,6 +156,18 @@
           "scope": "resource",
           "description": "Enable local math rendering and math block insertion."
         },
+        "markami.renderMermaid": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Render Mermaid diagrams locally while preserving their fenced source."
+        },
+        "markami.codeBlock.wrap": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "Wrap long lines inside fenced code blocks."
+        },
         "markami.blockHandles.enabled": {
           "type": "boolean",
           "default": true,
@@ -188,6 +200,7 @@
     "@codemirror/commands": "6.11.1",
     "@codemirror/lang-markdown": "6.5.2",
     "@codemirror/language": "6.13.1",
+    "@codemirror/language-data": "6.5.2",
     "@codemirror/search": "6.7.2",
     "@codemirror/state": "6.7.6",
     "@codemirror/view": "6.43.14",

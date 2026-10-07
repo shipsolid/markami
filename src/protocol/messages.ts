@@ -38,6 +38,8 @@ export type HostMessage =
       readonly slashCommandsEnabled: boolean;
       readonly mathEnabled: boolean;
       readonly blockHandlesEnabled: boolean;
+      readonly renderMermaid: boolean;
+      readonly codeBlockWrap: boolean;
     }
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
 

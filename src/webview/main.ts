@@ -1,13 +1,16 @@
 import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
-import { EditorState } from '@codemirror/state';
+import { languages } from '@codemirror/language-data';
+import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, type KeyBinding } from '@codemirror/view';
+import './app.css';
 import {
   inlineFormatState,
   selectionCapabilities,
   type ActionContext
 } from '../core/markdown/formatting.js';
 import { buildBlockIndex, type MovableBlock } from '../core/markdown/blockIndex.js';
+import { FeatureRegistry } from '../core/markdown/featureRegistry.js';
 import { planBlockMove } from '../core/markdown/moveBlock.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
@@ -16,6 +19,8 @@ import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
+import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
+import { registerTechnicalFeatures, technicalBlocks } from './features/technicalBlocks.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
@@ -48,7 +53,12 @@ let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
 let blockHandlesEnabled = true;
+let renderMermaid = true;
+let codeBlockWrap = false;
 const actions = createFormattingActionRegistry();
+const featureRegistry = new FeatureRegistry();
+const technicalCompartment = new Compartment();
+registerTechnicalFeatures(featureRegistry);
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   if (message.type === 'hydrate') {
@@ -64,9 +74,17 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     slashCommandsEnabled = message.slashCommandsEnabled;
     mathEnabled = message.mathEnabled;
     blockHandlesEnabled = message.blockHandlesEnabled;
+    renderMermaid = message.renderMermaid;
+    codeBlockWrap = message.codeBlockWrap;
     slashPalette?.setMathEnabled(mathEnabled);
     if (!blockHandlesEnabled) blockHandles?.hide();
-    view?.dispatch({});
+    view?.dispatch({
+      effects: technicalCompartment.reconfigure(technicalBlocks({
+        renderMermaid,
+        renderMath: mathEnabled,
+        codeWrap: codeBlockWrap
+      }))
+    });
     if (!selectionToolbarEnabled) {
       toolbar?.hide();
     }
@@ -97,11 +115,13 @@ function createEditor(text: string): void {
     state: EditorState.create({
       doc: text,
       extensions: [
-        markdown(),
+        markdown({ codeLanguages: languages }),
         projectionField,
+        technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap })),
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
         keymap.of([
           ...createSlashKeymap(),
+          ...createListKeymap(),
           ...createFormattingKeymap(actions, currentActionContext, openLinkPopover),
           ...defaultKeymap
         ]),
@@ -329,6 +349,24 @@ function createSlashKeymap(): readonly KeyBinding[] {
     key,
     run: () => slashPalette?.handleKey(key) ?? false
   }));
+}
+
+function createListKeymap(): readonly KeyBinding[] {
+  const plan = (kind: 'enter' | 'indent' | 'outdent') => (): boolean => {
+    if (view === undefined) return false;
+    const context = currentActionContext();
+    const result = kind === 'enter'
+      ? planListEnter(context)
+      : planListIndent(context, kind);
+    if (!result.ok) return false;
+    applyPlannedEdit(view, result.edit);
+    return true;
+  };
+  return [
+    { key: 'Enter', run: plan('enter') },
+    { key: 'Tab', run: plan('indent') },
+    { key: 'Shift-Tab', run: plan('outdent') }
+  ];
 }
 
 function currentBlocks(): readonly MovableBlock[] {

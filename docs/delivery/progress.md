@@ -112,3 +112,19 @@
 - Covered boundaries: paragraph/heading/list/quote/fence/table/source-island cores, EOF without newline, CRLF first/last moves, no-op target, pinned frontmatter, ambiguous fence refusal, nested-list grouping, stale drag cancellation, Escape cleanup, live announcements, and bounded auto-scroll
 - Ruling: an upward move carries the preceding separator after the core; a downward move carries the following separator before the core. The simulated result must reparse to the requested core sequence or the move is rejected.
 - Next: Task 9 technical Markdown blocks
+
+## Task 9 — Tasks, code, Mermaid, math, and alerts
+
+- Status: complete
+- Commit: `feat: render and edit technical Markdown blocks locally`
+- Changed paths: task/list planners and checkbox widget, fenced-code parser/editor/header/highlighting, lazy local Mermaid and KaTeX renderers, GitHub alert projection, technical feature registry/StateField, bundled styles/fonts and renderer configuration
+- RED: technical fidelity/UI suites failed because task, fence, renderer, alert, and technical projection modules did not exist
+- GREEN:
+  - `npm run test:fidelity -- technicalBlocks` — 32 tests passing across matching fidelity/webview files
+  - `npm run test:webview` — 27 webview tests passing
+  - `npm run verify` — pass; 71 core tests plus build/static checks
+  - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing with the packaged local CSS/chunk paths loaded by the custom editor shell
+- Covered boundaries: one-character task toggle, list continue/exit/indent/outdent, tilde/info-string code preservation, local language loading with plain fallback, Mermaid failure/source retention, bounded cache and 200ms obsolete-job cancellation, conservative currency/math recognition, alert marker preservation, malformed fences, and composition-like Unicode edits
+- Security/performance: Mermaid uses strict local configuration; KaTeX uses `trust: false`; both are lazy chunks, renderer jobs are bounded/cancellable, and no code block is executed
+- Limitation: native IME and screen-reader interaction remain unverified release gates; synthetic Unicode/composition coverage is not claimed as native IME proof
+- Next: Task 10 GFM table editing

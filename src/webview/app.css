@@ -1,0 +1,50 @@
+@import 'katex/dist/katex.min.css';
+
+.markami-code-header {
+  align-items: center;
+  background: var(--vscode-textCodeBlock-background);
+  border-bottom: 1px solid var(--vscode-widget-border, transparent);
+  display: flex;
+  font-family: var(--vscode-editor-font-family);
+  justify-content: space-between;
+  padding: 4px 8px;
+}
+
+.cm-line.markami-code-line {
+  background: var(--vscode-textCodeBlock-background);
+  font-family: var(--vscode-editor-font-family);
+  white-space: pre;
+}
+
+.cm-line.markami-code-line.markami-code-wrap {
+  white-space: pre-wrap;
+}
+
+.markami-mermaid,
+.markami-math {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
+  padding: 12px;
+}
+
+.markami-render-error,
+.markami-technical-source-island {
+  border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+}
+
+.cm-line.markami-alert {
+  border-left: 3px solid var(--vscode-textBlockQuote-border);
+  padding-left: 12px;
+}
+
+.cm-line.markami-alert-warning,
+.cm-line.markami-alert-caution {
+  border-left-color: var(--vscode-editorWarning-foreground);
+}
+
+.markami-block-gutter button,
+.markami-selection-toolbar button,
+.markami-slash-palette button {
+  color: inherit;
+}
