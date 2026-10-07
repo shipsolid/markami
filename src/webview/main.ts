@@ -7,6 +7,8 @@ import {
   selectionCapabilities,
   type ActionContext
 } from '../core/markdown/formatting.js';
+import { buildBlockIndex, type MovableBlock } from '../core/markdown/blockIndex.js';
+import { planBlockMove } from '../core/markdown/moveBlock.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
@@ -16,6 +18,7 @@ import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from '.
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
+import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
 import { SlashPalette } from './ui/slash/SlashPalette.js';
 import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
 
@@ -40,9 +43,11 @@ let editorRevision = 0;
 let toolbar: SelectionToolbar | undefined;
 let linkPopover: LinkPopover | undefined;
 let slashPalette: SlashPalette | undefined;
+let blockHandles: BlockHandles | undefined;
 let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
+let blockHandlesEnabled = true;
 const actions = createFormattingActionRegistry();
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
@@ -58,7 +63,10 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     selectionToolbarEnabled = message.selectionToolbarEnabled;
     slashCommandsEnabled = message.slashCommandsEnabled;
     mathEnabled = message.mathEnabled;
+    blockHandlesEnabled = message.blockHandlesEnabled;
     slashPalette?.setMathEnabled(mathEnabled);
+    if (!blockHandlesEnabled) blockHandles?.hide();
+    view?.dispatch({});
     if (!selectionToolbarEnabled) {
       toolbar?.hide();
     }
@@ -81,6 +89,7 @@ function createEditor(text: string): void {
   toolbar?.destroy();
   linkPopover?.destroy();
   slashPalette?.destroy();
+  blockHandles?.destroy();
   view?.destroy();
   editorRevision = 0;
   view = new EditorView({
@@ -90,6 +99,7 @@ function createEditor(text: string): void {
       extensions: [
         markdown(),
         projectionField,
+        blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
         keymap.of([
           ...createSlashKeymap(),
           ...createFormattingKeymap(actions, currentActionContext, openLinkPopover),
@@ -103,8 +113,15 @@ function createEditor(text: string): void {
           dragstart: () => {
             toolbar?.hide();
             return false;
-          }
+          },
+          dragover: (event, editor) => handleBlockDragOver(event, editor),
+          drop: (event, editor) => handleBlockDrop(event, editor)
         }),
+        keymap.of([
+          { key: 'Escape', run: () => blockHandles?.handleKey('Escape') ?? false },
+          { key: 'Alt-ArrowUp', run: () => moveActiveBlock(-1) },
+          { key: 'Alt-ArrowDown', run: () => moveActiveBlock(1) }
+        ]),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -173,6 +190,7 @@ function createEditor(text: string): void {
     mathEnabled,
     chooseLanguage: () => Promise.resolve(window.prompt('Code language (optional)', '') ?? undefined)
   });
+  blockHandles = new BlockHandles(document, moveBlockTo, revealBlockSource, copyBlockMarkdown);
 }
 
 function currentActionContext(): ActionContext {
@@ -250,6 +268,20 @@ function executeHostAction(actionId: string): void {
     openSlashPalette(true);
     return;
   }
+  if (actionId === 'markami.moveBlockUp') {
+    moveActiveBlock(-1);
+    return;
+  }
+  if (actionId === 'markami.moveBlockDown') {
+    moveActiveBlock(1);
+    return;
+  }
+  if (actionId === 'markami.moveBlockTo') {
+    const blockCount = currentBlocks().length;
+    const requested = Number(window.prompt(`Move block to position (1-${String(blockCount)})`, '1'));
+    if (Number.isInteger(requested)) moveActiveBlockTo(requested - 1);
+    return;
+  }
   if (view !== undefined) {
     executeEditorAction(view, actions, actionId, currentActionContext());
   }
@@ -297,6 +329,80 @@ function createSlashKeymap(): readonly KeyBinding[] {
     key,
     run: () => slashPalette?.handleKey(key) ?? false
   }));
+}
+
+function currentBlocks(): readonly MovableBlock[] {
+  if (view === undefined) return [];
+  return buildBlockIndex(view.state.doc.toString(), editorRevision);
+}
+
+function activeBlock(): MovableBlock | undefined {
+  if (view === undefined) return undefined;
+  const position = view.state.selection.main.head;
+  return currentBlocks().find((block) => position >= block.core.from && position <= block.separatorAfter.to);
+}
+
+function moveActiveBlock(direction: -1 | 1): boolean {
+  const block = activeBlock();
+  if (block === undefined) return false;
+  return moveBlockTo(block.id, block.order + direction);
+}
+
+function moveActiveBlockTo(targetIndex: number): boolean {
+  const block = activeBlock();
+  return block === undefined ? false : moveBlockTo(block.id, targetIndex);
+}
+
+function moveBlockTo(blockId: string, targetIndex: number): boolean {
+  if (view === undefined) return false;
+  const source = view.state.doc.toString();
+  const result = planBlockMove(source, currentBlocks(), blockId, targetIndex);
+  if (!result.ok) {
+    if (blockHandles !== undefined) blockHandles.status.textContent = result.reason;
+    return false;
+  }
+  applyPlannedEdit(view, result.edit);
+  view.focus();
+  return true;
+}
+
+function revealBlockSource(blockId: string): void {
+  if (view === undefined) return;
+  const block = currentBlocks().find((candidate) => candidate.id === blockId);
+  if (block !== undefined) {
+    view.dispatch({ selection: { anchor: block.core.from, head: block.core.to } });
+    view.focus();
+  }
+}
+
+function copyBlockMarkdown(blockId: string): void {
+  if (view === undefined) return;
+  const source = view.state.doc.toString();
+  const block = currentBlocks().find((candidate) => candidate.id === blockId);
+  if (block !== undefined) {
+    void navigator.clipboard.writeText(source.slice(block.core.from, block.core.to));
+  }
+}
+
+function handleBlockDragOver(event: DragEvent, editor: EditorView): boolean {
+  if (blockHandles?.isDragging !== true) return false;
+  const position = editor.posAtCoords({ x: event.clientX, y: event.clientY });
+  const target = position === null ? undefined : currentBlocks().find((block) => position <= block.separatorAfter.to);
+  if (target === undefined) return false;
+  event.preventDefault();
+  const coordinates = editor.coordsAtPos(target.core.from);
+  blockHandles.updateDragTarget(target.order, coordinates?.top ?? event.clientY);
+  editor.scrollDOM.scrollTop += computeAutoScrollVelocity(event.clientY, window.innerHeight);
+  return true;
+}
+
+function handleBlockDrop(event: DragEvent, editor: EditorView): boolean {
+  if (blockHandles?.isDragging !== true) return false;
+  const position = editor.posAtCoords({ x: event.clientX, y: event.clientY });
+  const target = position === null ? undefined : currentBlocks().find((block) => position <= block.separatorAfter.to);
+  if (target === undefined) return false;
+  event.preventDefault();
+  return blockHandles.drop(target.order, editorRevision);
 }
 
 function openLinkPopover(context: ActionContext): boolean {

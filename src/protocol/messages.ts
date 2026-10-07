@@ -37,6 +37,7 @@ export type HostMessage =
       readonly selectionToolbarEnabled: boolean;
       readonly slashCommandsEnabled: boolean;
       readonly mathEnabled: boolean;
+      readonly blockHandlesEnabled: boolean;
     }
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
 

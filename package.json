@@ -101,6 +101,18 @@
       {
         "command": "markami.openSlashCommands",
         "title": "markami: Open Slash Commands"
+      },
+      {
+        "command": "markami.moveBlockUp",
+        "title": "markami: Move Block Up"
+      },
+      {
+        "command": "markami.moveBlockDown",
+        "title": "markami: Move Block Down"
+      },
+      {
+        "command": "markami.moveBlockTo",
+        "title": "markami: Move Block To…"
       }
     ],
     "keybindings": [
@@ -143,6 +155,12 @@
           "default": true,
           "scope": "resource",
           "description": "Enable local math rendering and math block insertion."
+        },
+        "markami.blockHandles.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show top-level block handles. Keyboard block-move commands remain available when disabled."
         }
       }
     }

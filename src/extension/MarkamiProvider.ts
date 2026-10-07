@@ -103,7 +103,8 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       type: 'configuration',
       selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true),
       slashCommandsEnabled: configuration.get<boolean>('slashCommands.enabled', true),
-      mathEnabled: configuration.get<boolean>('renderMath', true)
+      mathEnabled: configuration.get<boolean>('renderMath', true),
+      blockHandlesEnabled: configuration.get<boolean>('blockHandles.enabled', true)
     });
   }
 

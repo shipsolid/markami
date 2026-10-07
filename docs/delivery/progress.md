@@ -97,3 +97,18 @@
 - Covered boundaries: `/mer` locality, all deterministic templates, filtering/navigation/no-results, Escape and dialog cancellation, code/URL/island/nested suppression, math gating, explicit invocation while auto-trigger is disabled, and stale-range invalidation
 - Remaining dependency: Image is present in the registry and its cancelled async path is source-neutral, but accepted image insertion intentionally requires the trusted host image service from Task 11; Task 7 must not be marked complete before that integration passes
 - Next: Task 8 block move planners and accessible handles while the Task 11 dependency remains deferred
+
+## Task 8 — Exact-source block moves and accessible handles
+
+- Status: complete
+- Commit: `feat: reorder blocks without rewriting Markdown`
+- Changed paths: conservative top-level block index, two-patch move planner, seam reparse guard, CodeMirror gutter/drag/keyboard controls, block commands and setting, ADR-011, fidelity/UI tests
+- RED: block-move and handle suites failed because the index, move planner, and handle controller did not exist
+- GREEN:
+  - `npm run test:fidelity -- blockMoves` — 22 fidelity tests passing across the fidelity suite
+  - `npm run test:webview -- blockHandles` — 24 webview tests passing across all webview suites
+  - `npm run verify` — pass; 64 core tests plus build/static checks
+  - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including canonical undo/redo history
+- Covered boundaries: paragraph/heading/list/quote/fence/table/source-island cores, EOF without newline, CRLF first/last moves, no-op target, pinned frontmatter, ambiguous fence refusal, nested-list grouping, stale drag cancellation, Escape cleanup, live announcements, and bounded auto-scroll
+- Ruling: an upward move carries the preceding separator after the core; a downward move carries the following separator before the core. The simulated result must reparse to the requested core sequence or the move is rejected.
+- Next: Task 9 technical Markdown blocks

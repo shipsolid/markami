@@ -24,7 +24,10 @@ export function activate(context: vscode.ExtensionContext): void {
     'markami.heading5',
     'markami.heading6',
     'markami.showSelectionToolbar',
-    'markami.openSlashCommands'
+    'markami.openSlashCommands',
+    'markami.moveBlockUp',
+    'markami.moveBlockDown',
+    'markami.moveBlockTo'
   ];
 
   context.subscriptions.push(
