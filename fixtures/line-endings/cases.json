@@ -1,0 +1,6 @@
+[
+  { "name": "lf-final-newline", "source": "a\nb\n", "editor": "a\nb\n" },
+  { "name": "crlf-no-final-newline", "source": "a\r\nb", "editor": "a\nb" },
+  { "name": "mixed-and-empty", "source": "a\r\n\r\nb\nc\rd", "editor": "a\n\nb\nc\nd" },
+  { "name": "unicode", "source": "😀\r\né", "editor": "😀\né" }
+]

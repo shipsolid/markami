@@ -15,3 +15,15 @@
 - Limitation: downloaded desktop VS Code cannot launch directly on this WSL host because native Chromium libraries/Xvfb are absent; the same downloaded binary passed inside the pinned Playwright Ubuntu container
 - Next: Task 2 source-coordinate maps and patch primitives
 
+## Task 2 — Source coordinates and patch primitives
+
+- Status: complete
+- Commit: `feat: map editor coordinates to canonical Markdown`
+- Changed paths: branded host/editor offsets, CRLF/mixed-separator coordinate map, line-ending inspection, patch validation/application/inversion, exact-string fixtures/tests
+- RED: unit and fidelity suites failed because `CoordinateMap` and `PatchSet` did not exist
+- GREEN:
+  - `npm run test:unit -- CoordinateMap` — 6 passing
+  - `npm run test:fidelity -- sourcePatches` — 10 passing
+  - `npm run verify` — pass; 16 tests across unit/fidelity plus build and static checks
+- Covered boundaries: CRLF midpoint bias, LF identity, mixed/lone-CR separators, final/empty lines, UTF-16 emoji, combining marks, multiline insertion, inverse restoration, deterministic same-position insertion, invalid/overlapping ranges
+- Next: Task 3 canonical sessions, acknowledgements, and external-change safety
