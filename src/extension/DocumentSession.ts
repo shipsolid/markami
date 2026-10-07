@@ -1,6 +1,7 @@
 import { applyPatchSet, validatePatchSet, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage, PatchRequest } from '../protocol/messages.js';
 import { PROTOCOL_VERSION } from '../protocol/version.js';
+import { RecoveryStore } from './RecoveryStore.js';
 
 export type DocumentApplyResult =
   | { readonly ok: true; readonly version: number; readonly text: string }
@@ -11,6 +12,7 @@ export interface CanonicalDocument {
   readonly version: number;
   getText(): string;
   apply(baseVersion: number, patches: readonly TextPatch[]): Promise<DocumentApplyResult>;
+  save?(): Promise<boolean>;
 }
 
 export interface WebviewEndpoint {
@@ -27,7 +29,10 @@ export class DocumentSession {
   private queue: Promise<void> = Promise.resolve();
   private disposed = false;
 
-  public constructor(private readonly document: CanonicalDocument) {
+  public constructor(
+    private readonly document: CanonicalDocument,
+    private readonly recovery?: RecoveryStore
+  ) {
     this.uri = document.uri;
   }
 
@@ -43,6 +48,15 @@ export class DocumentSession {
   public enqueuePatch(request: PatchRequest): Promise<void> {
     this.queue = this.queue.then(() => this.processPatch(request));
     return this.queue;
+  }
+
+  public flush(): Promise<void> {
+    return this.queue;
+  }
+
+  public async save(): Promise<boolean> {
+    await this.flush();
+    return this.document.save?.() ?? false;
   }
 
   public handleDocumentChanged(
@@ -106,6 +120,22 @@ export class DocumentSession {
       return;
     }
     const expected = applyPatchSet(source, request.patches);
+    if (request.draftText !== undefined && this.recovery !== undefined) {
+      const stored = await this.recovery.put({
+        uri: this.uri,
+        baseVersion: request.baseVersion,
+        canonicalBaseHash: RecoveryStore.hashCanonical(source),
+        draftText: request.draftText,
+        timestamp: Date.now()
+      });
+      if (!stored.ok) {
+        this.broadcast({
+          type: 'showError',
+          code: 'RECOVERY_CAPACITY',
+          message: 'The pending draft is too large for recovery storage. Copy it before closing.'
+        });
+      }
+    }
     this.isApplying = true;
     let result: DocumentApplyResult;
     try {
@@ -129,6 +159,7 @@ export class DocumentSession {
     const accepted: HostMessage = { type: 'patchAccepted', requestId: request.requestId, version: result.version };
     this.remember(request.requestId, accepted);
     await view.postMessage(accepted);
+    await this.recovery?.clear(this.uri);
   }
 
   private async reject(view: WebviewEndpoint, requestId: string, reason: string): Promise<void> {

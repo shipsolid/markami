@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
 import { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
+import { HistoryRouter } from './history.js';
 import { MarkamiProvider } from './MarkamiProvider.js';
+import { MementoRecoveryStorage, RecoveryStore } from './RecoveryStore.js';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const sessions = new DocumentSessionRegistry();
-  const provider = new MarkamiProvider(context.extensionUri, sessions);
+  const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
+  const sessions = new DocumentSessionRegistry(recovery);
+  const history = new HistoryRouter();
+  const provider = new MarkamiProvider(context.extensionUri, sessions, history);
 
   context.subscriptions.push(
     sessions,

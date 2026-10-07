@@ -17,6 +17,7 @@ class MemoryDocument implements CanonicalDocument {
   public failNext = false;
   public throwNext = false;
   public beforeApply: (() => void) | undefined;
+  public saveCount = 0;
 
   public constructor(text: string) {
     this.text = text;
@@ -24,6 +25,11 @@ class MemoryDocument implements CanonicalDocument {
 
   public getText(): string {
     return this.text;
+  }
+
+  public save(): Promise<boolean> {
+    this.saveCount += 1;
+    return Promise.resolve(true);
   }
 
   public async apply(baseVersion: number, patches: readonly TextPatch[]): Promise<DocumentApplyResult> {
@@ -172,5 +178,31 @@ describe('versioned synchronization', () => {
     expect(document.text).toBe('ab');
     expect(view.messages).toContainEqual(expect.objectContaining({ type: 'patchRejected', requestId: 'throws' }));
     expect(view.messages).toContainEqual(expect.objectContaining({ type: 'patchAccepted', requestId: 'recovers' }));
+  });
+
+  test('save_flushes_pending_before_success', async () => {
+    const document = new MemoryDocument('a');
+    const view = endpoint('view-a');
+    const session = new DocumentSession(document);
+    session.attach(view);
+    let releaseApply: (() => void) | undefined;
+    const originalApply = document.apply.bind(document);
+    document.apply = async (baseVersion, patches) => {
+      await new Promise<void>((resolve) => {
+        releaseApply = resolve;
+      });
+      return originalApply(baseVersion, patches);
+    };
+
+    const applying = session.enqueuePatch(request('pending', view.id, 1, [createTextPatch(1, 1, 'b')]));
+    const saving = session.save();
+    await Promise.resolve();
+    expect(document.saveCount).toBe(0);
+    releaseApply?.();
+
+    await expect(applying).resolves.toBeUndefined();
+    await expect(saving).resolves.toBe(true);
+    expect(document.text).toBe('ab');
+    expect(document.saveCount).toBe(1);
   });
 });

@@ -17,6 +17,10 @@ export class VscodeCanonicalDocument implements CanonicalDocument {
     return this.document.getText();
   }
 
+  public async save(): Promise<boolean> {
+    return await this.document.save();
+  }
+
   public async apply(baseVersion: number, patches: readonly TextPatch[]): Promise<DocumentApplyResult> {
     const source = this.document.getText();
     if (this.document.version !== baseVersion) {

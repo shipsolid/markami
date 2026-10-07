@@ -4,13 +4,15 @@ import { createTextPatch } from '../core/source/Patch.js';
 import { webviewMessageSchema } from '../protocol/schemas.js';
 import { PROTOCOL_VERSION } from '../protocol/version.js';
 import type { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
+import type { HistoryRouter } from './history.js';
 
 export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markami.editor';
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly sessions: DocumentSessionRegistry
+    private readonly sessions: DocumentSessionRegistry,
+    private readonly history: HistoryRouter
   ) {}
 
   public resolveCustomTextEditor(
@@ -31,6 +33,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     const viewId = randomUUID();
     const session = this.sessions.get(document);
     session.attach({ id: viewId, postMessage: (message) => panel.webview.postMessage(message) });
+    this.history.register(viewId, document.uri);
 
     const messages = panel.webview.onDidReceiveMessage(async (message: unknown) => {
       const parsed = webviewMessageSchema.safeParse(message);
@@ -43,14 +46,26 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         session.sendSnapshot(viewId);
       } else if (parsed.data.type === 'applyPatch') {
         await session.enqueuePatch({
-          ...parsed.data.request,
-          patches: parsed.data.request.patches.map((patch) => createTextPatch(patch.from, patch.to, patch.insert))
+          requestId: parsed.data.request.requestId,
+          viewId: parsed.data.request.viewId,
+          generation: parsed.data.request.generation,
+          baseVersion: parsed.data.request.baseVersion,
+          patches: parsed.data.request.patches.map((patch) => createTextPatch(patch.from, patch.to, patch.insert)),
+          ...(parsed.data.request.draftText === undefined ? {} : { draftText: parsed.data.request.draftText })
         });
+      } else if (parsed.data.type === 'save') {
+        if (!(await session.save())) {
+          await panel.webview.postMessage({ type: 'showError', code: 'SAVE_FAILED', message: 'VS Code could not save this document.' });
+        }
+      } else if (parsed.data.type === 'history') {
+        await session.flush();
+        await this.history.requestHistoryAction(viewId, parsed.data.action);
       }
     });
     panel.onDidDispose(() => {
       messages.dispose();
       session.detach(viewId);
+      this.history.unregister(viewId);
     });
     return Promise.resolve();
   }

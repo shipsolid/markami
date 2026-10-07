@@ -7,6 +7,7 @@ export interface PatchRequest {
   readonly generation: number;
   readonly baseVersion: number;
   readonly patches: readonly TextPatch[];
+  readonly draftText?: string;
 }
 
 export type HostMessage =
@@ -35,4 +36,6 @@ export type HostMessage =
 export type WebviewMessage =
   | { readonly type: 'ready'; readonly protocolVersion: number }
   | { readonly type: 'applyPatch'; readonly request: PatchRequest }
-  | { readonly type: 'requestSnapshot' };
+  | { readonly type: 'requestSnapshot' }
+  | { readonly type: 'save' }
+  | { readonly type: 'history'; readonly action: 'undo' | 'redo' };

@@ -40,3 +40,17 @@
   - VS Code 1.141.0 Linux/Xvfb — 2 integration tests passing, including source/custom views sharing one canonical document
 - Ruling: the VS Code API guarantees all-or-nothing application for text-only `WorkspaceEdit` but exposes no versioned CAS; markami revalidates version/source immediately before dispatch, serializes its own writes, verifies the canonical result, and retains drafts on any mismatch. Minimum-version/platform race experiments remain a release gate.
 - Next: Task 4 host-authoritative history, save flushing, and bounded draft recovery
+
+## Task 4 — Save, canonical history, and pending-text recovery
+
+- Status: complete
+- Commit: `feat: preserve canonical history and recover pending edits`
+- Changed paths: history routing, queued save, 10 MiB recovery store, recovery comparison/banner, protocol save/history messages, ADR-009, unit/protocol/VS Code integration tests
+- RED: save was not available on `DocumentSession`; recovery module/store did not exist; read-only fixture initially blocked editing before the intended save-failure boundary and was corrected
+- GREEN:
+  - Recovery/unit suites — 10 passing
+  - Protocol sync/save suite — 7 passing
+  - `npm run verify` — pass; 27 tests plus build/static checks
+  - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including exact undo/redo dirty-state transitions and failed-write dirty recovery
+- Limitation: VS Code 1.102.0, Windows/macOS history routing, native IME, and screen-reader checks remain unverified release gates
+- Next: Task 5 conservative Markdown projection and source islands

@@ -99,7 +99,8 @@ export class PatchQueue {
       viewId: this.viewId,
       generation: this.generation,
       baseVersion: this.acknowledgedVersion,
-      patches: next.patches
+      patches: next.patches,
+      draftText: this.optimisticText
     });
   }
 }
