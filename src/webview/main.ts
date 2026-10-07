@@ -1,7 +1,7 @@
 import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorState } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView, keymap, type KeyBinding } from '@codemirror/view';
 import {
   inlineFormatState,
   selectionCapabilities,
@@ -11,10 +11,12 @@ import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/s
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
 import { HostBridge } from './bridge/hostBridge.js';
-import { createFormattingActionRegistry } from './editor/actionRegistry.js';
+import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
+import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
+import { SlashPalette } from './ui/slash/SlashPalette.js';
 import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
@@ -37,7 +39,10 @@ let applyingHostChange = false;
 let editorRevision = 0;
 let toolbar: SelectionToolbar | undefined;
 let linkPopover: LinkPopover | undefined;
+let slashPalette: SlashPalette | undefined;
 let selectionToolbarEnabled = true;
+let slashCommandsEnabled = true;
+let mathEnabled = true;
 const actions = createFormattingActionRegistry();
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
@@ -51,6 +56,9 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     executeHostAction(message.actionId);
   } else if (message.type === 'configuration') {
     selectionToolbarEnabled = message.selectionToolbarEnabled;
+    slashCommandsEnabled = message.slashCommandsEnabled;
+    mathEnabled = message.mathEnabled;
+    slashPalette?.setMathEnabled(mathEnabled);
     if (!selectionToolbarEnabled) {
       toolbar?.hide();
     }
@@ -72,6 +80,7 @@ bridge.ready();
 function createEditor(text: string): void {
   toolbar?.destroy();
   linkPopover?.destroy();
+  slashPalette?.destroy();
   view?.destroy();
   editorRevision = 0;
   view = new EditorView({
@@ -81,7 +90,11 @@ function createEditor(text: string): void {
       extensions: [
         markdown(),
         projectionField,
-        keymap.of([...createFormattingKeymap(actions, currentActionContext, openLinkPopover), ...defaultKeymap]),
+        keymap.of([
+          ...createSlashKeymap(),
+          ...createFormattingKeymap(actions, currentActionContext, openLinkPopover),
+          ...defaultKeymap
+        ]),
         EditorView.domEventHandlers({
           compositionstart: () => {
             toolbar?.hide();
@@ -119,6 +132,9 @@ function createEditor(text: string): void {
             queue.enqueueLocal(patches);
             coordinateMap = createCoordinateMap(queue.optimisticText);
           }
+          if (update.docChanged || update.selectionSet) {
+            updateSlashPalette();
+          }
         }),
         EditorView.theme({
           '&': { height: '100%', fontSize: 'var(--vscode-editor-font-size)' },
@@ -142,6 +158,21 @@ function createEditor(text: string): void {
       applyPlannedEdit(view, result.edit);
     }
   }, currentActionContext);
+  slashPalette = new SlashPalette(document, (kind, state, args) => {
+    const result = actions.plan(insertionActionId(kind), state.context, args);
+    if (!result.ok) {
+      if (slashPalette !== undefined) {
+        slashPalette.status.textContent = result.reason;
+      }
+      return;
+    }
+    if (view !== undefined) {
+      applyPlannedEdit(view, result.edit);
+    }
+  }, {
+    mathEnabled,
+    chooseLanguage: () => Promise.resolve(window.prompt('Code language (optional)', '') ?? undefined)
+  });
 }
 
 function currentActionContext(): ActionContext {
@@ -155,7 +186,10 @@ function currentActionContext(): ActionContext {
     editorRevision,
     selection: { anchor: selection.anchor, head: selection.head },
     source,
-    capabilities: selectionCapabilities(source, { anchor: selection.anchor, head: selection.head })
+    capabilities: {
+      ...selectionCapabilities(source, { anchor: selection.anchor, head: selection.head }),
+      math: mathEnabled
+    }
   };
 }
 
@@ -212,9 +246,57 @@ function executeHostAction(actionId: string): void {
     openLinkPopover(currentActionContext());
     return;
   }
+  if (actionId === 'markami.openSlashCommands') {
+    openSlashPalette(true);
+    return;
+  }
   if (view !== undefined) {
     executeEditorAction(view, actions, actionId, currentActionContext());
   }
+}
+
+function updateSlashPalette(): void {
+  const context = currentActionContext();
+  if (slashPalette?.isOpen === true) {
+    if (slashPalette.update(context)) {
+      positionSlashPalette();
+    }
+    return;
+  }
+  if (slashCommandsEnabled && canOpenSlash(context)) {
+    slashPalette?.open(openSlashState(context));
+    positionSlashPalette();
+  }
+}
+
+function openSlashPalette(explicit: boolean): boolean {
+  if (slashPalette === undefined) {
+    return false;
+  }
+  try {
+    slashPalette.open(openSlashState(currentActionContext(), explicit));
+    positionSlashPalette();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function positionSlashPalette(): void {
+  if (view === undefined || slashPalette === undefined) {
+    return;
+  }
+  const coordinates = view.coordsAtPos(view.state.selection.main.head);
+  if (coordinates !== null) {
+    slashPalette.position(coordinates.left, coordinates.bottom + 6);
+  }
+}
+
+function createSlashKeymap(): readonly KeyBinding[] {
+  return ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].map((key) => ({
+    key,
+    run: () => slashPalette?.handleKey(key) ?? false
+  }));
 }
 
 function openLinkPopover(context: ActionContext): boolean {

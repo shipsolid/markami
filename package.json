@@ -97,6 +97,10 @@
       {
         "command": "markami.showSelectionToolbar",
         "title": "markami: Show Selection Toolbar"
+      },
+      {
+        "command": "markami.openSlashCommands",
+        "title": "markami: Open Slash Commands"
       }
     ],
     "keybindings": [
@@ -127,6 +131,18 @@
           "default": true,
           "scope": "resource",
           "description": "Show the floating formatting toolbar for eligible selections. Shortcuts and the explicit toolbar command remain available when disabled."
+        },
+        "markami.slashCommands.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Open the block insertion palette when slash is typed in an empty top-level paragraph. The explicit command remains available when disabled."
+        },
+        "markami.renderMath": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Enable local math rendering and math block insertion."
         }
       }
     }

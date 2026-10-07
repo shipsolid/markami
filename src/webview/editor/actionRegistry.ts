@@ -5,6 +5,7 @@ import {
   type ActionResult,
   type InlineFormatKind
 } from '../../core/markdown/formatting.js';
+import { planInsertBlock, type InsertBlockKind } from '../../core/markdown/insertBlock.js';
 
 export interface EditorAction {
   readonly id: string;
@@ -65,8 +66,25 @@ export function createFormattingActionRegistry(): ActionRegistry {
   for (const level of [1, 2, 3, 4, 5, 6] as const) {
     registry.register(headingAction(`markami.heading${String(level)}`, `Heading ${String(level)}`, level));
   }
+  for (const kind of INSERTION_KINDS) {
+    registry.register({
+      id: insertionActionId(kind),
+      label: `Insert ${kind}`,
+      isAvailable: (ctx) => kind !== 'math' || ctx.capabilities.math !== false,
+      plan: (ctx, args) => planInsertBlock(ctx, kind, isInsertArgs(args) ? args : {})
+    });
+  }
   return registry;
 }
+
+export function insertionActionId(kind: InsertBlockKind): string {
+  return `markami.insert.${kind}`;
+}
+
+const INSERTION_KINDS: readonly InsertBlockKind[] = [
+  'text', 'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
+  'bullet', 'numbered', 'task', 'quote', 'divider', 'code', 'table', 'mermaid', 'math', 'image', 'raw'
+];
 
 function headingAction(id: string, label: string, level: 0 | 1 | 2 | 3 | 4 | 5 | 6): EditorAction {
   return {
@@ -83,4 +101,8 @@ function formattingAvailable(ctx: ActionContext): boolean {
 
 function isLinkArgs(value: unknown): value is { readonly href?: string } {
   return typeof value === 'object' && value !== null && (!('href' in value) || typeof value.href === 'string');
+}
+
+function isInsertArgs(value: unknown): value is { readonly language?: string; readonly imageMarkdown?: string } {
+  return typeof value === 'object' && value !== null;
 }

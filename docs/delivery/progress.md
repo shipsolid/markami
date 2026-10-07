@@ -82,3 +82,18 @@
 - Covered boundaries: minimal delimiter insertion/removal, existing underscore bold, unsafe partial clear, backticks in code spans, unsafe link schemes, Setext conversion, active/mixed states, code/frontmatter exclusions, pointer selection retention, roving focus/Escape, and external-edit invalidation
 - Limitation: native pointer/IME/screen-reader behavior remains a Task 15/16 release gate; current interaction coverage is deterministic jsdom plus the extension-host history suite
 - Next: Task 7 slash palette and deterministic block insertion
+
+## Task 7 — Slash palette and deterministic block insertion
+
+- Status: in progress — core planner/palette complete; required existing-image picker remains owned by Task 11
+- Commit: `feat: add deterministic slash command palette`
+- Changed paths: deterministic block templates, parser/source-aware slash state, accessible listbox palette, shared insertion action IDs, CodeMirror key routing, settings and explicit VS Code command
+- RED: insertion and palette suites failed because the planner, state machine, and palette modules did not exist
+- GREEN:
+  - `npm run test:unit -- insertBlock` — 35 unit tests passing across the unit suite
+  - `npm run test:webview -- slashPalette` — 20 webview tests passing across projection, toolbar, and slash suites
+  - `npm run verify` — pass; 52 core tests plus build/static checks
+  - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including canonical one-transaction history behavior
+- Covered boundaries: `/mer` locality, all deterministic templates, filtering/navigation/no-results, Escape and dialog cancellation, code/URL/island/nested suppression, math gating, explicit invocation while auto-trigger is disabled, and stale-range invalidation
+- Remaining dependency: Image is present in the registry and its cancelled async path is source-neutral, but accepted image insertion intentionally requires the trusted host image service from Task 11; Task 7 must not be marked complete before that integration passes
+- Next: Task 8 block move planners and accessible handles while the Task 11 dependency remains deferred

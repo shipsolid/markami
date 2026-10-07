@@ -79,9 +79,15 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         this.activePanel = event.webviewPanel;
       }
     });
+    const configurationChanges = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('markami', document.uri)) {
+        void this.sendConfiguration(document, panel.webview);
+      }
+    });
     panel.onDidDispose(() => {
       messages.dispose();
       viewState.dispose();
+      configurationChanges.dispose();
       if (this.activePanel === panel) {
         this.activePanel = undefined;
       }
@@ -95,7 +101,9 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     const configuration = vscode.workspace.getConfiguration('markami', document.uri);
     return webview.postMessage({
       type: 'configuration',
-      selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true)
+      selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true),
+      slashCommandsEnabled: configuration.get<boolean>('slashCommands.enabled', true),
+      mathEnabled: configuration.get<boolean>('renderMath', true)
     });
   }
 

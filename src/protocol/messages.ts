@@ -32,7 +32,12 @@ export type HostMessage =
       readonly document: { readonly text: string; readonly version: number };
     }
   | { readonly type: 'executeAction'; readonly actionId: string }
-  | { readonly type: 'configuration'; readonly selectionToolbarEnabled: boolean }
+  | {
+      readonly type: 'configuration';
+      readonly selectionToolbarEnabled: boolean;
+      readonly slashCommandsEnabled: boolean;
+      readonly mathEnabled: boolean;
+    }
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
 
 export type WebviewMessage =
