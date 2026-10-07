@@ -1,0 +1,10 @@
+.worktrees/
+.superpowers/
+node_modules/
+dist/
+out/
+coverage/
+*.vsix
+test-results/
+playwright-report/
+
