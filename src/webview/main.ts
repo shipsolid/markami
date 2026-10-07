@@ -22,8 +22,13 @@ import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
 import { registerTechnicalFeatures, technicalBlocks } from './features/technicalBlocks.js';
 import { tableProjectionField } from './features/tables/TableProjection.js';
+import { findLinkAt, githubSlug, linkNavigationExtension } from './features/links/links.js';
+import { linkProjectionField } from './features/links/LinkProjection.js';
+import { ResourceClient } from './features/images/ResourceClient.js';
+import { imageProjection } from './features/images/ImageProjection.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
+import { ImagePopover } from './ui/images/ImagePopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
 import { SlashPalette } from './ui/slash/SlashPalette.js';
 import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
@@ -48,6 +53,7 @@ let applyingHostChange = false;
 let editorRevision = 0;
 let toolbar: SelectionToolbar | undefined;
 let linkPopover: LinkPopover | undefined;
+let imagePopover: ImagePopover | undefined;
 let slashPalette: SlashPalette | undefined;
 let blockHandles: BlockHandles | undefined;
 let selectionToolbarEnabled = true;
@@ -59,11 +65,19 @@ let codeBlockWrap = false;
 const actions = createFormattingActionRegistry();
 const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
+const policyReloadCompartment = new Compartment();
+const resources = new ResourceClient(vscode, navigateFragment);
+let pendingPolicyReload: string | undefined;
 registerTechnicalFeatures(featureRegistry);
 featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
-  if (message.type === 'hydrate') {
+  if (message.type === 'resourceResult') {
+    resources.handle(message);
+  } else if (message.type === 'preparePolicyReload') {
+    pendingPolicyReload = message.requestId;
+    view?.dispatch({ effects: policyReloadCompartment.reconfigure(EditorView.editable.of(false)) });
+  } else if (message.type === 'hydrate') {
     eol = message.document.eol;
     coordinateMap = createCoordinateMap(message.document.text);
     createEditor(coordinateMap.editorText);
@@ -91,6 +105,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
       toolbar?.hide();
     }
   }
+  acknowledgePolicyReloadWhenSynced();
 });
 
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
@@ -108,6 +123,7 @@ bridge.ready();
 function createEditor(text: string): void {
   toolbar?.destroy();
   linkPopover?.destroy();
+  imagePopover?.destroy();
   slashPalette?.destroy();
   blockHandles?.destroy();
   view?.destroy();
@@ -118,7 +134,14 @@ function createEditor(text: string): void {
       doc: text,
       extensions: [
         markdown({ codeLanguages: languages }),
+        policyReloadCompartment.of(EditorView.editable.of(true)),
         projectionField,
+        linkProjectionField,
+        linkNavigationExtension((destination) => void resources.openLink(destination)),
+        ...imageProjection(
+          (rawPath) => resources.resolveImage(rawPath),
+          (image) => imagePopover?.show(currentActionContext(), image)
+        ),
         technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap })),
         tableProjectionField,
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
@@ -198,6 +221,11 @@ function createEditor(text: string): void {
       applyPlannedEdit(view, result.edit);
     }
   }, currentActionContext);
+  imagePopover = new ImagePopover(document, (result) => {
+    if (view !== undefined) applyPlannedEdit(view, result.edit);
+  }, currentActionContext, (destination) => {
+    void resources.openLink(destination);
+  }, revealImageSource);
   slashPalette = new SlashPalette(document, (kind, state, args) => {
     const result = actions.plan(insertionActionId(kind), state.context, args);
     if (!result.ok) {
@@ -211,7 +239,9 @@ function createEditor(text: string): void {
     }
   }, {
     mathEnabled,
-    chooseLanguage: () => Promise.resolve(window.prompt('Code language (optional)', '') ?? undefined)
+    chooseLanguage: () => Promise.resolve(window.prompt('Code language (optional)', '') ?? undefined),
+    chooseImage: () => resources.pickImage(),
+    currentContext: currentActionContext
   });
   blockHandles = new BlockHandles(document, moveBlockTo, revealBlockSource, copyBlockMarkdown);
 }
@@ -447,11 +477,19 @@ function handleBlockDrop(event: DragEvent, editor: EditorView): boolean {
 }
 
 function openLinkPopover(context: ActionContext): boolean {
-  if (context.selection.anchor === context.selection.head || linkPopover === undefined) {
+  const emptyOutsideLink = context.selection.anchor === context.selection.head &&
+    findLinkAt(context.source, context.selection.head) === undefined;
+  if (emptyOutsideLink || linkPopover === undefined) {
     return false;
   }
   linkPopover.show(context);
   return true;
+}
+
+function revealImageSource(image: { readonly from: number; readonly to: number }): void {
+  if (view === undefined) return;
+  view.dispatch({ selection: { anchor: image.from, head: image.to }, scrollIntoView: true });
+  view.focus();
 }
 
 function applyHostPatches(patches: readonly TextPatch[]): void {
@@ -476,4 +514,39 @@ function isHostMessage(value: unknown): value is HostMessage {
     return false;
   }
   return typeof (value as { type?: unknown }).type === 'string';
+}
+
+function acknowledgePolicyReloadWhenSynced(): void {
+  if (pendingPolicyReload === undefined || bridge.queue?.state !== 'synced') return;
+  vscode.postMessage({ type: 'policyReloadReady', requestId: pendingPolicyReload });
+  pendingPolicyReload = undefined;
+}
+
+function navigateFragment(fragment: string): void {
+  if (view === undefined) return;
+  const target = decodeFragment(fragment);
+  const source = view.state.doc.toString();
+  const used: string[] = [];
+  let offset = 0;
+  for (const line of source.split('\n')) {
+    const heading = /^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+[ \t]*)?$/u.exec(line)?.[1];
+    if (heading !== undefined) {
+      const slug = githubSlug(heading, used);
+      used.push(slug);
+      if (slug === target) {
+        view.dispatch({ selection: { anchor: offset }, scrollIntoView: true });
+        view.focus();
+        return;
+      }
+    }
+    offset += line.length + 1;
+  }
+}
+
+function decodeFragment(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment).toLocaleLowerCase();
+  } catch {
+    return fragment.toLocaleLowerCase();
+  }
 }

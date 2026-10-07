@@ -1,5 +1,51 @@
 @import 'katex/dist/katex.min.css';
 
+.markami-link {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.markami-image {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.markami-image img {
+  max-height: 32rem;
+  max-width: min(100%, 48rem);
+  object-fit: contain;
+}
+
+.markami-image-placeholder {
+  border: 1px dashed var(--vscode-editorWidget-border);
+  color: var(--vscode-descriptionForeground);
+  padding: 0.25rem 0.5rem;
+}
+
+.markami-image-edit {
+  align-self: flex-start;
+  margin-left: 0.4rem;
+}
+
+.markami-image-popover {
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  display: grid;
+  gap: 0.4rem;
+  left: 1rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  position: fixed;
+  top: 1rem;
+  z-index: 24;
+}
+
+.markami-image-popover[hidden] {
+  display: none;
+}
+
 .markami-code-header {
   align-items: center;
   background: var(--vscode-textCodeBlock-background);

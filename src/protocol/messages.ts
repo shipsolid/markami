@@ -1,5 +1,6 @@
 import type { TextPatch } from '../core/source/Patch.js';
 import type { PROTOCOL_VERSION } from './version.js';
+import type { ResourceRequest, ResourceResponse } from './resourceMessages.js';
 
 export interface PatchRequest {
   readonly requestId: string;
@@ -32,6 +33,7 @@ export type HostMessage =
       readonly document: { readonly text: string; readonly version: number };
     }
   | { readonly type: 'executeAction'; readonly actionId: string }
+  | { readonly type: 'preparePolicyReload'; readonly requestId: string }
   | {
       readonly type: 'configuration';
       readonly selectionToolbarEnabled: boolean;
@@ -41,6 +43,7 @@ export type HostMessage =
       readonly renderMermaid: boolean;
       readonly codeBlockWrap: boolean;
     }
+  | ResourceResponse
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
 
 export type WebviewMessage =
@@ -48,4 +51,6 @@ export type WebviewMessage =
   | { readonly type: 'applyPatch'; readonly request: PatchRequest }
   | { readonly type: 'requestSnapshot' }
   | { readonly type: 'save' }
-  | { readonly type: 'history'; readonly action: 'undo' | 'redo' };
+  | { readonly type: 'history'; readonly action: 'undo' | 'redo' }
+  | { readonly type: 'policyReloadReady'; readonly requestId: string }
+  | ResourceRequest;

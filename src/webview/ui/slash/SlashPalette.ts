@@ -13,6 +13,7 @@ export interface SlashPaletteOptions {
   readonly mathEnabled?: boolean;
   readonly chooseLanguage?: () => Promise<string | undefined>;
   readonly chooseImage?: () => Promise<string | undefined>;
+  readonly currentContext?: () => ActionContext;
 }
 
 export type SlashAccept = (
@@ -137,7 +138,7 @@ export class SlashPalette {
   }
 
   public async accept(kind: InsertBlockKind): Promise<void> {
-    const state = this.state;
+    let state = this.state;
     if (state === undefined) {
       return;
     }
@@ -157,6 +158,15 @@ export class SlashPalette {
         return;
       }
       args = { imageMarkdown };
+    }
+    if (this.options.currentContext !== undefined) {
+      const updated = updateSlashState(state, this.options.currentContext());
+      if (updated === undefined) {
+        this.close();
+        this.status.textContent = 'Slash command cancelled because the insertion point changed.';
+        return;
+      }
+      state = updated;
     }
     await this.onAccept(kind, state, args);
     this.close();

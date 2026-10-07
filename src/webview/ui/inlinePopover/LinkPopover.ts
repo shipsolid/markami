@@ -1,10 +1,12 @@
 import type { ActionContext, ActionResult } from '../../../core/markdown/formatting.js';
 import type { ActionRegistry } from '../../editor/actionRegistry.js';
+import { findLinkAt, planLinkDestination, type MarkdownLink } from '../../features/links/links.js';
 
 export class LinkPopover {
   public readonly element: HTMLFormElement;
   private readonly input: HTMLInputElement;
   private captured: ActionContext | undefined;
+  private capturedLink: MarkdownLink | undefined;
 
   public constructor(
     document: Document,
@@ -16,8 +18,9 @@ export class LinkPopover {
     this.element.hidden = true;
     this.element.setAttribute('aria-label', 'Link destination');
     this.input = document.createElement('input');
-    this.input.type = 'url';
+    this.input.type = 'text';
     this.input.setAttribute('aria-label', 'Link destination');
+    this.input.addEventListener('input', () => this.input.setCustomValidity(''));
     const submit = document.createElement('button');
     submit.type = 'submit';
     submit.textContent = 'Apply link';
@@ -31,19 +34,22 @@ export class LinkPopover {
 
   public show(ctx: ActionContext, initialHref = ''): void {
     this.captured = cloneContext(ctx);
-    this.input.value = initialHref;
+    this.capturedLink = findLinkAt(ctx.source, ctx.selection.head);
+    this.input.value = initialHref || this.capturedLink?.destination || '';
     this.element.hidden = false;
     this.input.focus({ preventScroll: true });
   }
 
   public cancel(): void {
     this.captured = undefined;
+    this.capturedLink = undefined;
     this.element.hidden = true;
   }
 
   public destroy(): void {
     this.element.remove();
     this.captured = undefined;
+    this.capturedLink = undefined;
   }
 
   public confirm(): boolean {
@@ -53,7 +59,9 @@ export class LinkPopover {
       this.cancel();
       return false;
     }
-    const result = this.registry.plan('markami.link', captured, { href: this.input.value });
+    const result = this.capturedLink === undefined
+      ? this.registry.plan('markami.link', captured, { href: this.input.value })
+      : planLinkDestination(captured.source, this.capturedLink, this.input.value);
     if (!result.ok) {
       this.input.setCustomValidity(result.reason);
       this.input.reportValidity();

@@ -111,4 +111,23 @@ describe('SlashPalette', () => {
     expect(accept).not.toHaveBeenCalled();
     expect(palette.element.hidden).toBe(true);
   });
+
+  test('image_dialog_external_edit_does_not_use_stale_range', async () => {
+    let resolveImage: ((value: string) => void) | undefined;
+    const image = new Promise<string>((resolve) => { resolveImage = resolve; });
+    let current = context('/image');
+    const accept = vi.fn();
+    const palette = new SlashPalette(document, accept, {
+      chooseImage: () => image,
+      currentContext: () => current
+    });
+    palette.open(openSlashState(current));
+    const pending = palette.accept('image');
+    current = context('X/image', 7, { host: 3, editor: 4 });
+    resolveImage?.('![diagram](./diagram.png)');
+    await pending;
+
+    expect(accept).not.toHaveBeenCalled();
+    expect(palette.status.textContent).toContain('changed');
+  });
 });

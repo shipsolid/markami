@@ -173,6 +173,13 @@
           "default": true,
           "scope": "resource",
           "description": "Show top-level block handles. Keyboard block-move commands remain available when disabled."
+        },
+        "markami.remoteImages": {
+          "type": "string",
+          "enum": ["block", "prompt", "allow"],
+          "default": "block",
+          "scope": "resource",
+          "description": "Control whether remote HTTPS images are blocked, confirmed before loading, or allowed. Document source is always preserved."
         }
       }
     }

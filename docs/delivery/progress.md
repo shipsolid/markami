@@ -85,7 +85,7 @@
 
 ## Task 7 — Slash palette and deterministic block insertion
 
-- Status: in progress — core planner/palette complete; required existing-image picker remains owned by Task 11
+- Status: complete — core planner/palette plus Task 11 trusted existing-image picker
 - Commit: `feat: add deterministic slash command palette`
 - Changed paths: deterministic block templates, parser/source-aware slash state, accessible listbox palette, shared insertion action IDs, CodeMirror key routing, settings and explicit VS Code command
 - RED: insertion and palette suites failed because the planner, state machine, and palette modules did not exist
@@ -95,8 +95,8 @@
   - `npm run verify` — pass; 52 core tests plus build/static checks
   - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including canonical one-transaction history behavior
 - Covered boundaries: `/mer` locality, all deterministic templates, filtering/navigation/no-results, Escape and dialog cancellation, code/URL/island/nested suppression, math gating, explicit invocation while auto-trigger is disabled, and stale-range invalidation
-- Remaining dependency: Image is present in the registry and its cancelled async path is source-neutral, but accepted image insertion intentionally requires the trusted host image service from Task 11; Task 7 must not be marked complete before that integration passes
-- Next: Task 8 block move planners and accessible handles while the Task 11 dependency remains deferred
+- Dependency closed: Task 11 supplies the trusted host picker/copy service; accepted image insertion now revalidates the live slash range after the asynchronous dialog, while cancellation remains source-neutral
+- Next: complete remaining ordered implementation tasks
 
 ## Task 8 — Exact-source block moves and accessible handles
 
@@ -142,3 +142,18 @@
 - Covered boundaries: escaped pipes, code spans containing pipes, ragged rows, alignment, CRLF, Unicode, direct cell locality, surrounding-byte preservation, last-cell row append, insert/delete row/column, malformed fallback, active source reveal, and stale table snapshots
 - Ruling: routine cell/alignment edits are minimal patches; row/column changes may normalize only the confirmed table range while preserving surrounding text, EOL style, cell content, and alignment intent
 - Next: Task 11 links, images, and resource policy; completing its image service will also close Task 7
+
+## Task 11 — Safe repository links, images, and resources
+
+- Status: complete
+- Commit: `feat: navigate repository links and insert images safely`
+- Changed paths: host-only resource/security service, typed request/result protocol, syntax-aware inline/reference link and image maps, CodeMirror projections/navigation, image field controls, trusted existing-file picker/copy flow, remote-image policy/CSP reload handshake
+- RED: resource suites failed before the host resolver existed; dedicated cases then exposed external-copy symlink escape, code-example false positives, missing collapsed references, relative-link form rejection, and stale async image insertion
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 44 unit tests, 8 protocol tests, 35 fidelity tests, production builds
+  - `npm run test:webview` — pass; 35 webview tests
+  - VS Code 1.141.0 Linux/Xvfb — 7 integration tests passing, including blocked/missing resource source preservation and policy-reload canonical-edit preservation
+- Covered boundaries: encoded relative files/fragments, inline/full/collapsed/shortcut references, duplicate heading slugs, missing files, traversal and symlink escape, executable schemes, remote block/prompt/allow decisions, collision-safe copies, type/size/trust validation, exact alt/path/title patches, host-controlled open, failed-image placeholder, and stale dialog cancellation
+- Security: filesystem access and external opening remain in the extension host; copied-image destinations are realpath-confined after directory creation; code spans/fences and escaped resource examples never resolve or navigate; policy changes disable editing until the canonical patch queue is synchronized, then reload under the new CSP
+- Limitation: initial 1.0 platform commitment is local filesystem workspaces. Non-file resource operations fail closed with an explicit message; URI-native `workspace.fs` support and remote-workspace smoke coverage remain a Task 16 gate
+- Next: Task 12 frontmatter, HTML, and unknown syntax fidelity

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { resourceRequestSchema } from './resourceMessages.js';
 
 const patchSchema = z.object({
   from: z.number().int().nonnegative(),
@@ -20,5 +21,7 @@ export const webviewMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('applyPatch'), request: patchRequestSchema }),
   z.object({ type: z.literal('requestSnapshot') }),
   z.object({ type: z.literal('save') }),
-  z.object({ type: z.literal('history'), action: z.enum(['undo', 'redo']) })
+  z.object({ type: z.literal('history'), action: z.enum(['undo', 'redo']) }),
+  z.object({ type: z.literal('policyReloadReady'), requestId: z.string().min(1).max(200) }),
+  resourceRequestSchema
 ]);
