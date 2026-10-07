@@ -1,5 +1,6 @@
 .worktrees/
 .superpowers/
+.vscode-test/
 node_modules/
 dist/
 out/
@@ -7,4 +8,3 @@ coverage/
 *.vsix
 test-results/
 playwright-report/
-
