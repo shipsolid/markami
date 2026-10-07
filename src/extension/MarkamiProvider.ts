@@ -1,12 +1,17 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
-
-type WebviewMessage = { readonly type: 'ready' };
+import { createTextPatch } from '../core/source/Patch.js';
+import { webviewMessageSchema } from '../protocol/schemas.js';
+import { PROTOCOL_VERSION } from '../protocol/version.js';
+import type { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
 
 export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markami.editor';
 
-  public constructor(private readonly extensionUri: vscode.Uri) {}
+  public constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly sessions: DocumentSessionRegistry
+  ) {}
 
   public resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -23,24 +28,31 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       localResourceRoots: [webviewRoot]
     };
     panel.webview.html = this.renderHtml(panel.webview, webviewRoot);
+    const viewId = randomUUID();
+    const session = this.sessions.get(document);
+    session.attach({ id: viewId, postMessage: (message) => panel.webview.postMessage(message) });
 
     const messages = panel.webview.onDidReceiveMessage(async (message: unknown) => {
-      if (this.isReadyMessage(message) && !token.isCancellationRequested) {
-        await panel.webview.postMessage({
-          type: 'snapshot',
-          text: document.getText(),
-          version: document.version
+      const parsed = webviewMessageSchema.safeParse(message);
+      if (!parsed.success || token.isCancellationRequested) {
+        return;
+      }
+      if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
+        session.sendSnapshot(viewId);
+      } else if (parsed.data.type === 'requestSnapshot') {
+        session.sendSnapshot(viewId);
+      } else if (parsed.data.type === 'applyPatch') {
+        await session.enqueuePatch({
+          ...parsed.data.request,
+          patches: parsed.data.request.patches.map((patch) => createTextPatch(patch.from, patch.to, patch.insert))
         });
       }
     });
     panel.onDidDispose(() => {
       messages.dispose();
+      session.detach(viewId);
     });
     return Promise.resolve();
-  }
-
-  private isReadyMessage(value: unknown): value is WebviewMessage {
-    return typeof value === 'object' && value !== null && (value as Partial<WebviewMessage>).type === 'ready';
   }
 
   private renderHtml(webview: vscode.Webview, webviewRoot: vscode.Uri): string {

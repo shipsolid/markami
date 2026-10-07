@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
+import { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
 import { MarkamiProvider } from './MarkamiProvider.js';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new MarkamiProvider(context.extensionUri);
+  const sessions = new DocumentSessionRegistry();
+  const provider = new MarkamiProvider(context.extensionUri, sessions);
 
   context.subscriptions.push(
+    sessions,
     vscode.window.registerCustomEditorProvider(MarkamiProvider.viewType, provider, {
-      supportsMultipleEditorsPerDocument: false,
+      supportsMultipleEditorsPerDocument: true,
       webviewOptions: { retainContextWhenHidden: true }
     }),
     vscode.commands.registerCommand('markami.openRendered', async () => {
