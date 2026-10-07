@@ -6,6 +6,7 @@ import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/s
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
 import { HostBridge } from './bridge/hostBridge.js';
+import { projectionField } from './projection/ProjectionPlugin.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -50,6 +51,7 @@ function createEditor(text: string): void {
       doc: text,
       extensions: [
         markdown(),
+        projectionField,
         keymap.of(defaultKeymap),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

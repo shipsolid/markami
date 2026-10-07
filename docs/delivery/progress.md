@@ -54,3 +54,16 @@
   - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including exact undo/redo dirty-state transitions and failed-write dirty recovery
 - Limitation: VS Code 1.102.0, Windows/macOS history routing, native IME, and screen-reader checks remain unverified release gates
 - Next: Task 5 conservative Markdown projection and source islands
+
+## Task 5 — Conservative Markdown projection and source islands
+
+- Status: complete
+- Commit: `feat: project rendered Markdown over preserved source`
+- Changed paths: conservative Markdown recognizer, semantic/source-map model, CodeMirror projection decorations, source-island and syntax-reveal rules, webview projection tests
+- RED: projection tests failed because syntax recognition, semantic mapping, and CodeMirror projection modules did not exist
+- GREEN:
+  - `npm run test:webview -- projection` — 6 passing
+  - `npm run test:fidelity` — 10 passing
+  - `npm run verify` — pass; 27 core tests plus build/static checks
+- Covered boundaries: headings, quotes, lists, dividers, strong/emphasis/strike/code marks, selection-driven delimiter reveal, unterminated fences, and semantic-disagreement fallback to literal source
+- Next: Task 6 projected editing intents and Markdown-aware operations
