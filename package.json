@@ -41,8 +41,95 @@
       {
         "command": "markami.openSource",
         "title": "markami: Open Source Editor"
+      },
+      {
+        "command": "markami.bold",
+        "title": "markami: Bold"
+      },
+      {
+        "command": "markami.italic",
+        "title": "markami: Italic"
+      },
+      {
+        "command": "markami.strikethrough",
+        "title": "markami: Strikethrough"
+      },
+      {
+        "command": "markami.inlineCode",
+        "title": "markami: Inline Code"
+      },
+      {
+        "command": "markami.link",
+        "title": "markami: Create or Edit Link"
+      },
+      {
+        "command": "markami.clearFormatting",
+        "title": "markami: Clear Formatting"
+      },
+      {
+        "command": "markami.paragraph",
+        "title": "markami: Paragraph"
+      },
+      {
+        "command": "markami.heading1",
+        "title": "markami: Heading 1"
+      },
+      {
+        "command": "markami.heading2",
+        "title": "markami: Heading 2"
+      },
+      {
+        "command": "markami.heading3",
+        "title": "markami: Heading 3"
+      },
+      {
+        "command": "markami.heading4",
+        "title": "markami: Heading 4"
+      },
+      {
+        "command": "markami.heading5",
+        "title": "markami: Heading 5"
+      },
+      {
+        "command": "markami.heading6",
+        "title": "markami: Heading 6"
+      },
+      {
+        "command": "markami.showSelectionToolbar",
+        "title": "markami: Show Selection Toolbar"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "markami.bold",
+        "key": "ctrl+b",
+        "mac": "cmd+b",
+        "when": "activeCustomEditorId == markami.editor"
+      },
+      {
+        "command": "markami.italic",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "activeCustomEditorId == markami.editor"
+      },
+      {
+        "command": "markami.link",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "activeCustomEditorId == markami.editor"
+      }
+    ],
+    "configuration": {
+      "title": "markami",
+      "properties": {
+        "markami.selectionToolbar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show the floating formatting toolbar for eligible selections. Shortcuts and the explicit toolbar command remain available when disabled."
+        }
+      }
+    }
   },
   "scripts": {
     "clean": "node scripts/clean.mjs",

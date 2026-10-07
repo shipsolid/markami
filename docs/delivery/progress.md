@@ -67,3 +67,18 @@
   - `npm run verify` — pass; 27 core tests plus build/static checks
 - Covered boundaries: headings, quotes, lists, dividers, strong/emphasis/strike/code marks, selection-driven delimiter reveal, unterminated fences, and semantic-disagreement fallback to literal source
 - Next: Task 6 projected editing intents and Markdown-aware operations
+
+## Task 6 — Formatting commands and floating selection toolbar
+
+- Status: complete
+- Commit: `feat: edit selections through source-aware formatting controls`
+- Changed paths: exact-source formatting/heading planners, shared action registry, CodeMirror commands/keymaps, accessible floating toolbar, stale-safe link popover, VS Code command routing and toolbar setting
+- RED: formatting and toolbar suites failed because the planner and shared toolbar/action modules did not exist
+- GREEN:
+  - `npm run test:unit -- formatting` — 19 unit tests passing across the unit suite
+  - `npm run test:webview -- selectionToolbar` — 12 webview tests passing across projection and toolbar suites
+  - `npm run verify` — pass; 36 core tests plus build/static checks
+  - VS Code 1.141.0 Linux/Xvfb — 5 integration tests passing, including canonical visual undo/source redo history
+- Covered boundaries: minimal delimiter insertion/removal, existing underscore bold, unsafe partial clear, backticks in code spans, unsafe link schemes, Setext conversion, active/mixed states, code/frontmatter exclusions, pointer selection retention, roving focus/Escape, and external-edit invalidation
+- Limitation: native pointer/IME/screen-reader behavior remains a Task 15/16 release gate; current interaction coverage is deterministic jsdom plus the extension-host history suite
+- Next: Task 7 slash palette and deterministic block insertion

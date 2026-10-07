@@ -2,11 +2,20 @@ import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
+import {
+  inlineFormatState,
+  selectionCapabilities,
+  type ActionContext
+} from '../core/markdown/formatting.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
 import { HostBridge } from './bridge/hostBridge.js';
+import { createFormattingActionRegistry } from './editor/actionRegistry.js';
+import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
+import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
+import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -25,6 +34,11 @@ let view: EditorView | undefined;
 let coordinateMap: CoordinateMap | undefined;
 let eol: '\n' | '\r\n' = '\n';
 let applyingHostChange = false;
+let editorRevision = 0;
+let toolbar: SelectionToolbar | undefined;
+let linkPopover: LinkPopover | undefined;
+let selectionToolbarEnabled = true;
+const actions = createFormattingActionRegistry();
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   if (message.type === 'hydrate') {
@@ -33,6 +47,13 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     createEditor(coordinateMap.editorText);
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
     applyHostPatches(message.changes);
+  } else if (message.type === 'executeAction') {
+    executeHostAction(message.actionId);
+  } else if (message.type === 'configuration') {
+    selectionToolbarEnabled = message.selectionToolbarEnabled;
+    if (!selectionToolbarEnabled) {
+      toolbar?.hide();
+    }
   }
 });
 
@@ -41,10 +62,18 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
     bridge.handle(event.data);
   }
 });
+window.addEventListener('resize', () => {
+  if (toolbar?.capturedContext !== undefined) {
+    updateSelectionToolbar();
+  }
+});
 bridge.ready();
 
 function createEditor(text: string): void {
+  toolbar?.destroy();
+  linkPopover?.destroy();
   view?.destroy();
+  editorRevision = 0;
   view = new EditorView({
     parent: editorParent,
     state: EditorState.create({
@@ -52,24 +81,44 @@ function createEditor(text: string): void {
       extensions: [
         markdown(),
         projectionField,
-        keymap.of(defaultKeymap),
+        keymap.of([...createFormattingKeymap(actions, currentActionContext, openLinkPopover), ...defaultKeymap]),
+        EditorView.domEventHandlers({
+          compositionstart: () => {
+            toolbar?.hide();
+            return false;
+          },
+          dragstart: () => {
+            toolbar?.hide();
+            return false;
+          }
+        }),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
-          if (!update.docChanged || applyingHostChange || coordinateMap === undefined || bridge.queue === undefined) {
-            return;
+          if (update.docChanged) {
+            editorRevision += 1;
+            toolbar?.revalidate(currentActionContext());
           }
-          const map = coordinateMap;
-          const queue = bridge.queue;
-          const patches: TextPatch[] = [];
-          update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
-            patches.push(createTextPatch(
-              Number(map.toHost(editorOffset(fromA))),
-              Number(map.toHost(editorOffset(toA))),
-              inserted.toString().replaceAll('\n', eol)
-            ));
-          });
-          queue.enqueueLocal(patches);
-          coordinateMap = createCoordinateMap(queue.optimisticText);
+          if (update.geometryChanged && toolbar?.capturedContext !== undefined) {
+            updateSelectionToolbar();
+          }
+          if (!update.docChanged || applyingHostChange || coordinateMap === undefined || bridge.queue === undefined) {
+            if (update.selectionSet && !update.docChanged) {
+              updateSelectionToolbar();
+            }
+          } else {
+            const map = coordinateMap;
+            const queue = bridge.queue;
+            const patches: TextPatch[] = [];
+            update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+              patches.push(createTextPatch(
+                Number(map.toHost(editorOffset(fromA))),
+                Number(map.toHost(editorOffset(toA))),
+                inserted.toString().replaceAll('\n', eol)
+              ));
+            });
+            queue.enqueueLocal(patches);
+            coordinateMap = createCoordinateMap(queue.optimisticText);
+          }
         }),
         EditorView.theme({
           '&': { height: '100%', fontSize: 'var(--vscode-editor-font-size)' },
@@ -79,6 +128,101 @@ function createEditor(text: string): void {
       ]
     })
   });
+  toolbar = new SelectionToolbar(document, actions, (_actionId, _context, result) => {
+    if (_actionId === 'markami.link') {
+      linkPopover?.show(_context);
+      return;
+    }
+    if (view !== undefined) {
+      applyPlannedEdit(view, result.edit);
+    }
+  }, () => view?.focus());
+  linkPopover = new LinkPopover(document, actions, (result) => {
+    if (view !== undefined) {
+      applyPlannedEdit(view, result.edit);
+    }
+  }, currentActionContext);
+}
+
+function currentActionContext(): ActionContext {
+  if (view === undefined) {
+    return { hostVersion: 0, editorRevision, selection: { anchor: 0, head: 0 }, source: '', capabilities: {} };
+  }
+  const selection = view.state.selection.main;
+  const source = view.state.doc.toString();
+  return {
+    hostVersion: bridge.queue?.acknowledgedVersion ?? 0,
+    editorRevision,
+    selection: { anchor: selection.anchor, head: selection.head },
+    source,
+    capabilities: selectionCapabilities(source, { anchor: selection.anchor, head: selection.head })
+  };
+}
+
+function updateSelectionToolbar(focus = false): void {
+  if (view === undefined || toolbar === undefined) {
+    return;
+  }
+  const selection = view.state.selection.main;
+  if (!focus && !selectionToolbarEnabled) {
+    toolbar.hide();
+    return;
+  }
+  if (selection.empty) {
+    toolbar.hide();
+    return;
+  }
+  const start = view.coordsAtPos(selection.from);
+  const end = view.coordsAtPos(selection.to);
+  if (start === null || end === null) {
+    toolbar.hide();
+    return;
+  }
+  const context = currentActionContext();
+  toolbar.show(context, {
+    left: Math.min(start.left, end.left),
+    top: Math.min(start.top, end.top),
+    bottom: Math.max(start.bottom, end.bottom),
+    viewportHeight: window.innerHeight
+  }, {
+    focus,
+    composing: view.composing,
+    mixedBlocks: context.capabilities.mixedBlocks === true,
+    states: currentFormattingStates()
+  });
+}
+
+function currentFormattingStates(): Readonly<Record<string, 'active' | 'mixed' | 'inactive'>> {
+  const context = currentActionContext();
+  return {
+    'markami.bold': inlineFormatState(context, 'strong'),
+    'markami.italic': inlineFormatState(context, 'emphasis'),
+    'markami.strikethrough': inlineFormatState(context, 'strike'),
+    'markami.inlineCode': inlineFormatState(context, 'code'),
+    'markami.link': inlineFormatState(context, 'link')
+  };
+}
+
+function executeHostAction(actionId: string): void {
+  if (actionId === 'markami.showSelectionToolbar') {
+    updateSelectionToolbar(true);
+    return;
+  }
+  if (actionId === 'markami.link') {
+    openLinkPopover(currentActionContext());
+    return;
+  }
+  if (view !== undefined) {
+    executeEditorAction(view, actions, actionId, currentActionContext());
+  }
+}
+
+function openLinkPopover(context: ActionContext): boolean {
+  if (context.selection.anchor === context.selection.head || linkPopover === undefined) {
+    return false;
+  }
+  linkPopover.show(context);
+  return true;
 }
 
 function applyHostPatches(patches: readonly TextPatch[]): void {

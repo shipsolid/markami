@@ -8,12 +8,20 @@ import type { HistoryRouter } from './history.js';
 
 export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markami.editor';
+  private activePanel: vscode.WebviewPanel | undefined;
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly sessions: DocumentSessionRegistry,
     private readonly history: HistoryRouter
   ) {}
+
+  public executeAction(actionId: string): Thenable<boolean> {
+    if (this.activePanel === undefined) {
+      return Promise.resolve(false);
+    }
+    return this.activePanel.webview.postMessage({ type: 'executeAction', actionId });
+  }
 
   public resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -30,6 +38,9 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       localResourceRoots: [webviewRoot]
     };
     panel.webview.html = this.renderHtml(panel.webview, webviewRoot);
+    if (panel.active) {
+      this.activePanel = panel;
+    }
     const viewId = randomUUID();
     const session = this.sessions.get(document);
     session.attach({ id: viewId, postMessage: (message) => panel.webview.postMessage(message) });
@@ -42,6 +53,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       }
       if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
         session.sendSnapshot(viewId);
+        await this.sendConfiguration(document, panel.webview);
       } else if (parsed.data.type === 'requestSnapshot') {
         session.sendSnapshot(viewId);
       } else if (parsed.data.type === 'applyPatch') {
@@ -62,12 +74,29 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         await this.history.requestHistoryAction(viewId, parsed.data.action);
       }
     });
+    const viewState = panel.onDidChangeViewState((event) => {
+      if (event.webviewPanel.active) {
+        this.activePanel = event.webviewPanel;
+      }
+    });
     panel.onDidDispose(() => {
       messages.dispose();
+      viewState.dispose();
+      if (this.activePanel === panel) {
+        this.activePanel = undefined;
+      }
       session.detach(viewId);
       this.history.unregister(viewId);
     });
     return Promise.resolve();
+  }
+
+  private sendConfiguration(document: vscode.TextDocument, webview: vscode.Webview): Thenable<boolean> {
+    const configuration = vscode.workspace.getConfiguration('markami', document.uri);
+    return webview.postMessage({
+      type: 'configuration',
+      selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true)
+    });
   }
 
   private renderHtml(webview: vscode.Webview, webviewRoot: vscode.Uri): string {

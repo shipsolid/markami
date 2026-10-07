@@ -9,6 +9,22 @@ export function activate(context: vscode.ExtensionContext): void {
   const sessions = new DocumentSessionRegistry(recovery);
   const history = new HistoryRouter();
   const provider = new MarkamiProvider(context.extensionUri, sessions, history);
+  const formattingCommands = [
+    'markami.bold',
+    'markami.italic',
+    'markami.strikethrough',
+    'markami.inlineCode',
+    'markami.link',
+    'markami.clearFormatting',
+    'markami.paragraph',
+    'markami.heading1',
+    'markami.heading2',
+    'markami.heading3',
+    'markami.heading4',
+    'markami.heading5',
+    'markami.heading6',
+    'markami.showSelectionToolbar'
+  ];
 
   context.subscriptions.push(
     sessions,
@@ -27,7 +43,8 @@ export function activate(context: vscode.ExtensionContext): void {
       if (active instanceof vscode.TabInputCustom) {
         await vscode.commands.executeCommand('vscode.openWith', active.uri, 'default');
       }
-    })
+    }),
+    ...formattingCommands.map((command) => vscode.commands.registerCommand(command, () => provider.executeAction(command)))
   );
 }
 
