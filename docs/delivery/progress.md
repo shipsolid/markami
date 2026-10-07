@@ -128,3 +128,17 @@
 - Security/performance: Mermaid uses strict local configuration; KaTeX uses `trust: false`; both are lazy chunks, renderer jobs are bounded/cancellable, and no code block is executed
 - Limitation: native IME and screen-reader interaction remain unverified release gates; synthetic Unicode/composition coverage is not claimed as native IME proof
 - Next: Task 10 GFM table editing
+
+## Task 10 — GFM table grid and bounded structural edits
+
+- Status: complete
+- Commit: `feat: edit GFM tables with bounded source patches`
+- Changed paths: escaped-pipe/code-span-aware table parser, cell/alignment/row/column planners, source-mapped accessible grid, table-only structural rewrite boundary, ADR-010, fidelity/UI tests
+- RED: table fidelity/UI suites failed because the table source map, planners, and grid projection did not exist
+- GREEN:
+  - `npm run test:fidelity -- tables` — 37 tests passing across matching fidelity/webview files
+  - `npm run test:webview` — 29 webview tests passing
+  - `npm run verify` — pass; 77 core tests plus build/static checks
+- Covered boundaries: escaped pipes, code spans containing pipes, ragged rows, alignment, CRLF, Unicode, direct cell locality, surrounding-byte preservation, last-cell row append, insert/delete row/column, malformed fallback, active source reveal, and stale table snapshots
+- Ruling: routine cell/alignment edits are minimal patches; row/column changes may normalize only the confirmed table range while preserving surrounding text, EOL style, cell content, and alignment intent
+- Next: Task 11 links, images, and resource policy; completing its image service will also close Task 7

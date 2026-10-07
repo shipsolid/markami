@@ -21,6 +21,7 @@ import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from '.
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
 import { registerTechnicalFeatures, technicalBlocks } from './features/technicalBlocks.js';
+import { tableProjectionField } from './features/tables/TableProjection.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
@@ -59,6 +60,7 @@ const actions = createFormattingActionRegistry();
 const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
 registerTechnicalFeatures(featureRegistry);
+featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   if (message.type === 'hydrate') {
@@ -118,6 +120,7 @@ function createEditor(text: string): void {
         markdown({ codeLanguages: languages }),
         projectionField,
         technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap })),
+        tableProjectionField,
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
         keymap.of([
           ...createSlashKeymap(),

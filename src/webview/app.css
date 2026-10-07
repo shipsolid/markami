@@ -48,3 +48,31 @@
 .markami-slash-palette button {
   color: inherit;
 }
+
+.markami-table {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  display: table;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markami-table [role='row'] {
+  display: table-row;
+}
+
+.markami-table [role='gridcell'],
+.markami-table [role='columnheader'] {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  display: table-cell;
+  min-width: 80px;
+  padding: 6px 10px;
+}
+
+.markami-table [role='columnheader'] {
+  font-weight: 600;
+}
+
+.markami-table-controls {
+  display: table-caption;
+  padding: 4px;
+}
