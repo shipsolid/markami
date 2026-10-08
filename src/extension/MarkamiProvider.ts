@@ -12,6 +12,7 @@ import type { ResourceRequest, ResourceResponse } from '../protocol/resourceMess
 import type { EffectiveViewPreferences, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { resolveViewPreferences, type ViewPreferencesStore } from './ViewPreferencesStore.js';
 import type { DocumentSession } from './DocumentSession.js';
+import { readRemoteImagePolicy, readWebviewConfiguration } from './configuration.js';
 
 interface OpenPreferenceSession {
   readonly session: DocumentSession;
@@ -292,23 +293,14 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   }
 
   private remoteImagePolicy(document: vscode.TextDocument): RemoteResourcePolicy {
-    return vscode.workspace.getConfiguration('markami', document.uri)
-      .get<RemoteResourcePolicy>('remoteImages', 'prompt');
+    return readRemoteImagePolicy(vscode.workspace.getConfiguration('markami', document.uri));
   }
 
   private sendConfiguration(resource: vscode.Uri, webview: vscode.Webview): Thenable<boolean> {
     const configuration = vscode.workspace.getConfiguration('markami', resource);
-    const configuredEditorFont = configuration.get<unknown>('theme.useEditorFont');
     return webview.postMessage({
       type: 'configuration',
-      selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true),
-      slashCommandsEnabled: configuration.get<boolean>('slashCommands.enabled', true),
-      mathEnabled: configuration.get<boolean>('renderMath', true),
-      blockHandlesEnabled: configuration.get<boolean>('blockHandles.enabled', true),
-      outlineEnabled: configuration.get<boolean>('outline.enabled', true),
-      renderMermaid: configuration.get<boolean>('renderMermaid', true),
-      codeBlockWrap: configuration.get<boolean>('codeBlock.wrap', false),
-      useEditorFont: typeof configuredEditorFont === 'boolean' ? configuredEditorFont : true
+      ...readWebviewConfiguration(configuration)
     });
   }
 
