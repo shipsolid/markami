@@ -5,6 +5,7 @@ import { planBlockMove } from '../../src/core/markdown/moveBlock.js';
 import { buildProjectionPlan } from '../../src/core/markdown/syntax.js';
 import { createCoordinateMap, editorOffset } from '../../src/core/source/CoordinateMap.js';
 import { applyPatchSet, createTextPatch, invertPatchSet } from '../../src/core/source/PatchSet.js';
+import { PatchQueue } from '../../src/webview/bridge/patchQueue.js';
 
 const seed = Number(process.env.FC_SEED ?? 0x4d41524b);
 const options = { seed, numRuns: 200 } as const;
@@ -46,6 +47,32 @@ describe(`source invariants (fast-check seed ${String(seed)})`, () => {
       for (let offset = 0; offset <= map.editorText.length; offset += 1) {
         expect(Number(map.toEditor(map.toHost(editorOffset(offset))))).toBe(offset);
       }
+    }), options);
+  });
+
+  test('duplicate external delivery is idempotent', () => {
+    fc.assert(fc.property(text, insert, (source, addition) => {
+      const queue = new PatchQueue('view', 1, source, 1, () => undefined);
+      const patch = createTextPatch(source.length, source.length, addition);
+
+      queue.applyExternal([patch], 1, 2);
+      const once = queue.acknowledgedText;
+      queue.applyExternal([patch], 1, 2);
+
+      expect(queue.state).toBe('synced');
+      expect(queue.acknowledgedText).toBe(once);
+    }), options);
+  });
+
+  test('external changes reject every pending local overlap', () => {
+    fc.assert(fc.property(text, insert, insert, (source, local, external) => {
+      const queue = new PatchQueue('view', 1, source, 1, () => undefined);
+      queue.enqueueLocal([createTextPatch(0, 0, local)]);
+
+      queue.applyExternal([createTextPatch(source.length, source.length, external)], 1, 2);
+
+      expect(queue.state).toBe('conflict');
+      expect(queue.optimisticText).toBe(`${local}${source}`);
     }), options);
   });
 

@@ -40,8 +40,8 @@ function document(): CanonicalDocument {
 }
 
 describe('view preference protocol', () => {
-  test('protocol_v2_rejects_a_retained_v1_hydration', () => {
-    expect(PROTOCOL_VERSION).toBe(2);
+  test('protocol_v3_rejects_a_retained_v1_hydration', () => {
+    expect(PROTOCOL_VERSION).toBe(3);
     const bridge = new HostBridge({ postMessage: () => undefined });
     bridge.handle({
       type: 'hydrate',

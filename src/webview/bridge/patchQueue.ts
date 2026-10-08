@@ -23,7 +23,8 @@ export class PatchQueue {
     private readonly generation: number,
     initialText: string,
     initialVersion: number,
-    private readonly send: (request: PatchRequest) => void
+    private readonly send: (request: PatchRequest) => void,
+    private readonly storeDraft?: (draftText: string, baseVersion: number) => void
   ) {
     this.acknowledgedText = initialText;
     this.optimisticText = initialText;
@@ -35,15 +36,16 @@ export class PatchQueue {
       throw new Error(`cannot enqueue edits while ${this.state}`);
     }
     this.optimisticText = applyPatchSet(this.optimisticText, patches);
+    this.storeDraft?.(this.optimisticText, this.acknowledgedVersion);
     this.sequence += 1;
     this.pending.push({ requestId: `${this.viewId}:${String(this.generation)}:${String(this.sequence)}`, patches });
     this.state = 'pending';
     this.pump();
   }
 
-  public accept(requestId: string, version: number): void {
+  public accept(requestId: string, version: number): boolean {
     if (this.inFlight?.requestId !== requestId) {
-      return;
+      return false;
     }
     this.acknowledgedText = applyPatchSet(this.acknowledgedText, this.inFlight.patches);
     this.acknowledgedVersion = version;
@@ -51,39 +53,46 @@ export class PatchQueue {
     this.conflictReason = undefined;
     this.state = this.pending.length === 0 ? 'synced' : 'pending';
     this.pump();
+    return true;
   }
 
-  public reject(requestId: string, canonicalText: string, version: number, reason: string): void {
+  public reject(requestId: string, canonicalText: string, version: number, reason: string): boolean {
     if (this.inFlight?.requestId !== requestId) {
-      return;
+      return false;
     }
     this.acknowledgedText = canonicalText;
     this.acknowledgedVersion = version;
     this.conflictReason = reason;
     this.state = 'conflict';
+    return true;
   }
 
   public ownsRequest(requestId: string): boolean {
     return this.inFlight?.requestId === requestId || this.pending.some((edit) => edit.requestId === requestId);
   }
 
-  public applyExternal(patches: readonly TextPatch[], beforeVersion: number, version: number): void {
+  public applyExternal(
+    patches: readonly TextPatch[],
+    beforeVersion: number,
+    version: number
+  ): 'applied' | 'ignored' | 'conflict' {
     if (version <= this.acknowledgedVersion) {
-      return;
+      return 'ignored';
     }
     if (beforeVersion !== this.acknowledgedVersion) {
       this.conflictReason = 'external change version gap';
       this.state = 'conflict';
-      return;
+      return 'conflict';
     }
     if (this.inFlight !== undefined || this.pending.length > 0) {
       this.conflictReason = 'external change overlaps pending edits';
       this.state = 'conflict';
-      return;
+      return 'conflict';
     }
     this.acknowledgedText = applyPatchSet(this.acknowledgedText, patches);
     this.optimisticText = this.acknowledgedText;
     this.acknowledgedVersion = version;
+    return 'applied';
   }
 
   public dispose(): void {
@@ -107,8 +116,7 @@ export class PatchQueue {
       viewId: this.viewId,
       generation: this.generation,
       baseVersion: this.acknowledgedVersion,
-      patches: next.patches,
-      draftText: this.optimisticText
+      patches: next.patches
     });
   }
 }

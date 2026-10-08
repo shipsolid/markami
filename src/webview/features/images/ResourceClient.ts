@@ -10,11 +10,13 @@ interface Pending {
 export class ResourceClient {
   private sequence = 0;
   private readonly pending = new Map<string, Pending>();
+  private readonly requestsByKey = new Map<string, Promise<ResourceResponse>>();
 
   public constructor(
     private readonly transport: VsCodeTransport,
     private readonly navigateFragment: (fragment: string) => void,
-    private readonly timeoutMs = 30_000
+    private readonly timeoutMs = 30_000,
+    private readonly maxPending = 32
   ) {}
 
   public pickImage(): Promise<string | undefined> {
@@ -53,11 +55,21 @@ export class ResourceClient {
       });
     }
     this.pending.clear();
+    this.requestsByKey.clear();
   }
 
   private request(action: 'pickImage'): Promise<ResourceResponse>;
   private request(action: 'resolveImage' | 'openLink', rawPath: string): Promise<ResourceResponse>;
   private request(action: 'pickImage' | 'resolveImage' | 'openLink', rawPath?: string): Promise<ResourceResponse> {
+    const key = `${action}\u0000${rawPath ?? ''}`;
+    const existing = this.requestsByKey.get(key);
+    if (existing !== undefined) return existing;
+    if (this.pending.size >= this.maxPending) {
+      return Promise.resolve({
+        type: 'resourceResult', requestId: 'resource-capacity', action, ok: false,
+        reason: 'too many pending resource requests'
+      });
+    }
     const requestId = `resource-${String(++this.sequence)}`;
     const response = new Promise<ResourceResponse>((resolve) => {
       const timer = setTimeout(() => {
@@ -69,6 +81,8 @@ export class ResourceClient {
     this.transport.postMessage(rawPath === undefined
       ? { type: 'resourceRequest', requestId, action }
       : { type: 'resourceRequest', requestId, action, rawPath });
-    return response;
+    const tracked = response.finally(() => this.requestsByKey.delete(key));
+    this.requestsByKey.set(key, tracked);
+    return tracked;
   }
 }

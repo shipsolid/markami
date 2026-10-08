@@ -71,6 +71,7 @@ export function imageProjection(
     private requestMissing(): void {
       const state = this.view.state.field(imageProjectionField);
       for (const image of findImages(this.view.state.doc.toString())) {
+        if (this.pending.size >= 32) break;
         const key = imageKey(image);
         if (state.resolutions.has(key) || this.pending.has(key)) continue;
         this.pending.add(key);

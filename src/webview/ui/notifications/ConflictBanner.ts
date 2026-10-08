@@ -27,3 +27,25 @@ export class ConflictBanner {
     this.element.remove();
   }
 }
+
+export class ErrorBanner {
+  public readonly element: HTMLElement;
+
+  public constructor(message: string) {
+    const banner = document.createElement('section');
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-label', 'markami error');
+    const text = document.createElement('span');
+    text.textContent = message;
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.textContent = 'Dismiss';
+    dismiss.addEventListener('click', () => this.destroy());
+    banner.append(text, dismiss);
+    this.element = banner;
+  }
+
+  public destroy(): void {
+    this.element.remove();
+  }
+}

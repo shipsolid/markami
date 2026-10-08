@@ -15,9 +15,11 @@ import { planBlockMove } from '../core/markdown/moveBlock.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
+import { isProtocolTextWithinLimit } from '../protocol/limits.js';
 import { CompositionGate } from './bridge/compositionGate.js';
 import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
-import { HostBridge } from './bridge/hostBridge.js';
+import { HostBridge, shouldApplyExternalChange } from './bridge/hostBridge.js';
+import { preserveLiveConflictDraft } from './bridge/recovery.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import {
   applyPlannedEdit,
@@ -59,7 +61,7 @@ import {
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
 import { DocumentOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
-import { ConflictBanner } from './ui/notifications/ConflictBanner.js';
+import { ConflictBanner, ErrorBanner } from './ui/notifications/ConflictBanner.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -88,6 +90,8 @@ let documentControls: DocumentControls | undefined;
 let documentFind: DocumentFind | undefined;
 let documentOutline: DocumentOutline | undefined;
 let conflictBanner: ConflictBanner | undefined;
+let conflictDraft: string | undefined;
+let errorBanner: ErrorBanner | undefined;
 let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
@@ -115,7 +119,7 @@ featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
 featureRegistry.register({ id: 'frontmatter', sourceKinds: ['yamlFrontmatter'] });
 featureRegistry.register({ id: 'html-source-islands', sourceKinds: ['rawHtml', 'mdx', 'customDirective'] });
 
-const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
+const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
   if (message.type === 'resourceResult') {
     resources.handle(message);
   } else if (message.type === 'preparePolicyReload') {
@@ -126,20 +130,26 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     coordinateMap = createCoordinateMap(message.document.text);
     applyViewPreferencesState(message.viewPreferences);
     createEditor(coordinateMap.editorText);
+    if (disposition.restoredDraft !== undefined) showConflictBanner(disposition.restoredDraft);
   } else if (message.type === 'viewPreferencesChanged') {
     applyViewPreferencesState(message.viewPreferences);
   } else if (message.type === 'recoveryAvailable') {
-    conflictBanner?.destroy();
-    conflictBanner = new ConflictBanner((choice) => {
-      vscode.postMessage({ type: 'recoveryChoice', choice });
-      if (choice === 'reload' || choice === 'discard') {
-        conflictBanner?.destroy();
-        conflictBanner = undefined;
-      }
-    });
-    document.body.prepend(conflictBanner.element);
+    showConflictBanner();
+  } else if (message.type === 'patchRejected' && disposition.rejectionMatched === true) {
+    showConflictBanner(bridge.queue?.optimisticText);
+  } else if (message.type === 'showError') {
+    if (message.code === 'RECOVERY_STORAGE' || message.code === 'RECOVERY_CAPACITY') {
+      bridge.cancelRecoveryResolution();
+    }
+    errorBanner?.destroy();
+    errorBanner = new ErrorBanner(message.message);
+    document.body.prepend(errorBanner.element);
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
-    applyHostPatches(message.changes);
+    if (shouldApplyExternalChange(disposition.externalChange, ownedOrigin)) {
+      applyHostPatches(message.changes);
+    } else {
+      showConflictBanner(bridge.queue?.optimisticText);
+    }
   } else if (message.type === 'executeAction') {
     executeHostAction(message.actionId, message.value);
   } else if (message.type === 'configuration') {
@@ -178,7 +188,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     }
   }
   acknowledgePolicyReloadWhenSynced();
-});
+}, vscode);
 
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
   if (isHostMessage(event.data)) {
@@ -202,6 +212,9 @@ bridge.ready();
 function createEditor(text: string): void {
   conflictBanner?.destroy();
   conflictBanner = undefined;
+  conflictDraft = undefined;
+  errorBanner?.destroy();
+  errorBanner = undefined;
   documentControls?.destroy();
   toolbar?.destroy();
   linkPopover?.destroy();
@@ -218,6 +231,13 @@ function createEditor(text: string): void {
       doc: text,
       extensions: [
         markdown({ codeLanguages: languages }),
+        EditorState.changeFilter.of((transaction) => {
+          if (!transaction.docChanged) return true;
+          const nextSource = transaction.newDoc.toString().replaceAll('\n', eol);
+          if (isProtocolTextWithinLimit(nextSource)) return true;
+          queueMicrotask(() => vscode.postMessage({ type: 'requestSourceFallback' }));
+          return false;
+        }),
         policyReloadCompartment.of(EditorView.editable.of(true)),
         syntaxRevealCompartment.of(syntaxRevealPolicy.of(syntaxReveal)),
         manualSyntaxReveal,
@@ -365,6 +385,21 @@ function createEditor(text: string): void {
   documentOutline.setCollapsed(outlineCollapsed);
   documentOutline.setNarrow(window.innerWidth <= 480);
   updateDocumentOutline();
+}
+
+function showConflictBanner(draftText?: string): void {
+  conflictDraft = preserveLiveConflictDraft(conflictDraft, draftText);
+  view?.dispatch({ effects: policyReloadCompartment.reconfigure(EditorView.editable.of(false)) });
+  conflictBanner?.destroy();
+  conflictBanner = new ConflictBanner((choice) => {
+    if (choice === 'reload' || choice === 'discard') bridge.resolveRecoveryWithNextHydrate();
+    vscode.postMessage({
+      type: 'recoveryChoice',
+      choice,
+      ...(conflictDraft === undefined ? {} : { draftText: conflictDraft })
+    });
+  });
+  document.body.prepend(conflictBanner.element);
 }
 
 function currentActionContext(): ActionContext {

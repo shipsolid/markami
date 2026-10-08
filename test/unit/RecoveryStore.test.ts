@@ -104,4 +104,19 @@ describe('RecoveryStore', () => {
 
     expect(storage.value.map((record) => record.uri)).toEqual(['file:///a.md', 'file:///b.md']);
   });
+
+  test('compare-and-clear cannot delete a newer serialized draft', async () => {
+    const storage = new MemoryStorage();
+    const store = new RecoveryStore(storage, 1024);
+    await store.put({ uri: 'file:///a.md', baseVersion: 1, canonicalBaseHash: 'a', draftText: 'A', timestamp: 1 });
+
+    const newer = store.put({
+      uri: 'file:///a.md', baseVersion: 1, canonicalBaseHash: 'a', draftText: 'AB', timestamp: 2
+    });
+    const cleared = store.clearIfDraftEquals('file:///a.md', 'A');
+    await newer;
+
+    await expect(cleared).resolves.toBe(false);
+    expect(store.get('file:///a.md')?.draftText).toBe('AB');
+  });
 });

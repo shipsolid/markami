@@ -7,6 +7,7 @@ import { buildProjectionPlan, findUnknownSyntaxRanges } from '../../src/core/mar
 import { parseGfmTables } from '../../src/core/markdown/tables.js';
 import { applyPatchSet, createTextPatch, invertPatchSet } from '../../src/core/source/PatchSet.js';
 import { buildTechnicalPlan } from '../../src/webview/features/technicalBlocks.js';
+import { PatchQueue } from '../../src/webview/bridge/patchQueue.js';
 
 const fixture = readFileSync(
   fileURLToPath(new URL('../../fixtures/corpus/comprehensive.md', import.meta.url)),
@@ -50,5 +51,18 @@ describe('golden Markdown corpus', () => {
     expect(edited.slice(0, from)).toBe(source.slice(0, from));
     expect(edited.slice(from + 'Edited prose'.length)).toBe(source.slice(from + needle.length));
     expect(applyPatchSet(edited, invertPatchSet(source, [patch]))).toBe(source);
+  });
+
+  test.each(corpusVariants())('%s converges identically in two idle views', (_name, source) => {
+    const first = new PatchQueue('first', 1, source, 1, () => undefined);
+    const second = new PatchQueue('second', 1, source, 1, () => undefined);
+    const offset = source.indexOf('Plain prose');
+    const patches = [createTextPatch(offset, offset + 'Plain'.length, 'Shared')];
+
+    first.applyExternal(patches, 1, 2);
+    second.applyExternal(patches, 1, 2);
+
+    expect(first.acknowledgedText).toBe(second.acknowledgedText);
+    expect(first.acknowledgedText).toBe(applyPatchSet(source, patches));
   });
 });

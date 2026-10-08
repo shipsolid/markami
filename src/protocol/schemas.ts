@@ -37,11 +37,24 @@ export const patchRequestSchema = z.object({
 export const webviewMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ready'), protocolVersion: z.number().int() }).strict(),
   z.object({ type: z.literal('applyPatch'), request: patchRequestSchema }).strict(),
+  z.object({
+    type: z.literal('storeDraft'),
+    viewId: z.string().min(1).max(200),
+    generation: z.number().int().nonnegative(),
+    revision: z.number().int().positive(),
+    baseVersion: z.number().int().nonnegative(),
+    draftText: z.string().refine(isProtocolTextWithinLimit, 'draft exceeds the protocol text limit')
+  }).strict(),
   z.object({ type: z.literal('requestSnapshot') }).strict(),
+  z.object({ type: z.literal('requestSourceFallback') }).strict(),
   z.object({ type: z.literal('save') }).strict(),
   z.object({ type: z.literal('history'), action: z.enum(['undo', 'redo']) }).strict(),
   z.object({ type: z.literal('policyReloadReady'), requestId: z.string().min(1).max(200) }).strict(),
-  z.object({ type: z.literal('recoveryChoice'), choice: z.enum(['inspect', 'copy', 'reload', 'discard']) }).strict(),
+  z.object({
+    type: z.literal('recoveryChoice'),
+    choice: z.enum(['inspect', 'copy', 'reload', 'discard']),
+    draftText: z.string().refine(isProtocolTextWithinLimit, 'draft exceeds the protocol text limit').optional()
+  }).strict(),
   z.object({ type: z.literal('updateViewPreferences'), changes: viewPreferenceChangesSchema }).strict(),
   z.object({ type: z.literal('resetFileViewPreferences') }).strict(),
   z.object({ type: z.literal('resetWorkspaceViewPreferences') }).strict(),

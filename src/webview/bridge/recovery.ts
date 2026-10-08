@@ -17,3 +17,10 @@ export function prepareRecoveredDraft(
     baseMatches: record.canonicalBaseHash === canonicalHash
   };
 }
+
+export function preserveLiveConflictDraft(
+  current: string | undefined,
+  incoming: string | undefined
+): string | undefined {
+  return incoming ?? current;
+}

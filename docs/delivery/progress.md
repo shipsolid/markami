@@ -223,3 +223,21 @@
 - Review: independent read-only review found no Critical issues and ten Important gaps; the single fix pass added a failing regression for each affected behavior before implementation. Two Minor findings remain deferred: `DocumentFind.destroy()` relies on editor destruction to discard highlights, and Open Rendered relies on VS Code rejecting unsupported non-Markdown inputs.
 - Environment boundary: `npm run test:visual:browser` and native `npm run test:integration` cannot launch Chromium/VS Code on this host because `libnspr4.so` is missing. Native screen-reader/AT-SPI smoke is unavailable in the headless environment. Deterministic DOM/CSS checks and the compiled integration suite pass; no native assistive-technology result is claimed.
 - Next: Task 16 hardening, recovery stress, property testing, corpus expansion, and performance evidence
+
+## Task 16 — Hardening, security, recovery stress, and performance
+
+- Status: complete for deterministic and compiled gates; native/cross-platform release evidence remains explicitly unavailable
+- Commit: `test: harden fidelity and release reliability` (implementation checkpoint `6eb5d14`; verification report follow-up)
+- Changed paths: golden mixed-syntax corpus, seeded fast-check properties, strict/bounded protocol schemas, sender-bound replay handling, recovery lifecycle and user choices, composition deferral, large-document source fallback, resource-client cleanup, CSP/security/license checks, disk/remote-workspace integration cases, synthetic benchmark, and `docs/delivery/verification.md`
+- RED: focused suites initially failed because the corpus/property/stress/IME/recovery cases, 4 MiB protocol boundary, CSP regression, dependency-license check, and benchmark did not exist; follow-up cases exposed replay collisions across views/generations, changed duplicate payloads, queue poisoning, duplicate external deliveries, recovery rename/delete gaps, and resource-client timeout cleanup
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 89 unit tests, 32 protocol tests, 55 fidelity tests, 242 production dependency license records, and production builds
+  - `npm run test:webview` — pass; 74 deterministic webview tests
+  - `npm run test:visual` — pass; 5 deterministic theme/state/focus baselines
+  - `npm run build:integration` — pass; BOM/CRLF/no-final-newline no-touch, bounded edit, Save All, >4 MiB fallback, and non-file document cases compile but were not executed
+  - `npm run bench` — pass; p95 9.80 ms at 10 KiB, 56.01 ms at 100 KiB, 507.05 ms at 1 MiB, and 33.73 ms for the 100 KiB synthetic typing proxy
+- Covered boundaries: LF/CRLF, BOM/no-BOM, final/no-final newline, mixed Markdown features, exact inverse/outside-range equality, seeded Unicode/EOL coordinates, block-core preservation, projection purity, delayed/out-of-order/duplicate/stale messages, authenticated view generations, bounded untrusted text/replay/resource/draft queues, per-view recovery and atomic clear ordering, recovery inspection/copy/reload/discard, rename/delete recovery records, unsafe HTML/URL/resource inputs, symlink confinement, packaged CSP construction, resource timeout/disposal, and complete-source fallback for oversized documents
+- Security exception: `npm audit --omit=dev` reports two low-severity findings in Mermaid's nested KaTeX 0.16.47. The automated remedy is a breaking Mermaid downgrade, so the finding remains documented for deliberate dependency remediation; strict local rendering configuration reduces exposure but is not represented as resolving the advisory.
+- Review: independent read-only review identified recovery, generation, IME, outbound-size, event-correlation, replay-memory, and resource-bound defects; the TDD fix pass resolved every Critical/Important finding, and the final re-review approved the slice.
+- Evidence boundary: Chromium and native VS Code 1.141.0 both fail before tests because this WSL2 host lacks `libnspr4.so`. VS Code 1.102, Node 22, Windows, macOS, native Linux, real IME, and screen-reader smoke were unavailable and are not claimed. See `docs/delivery/verification.md`.
+- Next: Task 17 packaged VSIX, user documentation, package inspection, and clean-profile installation evidence

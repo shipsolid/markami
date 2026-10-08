@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { patchRequestSchema } from '../../src/protocol/schemas.js';
+import { patchRequestSchema, webviewMessageSchema } from '../../src/protocol/schemas.js';
 import { MAX_PROTOCOL_TEXT_BYTES, isProtocolTextWithinLimit } from '../../src/protocol/limits.js';
 
 describe('protocol payload limits', () => {
@@ -30,5 +30,17 @@ describe('protocol payload limits', () => {
       patches: [{ from: 0, to: 0, insert: 'x'.repeat(2 * 1024 * 1024) }],
       draftText: 'y'.repeat(3 * 1024 * 1024)
     }).success).toBe(false);
+  });
+
+  test('bounds independently published recovery drafts', () => {
+    expect(webviewMessageSchema.safeParse({
+      type: 'storeDraft', viewId: 'view', generation: 1, revision: 1, baseVersion: 1,
+      draftText: 'x'.repeat(MAX_PROTOCOL_TEXT_BYTES)
+    }).success).toBe(true);
+    expect(webviewMessageSchema.safeParse({
+      type: 'storeDraft', viewId: 'view', generation: 1, revision: 1, baseVersion: 1,
+      draftText: 'x'.repeat(MAX_PROTOCOL_TEXT_BYTES + 1)
+    }).success).toBe(false);
+    expect(webviewMessageSchema.safeParse({ type: 'requestSourceFallback' }).success).toBe(true);
   });
 });

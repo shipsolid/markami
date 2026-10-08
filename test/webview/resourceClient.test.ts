@@ -39,4 +39,17 @@ describe('ResourceClient', () => {
     client.dispose();
     await expect(disposed).resolves.toBe(false);
   });
+
+  test('deduplicates identical image requests and caps untrusted pending work', () => {
+    const sent: unknown[] = [];
+    const client = new ResourceClient({ postMessage: (message) => sent.push(message) }, vi.fn(), 30_000, 8);
+
+    void client.resolveImage('./same.png');
+    void client.resolveImage('./same.png');
+    for (let index = 0; index < 100; index += 1) void client.resolveImage(`./${String(index)}.png`);
+
+    expect(sent.filter((message) => (message as { rawPath?: string }).rawPath === './same.png')).toHaveLength(1);
+    expect(sent).toHaveLength(8);
+    client.dispose();
+  });
 });

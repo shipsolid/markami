@@ -78,13 +78,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       return;
     }
     if (!isProtocolTextWithinLimit(document.getText())) {
-      panel.webview.options = { enableScripts: false, localResourceRoots: [] };
-      panel.webview.html = this.renderOversizedDocumentHtml(panel.webview);
-      void vscode.window.showWarningMessage(
-        `markami supports rendered documents up to ${String(MAX_PROTOCOL_TEXT_BYTES / (1024 * 1024))} MiB. Opening this file in the source editor without truncation.`
-      );
-      await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default', panel.viewColumn);
-      panel.dispose();
+      await this.openSourceFallback(document, panel);
       return;
     }
 
@@ -101,8 +95,18 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     const viewId = randomUUID();
     let remotePolicy = this.remoteImagePolicy(document);
     let pendingPolicyReload: string | undefined;
+    let hydrated = false;
+    let fallingBack = false;
     const session = this.sessions.get(document);
-    session.attach({ id: viewId, postMessage: (message) => panel.webview.postMessage(message) });
+    session.attach({
+      id: viewId,
+      postMessage: (message) => panel.webview.postMessage(message),
+      fallbackToSource: () => {
+        if (fallingBack) return;
+        fallingBack = true;
+        void this.openSourceFallback(document, panel);
+      }
+    });
     this.openPreferenceSessions.set(viewId, { session, uri: document.uri.toString() });
     const preferenceUri = (): string => this.openPreferenceSessions.get(viewId)?.uri ?? document.uri.toString();
     this.history.register(viewId, document.uri);
@@ -113,6 +117,8 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         return;
       }
       if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
+        if (hydrated) session.rotateGeneration(viewId);
+        hydrated = true;
         session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
         await this.sendConfiguration(vscode.Uri.parse(preferenceUri(), true), panel.webview);
         session.sendRecoveryNotice(viewId);
@@ -123,7 +129,13 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
           message: 'The markami editor was updated. Reopen this tab to continue.'
         });
       } else if (parsed.data.type === 'requestSnapshot') {
+        session.rotateGeneration(viewId);
         session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
+      } else if (parsed.data.type === 'requestSourceFallback') {
+        if (!fallingBack) {
+          fallingBack = true;
+          await this.openSourceFallback(document, panel);
+        }
       } else if (parsed.data.type === 'applyPatch') {
         await session.enqueuePatch({
           requestId: parsed.data.request.requestId,
@@ -133,6 +145,20 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
           patches: parsed.data.request.patches.map((patch) => createTextPatch(patch.from, patch.to, patch.insert)),
           ...(parsed.data.request.draftText === undefined ? {} : { draftText: parsed.data.request.draftText })
         }, viewId);
+      } else if (parsed.data.type === 'storeDraft') {
+        await session.storeDraft(
+          viewId,
+          parsed.data.generation,
+          parsed.data.revision,
+          parsed.data.baseVersion,
+          parsed.data.draftText
+        );
+        await panel.webview.postMessage({
+          type: 'draftStored',
+          viewId,
+          generation: parsed.data.generation,
+          revision: parsed.data.revision
+        });
       } else if (parsed.data.type === 'save') {
         let saved = false;
         if (document.isUntitled) {
@@ -157,9 +183,10 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         await this.history.requestHistoryAction(viewId, parsed.data.action);
       } else if (parsed.data.type === 'recoveryChoice') {
         const recovered = session.recoveredDraft();
-        if (recovered === undefined) return;
+        const draftText = parsed.data.draftText ?? recovered?.draftText;
         if (parsed.data.choice === 'inspect') {
-          const draft = await vscode.workspace.openTextDocument({ content: recovered.draftText, language: 'markdown' });
+          if (draftText === undefined) return;
+          const draft = await vscode.workspace.openTextDocument({ content: draftText, language: 'markdown' });
           await vscode.commands.executeCommand(
             'vscode.diff',
             document.uri,
@@ -167,12 +194,32 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
             `${path.basename(document.uri.path)} ↔ recovered markami draft`
           );
         } else if (parsed.data.choice === 'copy') {
-          await vscode.env.clipboard.writeText(recovered.draftText);
+          if (draftText === undefined) return;
+          await vscode.env.clipboard.writeText(draftText);
           void vscode.window.showInformationMessage('Copied the recovered markami draft to the clipboard.');
         } else if (parsed.data.choice === 'reload') {
+          if (parsed.data.draftText !== undefined) {
+            const retained = await session.retainRecoveredDraft(
+              viewId,
+              session.currentGeneration(viewId) ?? 0,
+              document.version,
+              parsed.data.draftText
+            );
+            if (!retained) {
+              await panel.webview.postMessage({
+                type: 'showError',
+                code: 'RECOVERY_STORAGE',
+                message: 'Copy or inspect the local draft before reloading because recovery storage is unavailable.'
+              });
+              return;
+            }
+          }
+          session.rotateGeneration(viewId);
           session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
         } else {
-          await session.clearRecoveredDraft();
+          await session.clearRecoveredDraft(viewId);
+          session.rotateGeneration(viewId);
+          session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
         }
       } else if (parsed.data.type === 'resourceRequest') {
         await this.handleResourceRequest(document, panel.webview, parsed.data);
@@ -230,7 +277,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     try {
       if (document.uri.scheme !== 'file') {
-        await this.postResourceError(webview, request, 'Resource operations for remote workspaces require Task 16 URI support');
+        await this.postResourceError(webview, request, 'Resource operations are unavailable for non-file workspaces');
         return;
       }
       if (request.action === 'pickImage') {
@@ -317,6 +364,16 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     return webview.postMessage({
       type: 'resourceResult', requestId: request.requestId, action: request.action, ok: false, reason
     } satisfies ResourceResponse);
+  }
+
+  private async openSourceFallback(document: vscode.TextDocument, panel: vscode.WebviewPanel): Promise<void> {
+    panel.webview.options = { enableScripts: false, localResourceRoots: [] };
+    panel.webview.html = this.renderOversizedDocumentHtml(panel.webview);
+    void vscode.window.showWarningMessage(
+      `markami supports rendered documents up to ${String(MAX_PROTOCOL_TEXT_BYTES / (1024 * 1024))} MiB. Opening this file in the source editor without truncation.`
+    );
+    await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default', panel.viewColumn);
+    panel.dispose();
   }
 
   private resourceRoots(document: vscode.TextDocument): readonly string[] {

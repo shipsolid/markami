@@ -12,13 +12,13 @@ export class DocumentSessionRegistry implements vscode.Disposable {
   public constructor(private readonly recovery?: RecoveryStore) {
     this.changes = vscode.workspace.onDidChangeTextDocument((event) => {
       const session = this.sessions.get(event.document.uri.toString());
-      if (session === undefined || session.isApplying) {
+      if (session === undefined) {
         return;
       }
       const patches = event.contentChanges.map((change) =>
         createTextPatch(change.rangeOffset, change.rangeOffset + change.rangeLength, change.text)
       );
-      session.handleDocumentChanged(event.document.version - 1, event.document.version, patches);
+      session.handleCanonicalDocumentChanged(event.document.version - 1, event.document.version, patches);
     });
     this.closes = vscode.workspace.onDidCloseTextDocument((document) => {
       const key = document.uri.toString();

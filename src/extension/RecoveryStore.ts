@@ -48,6 +48,16 @@ export class RecoveryStore {
     return this.mutate(() => this.storage.update(this.storage.get().filter((record) => record.uri !== uri)));
   }
 
+  public clearIfDraftEquals(uri: string, draftText: string): Promise<boolean> {
+    return this.mutate(async () => {
+      const records = this.storage.get();
+      const current = records.find((record) => record.uri === uri);
+      if (current?.draftText !== draftText) return false;
+      await this.storage.update(records.filter((record) => record.uri !== uri));
+      return true;
+    });
+  }
+
   public rename(oldUri: string, newUri: string): Promise<void> {
     return this.mutate(() => this.storage.update(this.storage.get().map((record) => {
       if (!sameOrDescendantUri(record.uri, oldUri)) return record;

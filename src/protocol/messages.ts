@@ -19,6 +19,7 @@ export type HostMessage =
       readonly type: 'hydrate';
       readonly protocolVersion: typeof PROTOCOL_VERSION;
       readonly viewId: string;
+      readonly generation: number;
       readonly document: { readonly text: string; readonly version: number; readonly eol: '\n' | '\r\n' };
       readonly viewPreferences: ViewPreferencesState;
     }
@@ -30,6 +31,12 @@ export type HostMessage =
       readonly originRequestId?: string;
     }
   | { readonly type: 'patchAccepted'; readonly requestId: string; readonly version: number }
+  | {
+      readonly type: 'draftStored';
+      readonly viewId: string;
+      readonly generation: number;
+      readonly revision: number;
+    }
   | {
       readonly type: 'patchRejected';
       readonly requestId: string;
@@ -60,11 +67,20 @@ export type HostMessage =
 export type WebviewMessage =
   | { readonly type: 'ready'; readonly protocolVersion: number }
   | { readonly type: 'applyPatch'; readonly request: PatchRequest }
+  | {
+      readonly type: 'storeDraft';
+      readonly viewId: string;
+      readonly generation: number;
+      readonly revision: number;
+      readonly baseVersion: number;
+      readonly draftText: string;
+    }
   | { readonly type: 'requestSnapshot' }
+  | { readonly type: 'requestSourceFallback' }
   | { readonly type: 'save' }
   | { readonly type: 'history'; readonly action: 'undo' | 'redo' }
   | { readonly type: 'policyReloadReady'; readonly requestId: string }
-  | { readonly type: 'recoveryChoice'; readonly choice: RecoveryChoice }
+  | { readonly type: 'recoveryChoice'; readonly choice: RecoveryChoice; readonly draftText?: string }
   | { readonly type: 'updateViewPreferences'; readonly changes: FileViewOverrideChanges }
   | { readonly type: 'resetFileViewPreferences' }
   | { readonly type: 'resetWorkspaceViewPreferences' }
