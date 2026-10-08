@@ -1,16 +1,19 @@
 import { StateField } from '@codemirror/state';
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view';
 import { findLinks } from './links.js';
+import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 export const linkProjectionField = StateField.define<DecorationSet>({
   create(state) {
-    return linkDecorations(state.doc.toString(), state.selection.main.from, state.selection.main.to);
+    const selection = syntaxSelection(state);
+    return linkDecorations(state.doc.toString(), selection.from, selection.to);
   },
   update(_value, transaction) {
+    const selection = syntaxSelection(transaction.state);
     return linkDecorations(
       transaction.state.doc.toString(),
-      transaction.state.selection.main.from,
-      transaction.state.selection.main.to
+      selection.from,
+      selection.to
     );
   },
   provide: (field) => EditorView.decorations.from(field)

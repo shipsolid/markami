@@ -121,6 +121,14 @@
       {
         "command": "markami.setDocumentWidth",
         "title": "markami: Set Document Width"
+      },
+      {
+        "command": "markami.resetFileViewPreferences",
+        "title": "markami: Reset View Preferences for This File"
+      },
+      {
+        "command": "markami.resetWorkspaceViewPreferences",
+        "title": "markami: Reset View Preferences for This Workspace"
       }
     ],
     "keybindings": [
@@ -205,6 +213,20 @@
           "default": 960,
           "scope": "resource",
           "description": "Set the maximum content width in CSS pixels for Auto and Readable width modes."
+        },
+        "markami.viewPreferences.rememberPerFile": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "Remember presentation overrides per saved document. Turning this off keeps changes for the current session only; reset commands remove stored overrides."
+        },
+        "markami.syntaxReveal": {
+          "type": "string",
+          "enum": ["activeBlock", "selection", "manual"],
+          "enumDescriptions": ["Reveal syntax for the active block.", "Reveal syntax only where the selection intersects it.", "Keep supported constructs rendered until source reveal is requested."],
+          "default": "activeBlock",
+          "scope": "resource",
+          "description": "Set the default Markdown syntax reveal policy. A per-file override may replace this presentation setting."
         },
         "markami.theme.useEditorFont": {
           "type": "boolean",

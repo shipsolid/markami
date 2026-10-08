@@ -3,16 +3,19 @@ import { Decoration, EditorView, type DecorationSet } from '@codemirror/view';
 import { buildProjectionPlan } from '../../core/markdown/syntax.js';
 import { buildDocumentSyntaxPlan } from '../features/html/HtmlProjection.js';
 import { markClass } from './marks.js';
+import { syntaxSelection } from './syntaxReveal.js';
 
 export const projectionField = StateField.define<DecorationSet>({
   create(state) {
-    return decorationsFor(state.doc.toString(), state.selection.main.from, state.selection.main.to, state);
+    const selection = syntaxSelection(state, true);
+    return decorationsFor(state.doc.toString(), selection.from, selection.to, state);
   },
   update(_decorations, transaction) {
+    const selection = syntaxSelection(transaction.state, true);
     return decorationsFor(
       transaction.state.doc.toString(),
-      transaction.state.selection.main.from,
-      transaction.state.selection.main.to,
+      selection.from,
+      selection.to,
       transaction.state
     );
   },

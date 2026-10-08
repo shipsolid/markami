@@ -9,15 +9,25 @@ import type { HistoryRouter } from './history.js';
 import { ResourceService, resolveResource } from './resources.js';
 import type { RemoteResourcePolicy } from './security.js';
 import type { ResourceRequest, ResourceResponse } from '../protocol/resourceMessages.js';
+import type { EffectiveViewPreferences, ViewPreferencesState } from '../protocol/viewPreferences.js';
+import { resolveViewPreferences, type ViewPreferencesStore } from './ViewPreferencesStore.js';
+import type { DocumentSession } from './DocumentSession.js';
+
+interface OpenPreferenceSession {
+  readonly session: DocumentSession;
+  uri: string;
+}
 
 export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markami.editor';
   private activePanel: vscode.WebviewPanel | undefined;
+  private readonly openPreferenceSessions = new Map<string, OpenPreferenceSession>();
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly sessions: DocumentSessionRegistry,
-    private readonly history: HistoryRouter
+    private readonly history: HistoryRouter,
+    private readonly viewPreferences: ViewPreferencesStore
   ) {}
 
   public executeAction(actionId: string, value?: string): Thenable<boolean> {
@@ -29,6 +39,26 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       actionId,
       ...(value === undefined ? {} : { value })
     });
+  }
+
+  public async renameViewPreferences(oldUri: vscode.Uri, newUri: vscode.Uri): Promise<void> {
+    const oldKey = oldUri.toString();
+    const newKey = newUri.toString();
+    await this.viewPreferences.rename(oldKey, newKey);
+    const sessions = new Set<DocumentSession>();
+    for (const entry of this.openPreferenceSessions.values()) {
+      if (!sameOrDescendantUri(entry.uri, oldKey)) continue;
+      entry.uri = migrateUri(entry.uri, oldKey, newKey);
+      sessions.add(entry.session);
+    }
+    for (const session of sessions) {
+      const uri = [...this.openPreferenceSessions.values()].find((entry) => entry.session === session)?.uri ?? newKey;
+      session.broadcastViewPreferences(await this.preferenceState(uri));
+    }
+  }
+
+  public inspectViewPreferences(uri: string): Promise<ViewPreferencesState> {
+    return this.preferenceState(uri);
   }
 
   public resolveCustomTextEditor(
@@ -55,6 +85,8 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     let pendingPolicyReload: string | undefined;
     const session = this.sessions.get(document);
     session.attach({ id: viewId, postMessage: (message) => panel.webview.postMessage(message) });
+    this.openPreferenceSessions.set(viewId, { session, uri: document.uri.toString() });
+    const preferenceUri = (): string => this.openPreferenceSessions.get(viewId)?.uri ?? document.uri.toString();
     this.history.register(viewId, document.uri);
 
     const messages = panel.webview.onDidReceiveMessage(async (message: unknown) => {
@@ -63,10 +95,16 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         return;
       }
       if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
-        session.sendSnapshot(viewId);
-        await this.sendConfiguration(document, panel.webview);
+        session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
+        await this.sendConfiguration(vscode.Uri.parse(preferenceUri(), true), panel.webview);
+      } else if (parsed.data.type === 'ready') {
+        await panel.webview.postMessage({
+          type: 'showError',
+          code: 'PROTOCOL_MISMATCH',
+          message: 'The markami editor was updated. Reopen this tab to continue.'
+        });
       } else if (parsed.data.type === 'requestSnapshot') {
-        session.sendSnapshot(viewId);
+        session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
       } else if (parsed.data.type === 'applyPatch') {
         await session.enqueuePatch({
           requestId: parsed.data.request.requestId,
@@ -77,7 +115,22 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
           ...(parsed.data.request.draftText === undefined ? {} : { draftText: parsed.data.request.draftText })
         });
       } else if (parsed.data.type === 'save') {
-        if (!(await session.save())) {
+        let saved = false;
+        if (document.isUntitled) {
+          await session.flush();
+          const untitledUri = preferenceUri();
+          const sessionOverrides = await this.viewPreferences.get(untitledUri);
+          const savedUri = await vscode.workspace.saveAs(document.uri);
+          if (savedUri !== undefined) {
+            await this.renameViewPreferences(vscode.Uri.parse(untitledUri, true), savedUri);
+            await this.viewPreferences.promoteSessionOverrides(savedUri.toString(), sessionOverrides);
+            await this.broadcastPreferences(savedUri.toString(), session);
+            saved = true;
+          }
+        } else {
+          saved = await session.save();
+        }
+        if (!saved) {
           await panel.webview.postMessage({ type: 'showError', code: 'SAVE_FAILED', message: 'VS Code could not save this document.' });
         }
       } else if (parsed.data.type === 'history') {
@@ -88,23 +141,36 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       } else if (parsed.data.type === 'policyReloadReady' && parsed.data.requestId === pendingPolicyReload) {
         pendingPolicyReload = undefined;
         panel.webview.html = this.renderHtml(document, panel.webview, webviewRoot);
+      } else if (parsed.data.type === 'updateViewPreferences') {
+        await this.viewPreferences.update(preferenceUri(), parsed.data.changes);
+        await this.broadcastPreferences(preferenceUri(), session);
+      } else if (parsed.data.type === 'resetFileViewPreferences') {
+        await this.viewPreferences.resetFile(preferenceUri());
+        await this.broadcastPreferences(preferenceUri(), session);
+      } else if (parsed.data.type === 'resetWorkspaceViewPreferences') {
+        await this.viewPreferences.resetWorkspace();
+        await this.broadcastAllPreferences();
       }
     });
     const viewState = panel.onDidChangeViewState((event) => {
       if (event.webviewPanel.active) {
         this.activePanel = event.webviewPanel;
+      } else if (this.activePanel === event.webviewPanel) {
+        this.activePanel = undefined;
       }
     });
     const configurationChanges = vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('markami', document.uri)) {
+      const resource = vscode.Uri.parse(preferenceUri(), true);
+      if (event.affectsConfiguration('markami', resource)) {
         const nextRemotePolicy = this.remoteImagePolicy(document);
         if (nextRemotePolicy !== remotePolicy) {
           remotePolicy = nextRemotePolicy;
           pendingPolicyReload = randomUUID();
           void panel.webview.postMessage({ type: 'preparePolicyReload', requestId: pendingPolicyReload });
         } else {
-          void this.sendConfiguration(document, panel.webview);
+          void this.sendConfiguration(resource, panel.webview);
         }
+        void this.broadcastPreferences(preferenceUri(), session);
       }
     });
     panel.onDidDispose(() => {
@@ -115,6 +181,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         this.activePanel = undefined;
       }
       session.detach(viewId);
+      this.openPreferenceSessions.delete(viewId);
       this.history.unregister(viewId);
     });
     return Promise.resolve();
@@ -229,21 +296,8 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       .get<RemoteResourcePolicy>('remoteImages', 'block');
   }
 
-  private sendConfiguration(document: vscode.TextDocument, webview: vscode.Webview): Thenable<boolean> {
-    const configuration = vscode.workspace.getConfiguration('markami', document.uri);
-    const configuredAppearance = configuration.get<unknown>('appearance.mode');
-    const appearance = configuredAppearance === 'document' || configuredAppearance === 'vscode'
-      ? configuredAppearance
-      : 'vscode';
-    const configuredWidth = configuration.get<unknown>('document.width');
-    const width = configuredWidth === 'readable' || configuredWidth === 'full' || configuredWidth === 'auto'
-      ? configuredWidth
-      : 'auto';
-    const configuredMaximum = configuration.get<unknown>('document.maxContentWidth');
-    const maxContentWidth = typeof configuredMaximum === 'number' && Number.isInteger(configuredMaximum) &&
-      configuredMaximum >= 480 && configuredMaximum <= 2400
-      ? configuredMaximum
-      : 960;
+  private sendConfiguration(resource: vscode.Uri, webview: vscode.Webview): Thenable<boolean> {
+    const configuration = vscode.workspace.getConfiguration('markami', resource);
     const configuredEditorFont = configuration.get<unknown>('theme.useEditorFont');
     return webview.postMessage({
       type: 'configuration',
@@ -253,11 +307,56 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       blockHandlesEnabled: configuration.get<boolean>('blockHandles.enabled', true),
       renderMermaid: configuration.get<boolean>('renderMermaid', true),
       codeBlockWrap: configuration.get<boolean>('codeBlock.wrap', false),
-      appearance,
-      width,
-      maxContentWidth,
       useEditorFont: typeof configuredEditorFont === 'boolean' ? configuredEditorFont : true
     });
+  }
+
+  private async preferenceState(uri: string): Promise<ViewPreferencesState> {
+    const resource = vscode.Uri.parse(uri, true);
+    const overrides = await this.viewPreferences.get(uri);
+    return {
+      schemaVersion: 1,
+      rememberPerFile: this.rememberPerFile(),
+      effective: resolveViewPreferences(this.preferenceDefaults(resource), overrides)
+    };
+  }
+
+  private async broadcastPreferences(uri: string, session: DocumentSession): Promise<void> {
+    session.broadcastViewPreferences(await this.preferenceState(uri));
+  }
+
+  private async broadcastAllPreferences(): Promise<void> {
+    const unique = new Map<DocumentSession, string>();
+    for (const { session, uri } of this.openPreferenceSessions.values()) unique.set(session, uri);
+    await Promise.all([...unique].map(([session, uri]) => this.broadcastPreferences(uri, session)));
+  }
+
+  private preferenceDefaults(resource: vscode.Uri): EffectiveViewPreferences {
+    const configuration = vscode.workspace.getConfiguration('markami', resource);
+    const configuredAppearance = configuration.get<unknown>('appearance.mode');
+    const configuredWidth = configuration.get<unknown>('document.width');
+    const configuredMaximum = configuration.get<unknown>('document.maxContentWidth');
+    const configuredReveal = configuration.get<unknown>('syntaxReveal');
+    return {
+      appearance: configuredAppearance === 'document' || configuredAppearance === 'vscode'
+        ? configuredAppearance
+        : 'vscode',
+      width: configuredWidth === 'readable' || configuredWidth === 'full' || configuredWidth === 'auto'
+        ? configuredWidth
+        : 'auto',
+      maxContentWidth: typeof configuredMaximum === 'number' && Number.isInteger(configuredMaximum) &&
+        configuredMaximum >= 480 && configuredMaximum <= 2400
+        ? configuredMaximum
+        : 960,
+      syntaxReveal: configuredReveal === 'selection' || configuredReveal === 'manual' || configuredReveal === 'activeBlock'
+        ? configuredReveal
+        : 'activeBlock',
+      outlineCollapsed: false
+    };
+  }
+
+  private rememberPerFile(): boolean {
+    return vscode.workspace.getConfiguration('markami').get<boolean>('viewPreferences.rememberPerFile', true);
   }
 
   private renderHtml(document: vscode.TextDocument, webview: vscode.Webview, webviewRoot: vscode.Uri): string {
@@ -280,4 +379,12 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
 </body>
 </html>`;
   }
+}
+
+function sameOrDescendantUri(candidate: string, root: string): boolean {
+  return candidate === root || candidate.startsWith(root.endsWith('/') ? root : `${root}/`);
+}
+
+function migrateUri(candidate: string, oldRoot: string, newRoot: string): string {
+  return candidate === oldRoot ? newRoot : `${newRoot}${candidate.slice(oldRoot.length)}`;
 }

@@ -6,6 +6,7 @@ import { findFencedBlocks, type FencedBlock } from './codeBlocks/codeFence.js';
 import { findMathRanges, renderMath, type MathRange } from './math/mathRenderer.js';
 import { DebouncedMermaidRenderer, LocalMermaidRenderer } from './mermaid/mermaidRenderer.js';
 import { findTaskMarkers, type TaskMarker } from './tasks/taskPlanner.js';
+import { syntaxSelection } from '../projection/syntaxReveal.js';
 
 export interface TechnicalCodeBlock extends FencedBlock {
   readonly active: boolean;
@@ -45,13 +46,15 @@ export function technicalBlocks(options: Partial<TechnicalBlockOptions> = {}): E
 
 export const technicalBlocksField = StateField.define<DecorationSet>({
   create(state) {
-    return decorationsFor(state.doc.toString(), state.selection.main.from, state.selection.main.to, state, state.facet(technicalOptions));
+    const selection = syntaxSelection(state);
+    return decorationsFor(state.doc.toString(), selection.from, selection.to, state, state.facet(technicalOptions));
   },
   update(_value, transaction) {
+    const selection = syntaxSelection(transaction.state);
     return decorationsFor(
       transaction.state.doc.toString(),
-      transaction.state.selection.main.from,
-      transaction.state.selection.main.to,
+      selection.from,
+      selection.to,
       transaction.state,
       transaction.state.facet(technicalOptions)
     );

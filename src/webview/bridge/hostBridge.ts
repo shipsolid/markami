@@ -21,6 +21,7 @@ export class HostBridge {
   public handle(message: HostMessage): void {
     let ownedOrigin = false;
     if (message.type === 'hydrate') {
+      if (!isCurrentProtocol(message.protocolVersion)) return;
       this.queue?.dispose();
       this.queue = new PatchQueue(
         message.viewId,
@@ -41,4 +42,8 @@ export class HostBridge {
     }
     this.onMessage?.(message, ownedOrigin);
   }
+}
+
+function isCurrentProtocol(version: number): boolean {
+  return version === PROTOCOL_VERSION;
 }

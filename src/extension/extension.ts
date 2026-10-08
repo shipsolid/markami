@@ -8,12 +8,23 @@ import {
   chooseDocumentWidth,
   type PreferenceChoice
 } from './appearanceCommands.js';
+import { ScopedMementoViewPreferencesStorage, ViewPreferencesStore } from './ViewPreferencesStore.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
   const sessions = new DocumentSessionRegistry(recovery);
   const history = new HistoryRouter();
-  const provider = new MarkamiProvider(context.extensionUri, sessions, history);
+  const hasWorkspace = (): boolean => vscode.workspace.name !== undefined ||
+    vscode.workspace.workspaceFile !== undefined || (vscode.workspace.workspaceFolders?.length ?? 0) > 0;
+  const viewPreferences = new ViewPreferencesStore(new ScopedMementoViewPreferencesStorage(
+    context.workspaceState,
+    context.globalState,
+    hasWorkspace
+  ), {
+    rememberPerFile: () => vscode.workspace.getConfiguration('markami')
+      .get<boolean>('viewPreferences.rememberPerFile', true)
+  });
+  const provider = new MarkamiProvider(context.extensionUri, sessions, history, viewPreferences);
   const formattingCommands = [
     'markami.bold',
     'markami.italic',
@@ -63,8 +74,26 @@ export function activate(context: vscode.ExtensionContext): void {
       const width = await chooseDocumentWidth(supplied, pickPreference);
       return width === undefined ? false : provider.executeAction('markami.setDocumentWidth', width);
     }),
+    vscode.commands.registerCommand('markami.resetFileViewPreferences', () =>
+      provider.executeAction('markami.resetFileViewPreferences')),
+    vscode.commands.registerCommand('markami.resetWorkspaceViewPreferences', () =>
+      provider.executeAction('markami.resetWorkspaceViewPreferences')),
+    vscode.workspace.onDidRenameFiles((event) => {
+      void Promise.all(event.files.map(({ oldUri, newUri }) =>
+        provider.renameViewPreferences(oldUri, newUri)));
+    }),
+    vscode.workspace.onDidDeleteFiles((event) => {
+      void Promise.all(event.files.map((uri) => viewPreferences.delete(uri.toString())));
+    }),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      void viewPreferences.closeSession(document.uri.toString());
+    }),
     ...formattingCommands.map((command) => vscode.commands.registerCommand(command, () => provider.executeAction(command)))
   );
+  if (context.extensionMode === vscode.ExtensionMode.Test) {
+    context.subscriptions.push(vscode.commands.registerCommand('markami.test.inspectViewPreferences', (uri: string) =>
+      provider.inspectViewPreferences(uri)));
+  }
 }
 
 export function deactivate(): void {}

@@ -1,6 +1,7 @@
 import { StateField } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { findFrontmatter, type FrontmatterBlock, type SourceRange } from '../../../core/markdown/frontmatter.js';
+import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 export interface FrontmatterProjection extends FrontmatterBlock {
   readonly replaceSource: boolean;
@@ -15,13 +16,15 @@ export function buildFrontmatterProjection(source: string, selection: SourceRang
 
 export const frontmatterProjectionField = StateField.define<DecorationSet>({
   create(state) {
-    return decorationsFor(state.doc.toString(), state.selection.main.from, state.selection.main.to);
+    const selection = syntaxSelection(state);
+    return decorationsFor(state.doc.toString(), selection.from, selection.to);
   },
   update(_value, transaction) {
+    const selection = syntaxSelection(transaction.state);
     return decorationsFor(
       transaction.state.doc.toString(),
-      transaction.state.selection.main.from,
-      transaction.state.selection.main.to
+      selection.from,
+      selection.to
     );
   },
   provide: (field) => EditorView.decorations.from(field)

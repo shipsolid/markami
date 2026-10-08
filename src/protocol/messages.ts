@@ -1,6 +1,7 @@
 import type { TextPatch } from '../core/source/Patch.js';
 import type { PROTOCOL_VERSION } from './version.js';
 import type { ResourceRequest, ResourceResponse } from './resourceMessages.js';
+import type { FileViewOverrideChanges, ViewPreferencesState } from './viewPreferences.js';
 
 export interface PatchRequest {
   readonly requestId: string;
@@ -17,6 +18,7 @@ export type HostMessage =
       readonly protocolVersion: typeof PROTOCOL_VERSION;
       readonly viewId: string;
       readonly document: { readonly text: string; readonly version: number; readonly eol: '\n' | '\r\n' };
+      readonly viewPreferences: ViewPreferencesState;
     }
   | {
       readonly type: 'documentChanged';
@@ -33,6 +35,7 @@ export type HostMessage =
       readonly document: { readonly text: string; readonly version: number };
     }
   | { readonly type: 'executeAction'; readonly actionId: string; readonly value?: string }
+  | { readonly type: 'viewPreferencesChanged'; readonly viewPreferences: ViewPreferencesState }
   | { readonly type: 'preparePolicyReload'; readonly requestId: string }
   | {
       readonly type: 'configuration';
@@ -42,9 +45,6 @@ export type HostMessage =
       readonly blockHandlesEnabled: boolean;
       readonly renderMermaid: boolean;
       readonly codeBlockWrap: boolean;
-      readonly appearance: 'vscode' | 'document';
-      readonly width: 'auto' | 'readable' | 'full';
-      readonly maxContentWidth: number;
       readonly useEditorFont: boolean;
     }
   | ResourceResponse
@@ -57,4 +57,7 @@ export type WebviewMessage =
   | { readonly type: 'save' }
   | { readonly type: 'history'; readonly action: 'undo' | 'redo' }
   | { readonly type: 'policyReloadReady'; readonly requestId: string }
+  | { readonly type: 'updateViewPreferences'; readonly changes: FileViewOverrideChanges }
+  | { readonly type: 'resetFileViewPreferences' }
+  | { readonly type: 'resetWorkspaceViewPreferences' }
   | ResourceRequest;

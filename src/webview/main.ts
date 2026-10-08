@@ -15,6 +15,7 @@ import { planBlockMove } from '../core/markdown/moveBlock.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
+import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
@@ -29,6 +30,7 @@ import { ResourceClient } from './features/images/ResourceClient.js';
 import { imageProjection } from './features/images/ImageProjection.js';
 import { documentSyntax } from './features/html/HtmlProjection.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
+import { syntaxRevealPolicy } from './projection/syntaxReveal.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
 import { ImagePopover } from './ui/images/ImagePopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
@@ -74,10 +76,12 @@ let blockHandlesEnabled = true;
 let renderMermaid = true;
 let codeBlockWrap = false;
 let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
+let syntaxReveal: SyntaxRevealPolicy = 'activeBlock';
 const actions = createFormattingActionRegistry();
 const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
 const policyReloadCompartment = new Compartment();
+const syntaxRevealCompartment = new Compartment();
 const resources = new ResourceClient(vscode, navigateFragment);
 let pendingPolicyReload: string | undefined;
 registerTechnicalFeatures(featureRegistry);
@@ -94,7 +98,10 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   } else if (message.type === 'hydrate') {
     eol = message.document.eol;
     coordinateMap = createCoordinateMap(message.document.text);
+    applyViewPreferencesState(message.viewPreferences);
     createEditor(coordinateMap.editorText);
+  } else if (message.type === 'viewPreferencesChanged') {
+    applyViewPreferencesState(message.viewPreferences);
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
     applyHostPatches(message.changes);
   } else if (message.type === 'executeAction') {
@@ -107,9 +114,6 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     renderMermaid = message.renderMermaid;
     codeBlockWrap = message.codeBlockWrap;
     updateAppearance({
-      appearance: message.appearance,
-      width: message.width,
-      maxContentWidth: message.maxContentWidth,
       useEditorFont: message.useEditorFont
     });
     slashPalette?.setMathEnabled(mathEnabled);
@@ -156,6 +160,7 @@ function createEditor(text: string): void {
       extensions: [
         markdown({ codeLanguages: languages }),
         policyReloadCompartment.of(EditorView.editable.of(true)),
+        syntaxRevealCompartment.of(syntaxRevealPolicy.of(syntaxReveal)),
         projectionField,
         documentSyntax(),
         linkProjectionField,
@@ -168,6 +173,7 @@ function createEditor(text: string): void {
         tableProjectionField,
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
         keymap.of([
+          { key: 'Mod-s', preventDefault: true, run: requestSave },
           ...createSlashKeymap(),
           ...createListKeymap(),
           ...createFormattingKeymap(actions, currentActionContext, openLinkPopover),
@@ -228,7 +234,7 @@ function createEditor(text: string): void {
       ]
     })
   });
-  documentControls = new DocumentControls(document, editorParent, appearancePreferences, updateAppearance);
+  documentControls = new DocumentControls(document, editorParent, appearancePreferences, requestViewPreferenceChange);
   applyAppearance(view, appearancePreferences);
   toolbar = new SelectionToolbar(document, actions, (_actionId, _context, result) => {
     if (_actionId === 'markami.link') {
@@ -334,7 +340,7 @@ function currentFormattingStates(): Readonly<Record<string, 'active' | 'mixed' |
 function executeHostAction(actionId: string, value?: string): void {
   if (actionId === 'markami.setDocumentAppearance') {
     if (value === 'vscode' || value === 'document') {
-      updateAppearance({ appearance: value });
+      requestViewPreferenceChange({ appearance: value });
     } else {
       documentControls?.focusAppearance();
     }
@@ -342,10 +348,18 @@ function executeHostAction(actionId: string, value?: string): void {
   }
   if (actionId === 'markami.setDocumentWidth') {
     if (value === 'auto' || value === 'readable' || value === 'full') {
-      updateAppearance({ width: value });
+      requestViewPreferenceChange({ width: value });
     } else {
       documentControls?.focusWidth();
     }
+    return;
+  }
+  if (actionId === 'markami.resetFileViewPreferences') {
+    vscode.postMessage({ type: 'resetFileViewPreferences' });
+    return;
+  }
+  if (actionId === 'markami.resetWorkspaceViewPreferences') {
+    vscode.postMessage({ type: 'resetWorkspaceViewPreferences' });
     return;
   }
   if (actionId === 'markami.showSelectionToolbar') {
@@ -388,6 +402,30 @@ function updateAppearance(change: AppearanceChange): void {
   applyAppearance(view, next);
   restoreScrollAnchor(view, anchor);
   if (toolbar?.capturedContext !== undefined) updateSelectionToolbar();
+}
+
+function requestViewPreferenceChange(change: AppearanceChange): void {
+  updateAppearance(change);
+  const changes: FileViewOverrideChanges = {};
+  if (change.appearance !== undefined) changes.appearance = change.appearance;
+  if (change.width !== undefined) changes.width = change.width;
+  if (change.maxContentWidth !== undefined) changes.maxContentWidth = change.maxContentWidth;
+  if (Object.keys(changes).length > 0) {
+    vscode.postMessage({ type: 'updateViewPreferences', changes });
+  }
+}
+
+function applyViewPreferencesState(state: ViewPreferencesState): void {
+  syntaxReveal = state.effective.syntaxReveal;
+  editorParent.dataset.syntaxReveal = syntaxReveal;
+  editorParent.dataset.outlineCollapsed = String(state.effective.outlineCollapsed);
+  editorParent.dataset.rememberPerFile = String(state.rememberPerFile);
+  updateAppearance({
+    appearance: state.effective.appearance,
+    width: state.effective.width,
+    maxContentWidth: state.effective.maxContentWidth
+  });
+  view?.dispatch({ effects: syntaxRevealCompartment.reconfigure(syntaxRevealPolicy.of(syntaxReveal)) });
 }
 
 function updateSlashPalette(): void {
@@ -450,6 +488,11 @@ function createListKeymap(): readonly KeyBinding[] {
     { key: 'Tab', run: plan('indent') },
     { key: 'Shift-Tab', run: plan('outdent') }
   ];
+}
+
+function requestSave(): boolean {
+  vscode.postMessage({ type: 'save' });
+  return true;
 }
 
 function currentBlocks(): readonly MovableBlock[] {

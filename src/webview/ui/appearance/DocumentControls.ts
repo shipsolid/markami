@@ -1,7 +1,7 @@
 import type { EditorView } from '@codemirror/view';
+import type { AppearanceMode, DocumentWidth } from '../../../protocol/viewPreferences.js';
 
-export type AppearanceMode = 'vscode' | 'document';
-export type DocumentWidth = 'auto' | 'readable' | 'full';
+export type { AppearanceMode, DocumentWidth } from '../../../protocol/viewPreferences.js';
 
 export interface AppearancePreferences {
   readonly appearance: AppearanceMode;

@@ -501,17 +501,18 @@ All views render the same canonical `TextDocument`. Do not create a copy per vie
 Version the protocol from day one.
 
 ```ts
-const PROTOCOL_VERSION = 1;
+const PROTOCOL_VERSION = 2; // v2 adds host-owned view preferences to hydration
 ```
 
 ### Host → webview messages
 
 ```ts
 HostMessage =
-  | { type: 'hydrate'; protocolVersion; viewId; document; config; capabilities }
+  | { type: 'hydrate'; protocolVersion; viewId; document; viewPreferences }
   | { type: 'documentChanged'; version; changes; originRequestId? }
   | { type: 'patchAccepted'; requestId; version }
   | { type: 'patchRejected'; requestId; reason; document? }
+  | { type: 'viewPreferencesChanged'; viewPreferences }
   | { type: 'configurationChanged'; config }
   | { type: 'resourceResolved'; requestId; result }
   | { type: 'themeChanged'; theme }

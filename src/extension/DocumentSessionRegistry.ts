@@ -7,6 +7,7 @@ import type { RecoveryStore } from './RecoveryStore.js';
 export class DocumentSessionRegistry implements vscode.Disposable {
   private readonly sessions = new Map<string, DocumentSession>();
   private readonly changes: vscode.Disposable;
+  private readonly closes: vscode.Disposable;
 
   public constructor(private readonly recovery?: RecoveryStore) {
     this.changes = vscode.workspace.onDidChangeTextDocument((event) => {
@@ -18,6 +19,11 @@ export class DocumentSessionRegistry implements vscode.Disposable {
         createTextPatch(change.rangeOffset, change.rangeOffset + change.rangeLength, change.text)
       );
       session.handleDocumentChanged(event.document.version - 1, event.document.version, patches);
+    });
+    this.closes = vscode.workspace.onDidCloseTextDocument((document) => {
+      const key = document.uri.toString();
+      this.sessions.get(key)?.dispose();
+      this.sessions.delete(key);
     });
   }
 
@@ -33,6 +39,7 @@ export class DocumentSessionRegistry implements vscode.Disposable {
 
   public dispose(): void {
     this.changes.dispose();
+    this.closes.dispose();
     for (const session of this.sessions.values()) {
       session.dispose();
     }

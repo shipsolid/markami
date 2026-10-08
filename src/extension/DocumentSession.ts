@@ -2,6 +2,7 @@ import { applyPatchSet, validatePatchSet, type TextPatch } from '../core/source/
 import type { HostMessage, PatchRequest } from '../protocol/messages.js';
 import { PROTOCOL_VERSION } from '../protocol/version.js';
 import { RecoveryStore } from './RecoveryStore.js';
+import type { ViewPreferencesState } from '../protocol/viewPreferences.js';
 
 export type DocumentApplyResult =
   | { readonly ok: true; readonly version: number; readonly text: string }
@@ -75,7 +76,7 @@ export class DocumentSession {
     this.broadcast(message);
   }
 
-  public sendSnapshot(viewId: string): void {
+  public sendSnapshot(viewId: string, viewPreferences: ViewPreferencesState): void {
     const view = this.views.get(viewId);
     if (view === undefined) {
       return;
@@ -88,8 +89,13 @@ export class DocumentSession {
         text: this.document.getText(),
         version: this.document.version,
         eol: this.document.getText().includes('\r\n') ? '\r\n' : '\n'
-      }
+      },
+      viewPreferences
     });
+  }
+
+  public broadcastViewPreferences(viewPreferences: ViewPreferencesState): void {
+    this.broadcast({ type: 'viewPreferencesChanged', viewPreferences });
   }
 
   public dispose(): void {

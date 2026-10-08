@@ -189,3 +189,20 @@
 - Covered boundaries: vscode/document × auto/readable/full × 320/768/1440 width model, 960 default, 480–2400 validation, full-width cap bypass, accessible wrapped controls, Quick Pick routing, no EditorView recreation, text/selection/history/pending-patch neutrality, zoom-aware keyed source anchors, disconnected-view cancellation, local table overflow, local fonts, reduced motion, visible focus, high-contrast tokens, and Document H1–H6/table/block hierarchy
 - Deliberate evidence boundary: Playwright now measures production CSS layout and theme behavior in real Chromium; native VS Code/Electron pixel screenshots remain a Task 16 release gate because the host runtime lacks `libnspr4.so`
 - Next: Task 14 durable file preferences and multi-view presentation sync
+
+## Task 14 — Durable file preferences and multi-view presentation sync
+
+- Status: complete
+- Commit: `feat: remember document view preferences outside Markdown`
+- Changed paths: versioned view-preference protocol, workspace/global sparse preference store, document-session lifecycle, rename/delete/Save As migration, synchronized provider broadcasts, runtime syntax-reveal facet, reset commands, ADR-012, and unit/protocol/webview/integration tests
+- RED: preference suites initially failed because the store, protocol messages, and syntax-reveal reconfiguration did not exist; follow-up cases exposed stale panel URIs after rename, directory-descendant migration, Save As close-event races, future-record preservation, and document-lifetime cleanup while remembrance is disabled
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, unit/protocol/fidelity suites, and production builds
+  - `npm run test:webview` — pass, including live syntax-reveal policy changes without source or selection edits
+  - `npm run test:visual` — 4 deterministic theme/state and production-CSS baselines passing
+  - focused preference suites — 18 tests passing across store, protocol, and webview behavior
+  - `npm run build:integration` — pass; the native lifecycle suite compiles against the VS Code extension host
+  - independent read-only review — approved with no remaining Critical or Important findings
+- Covered boundaries: full URI identity for duplicate basenames and remote authorities, dynamic workspace/global scope, sparse overrides and configuration inheritance, future schema preservation, security-field rejection, serialized concurrent writes, 1,000-record LRU, session-only disabled remembrance, document-close cleanup, dormant durable restoration, confirmed untitled Save As promotion, exact and directory rename migration, independent copies, deletion pruning, file/workspace reset, split-view convergence, protocol-version rejection, and source-neutral manual/selection/active-block syntax reveal
+- Deliberate evidence boundary: native VS Code/Electron execution is blocked before Mocha by the host's missing `libnspr4.so`; a containerized Xvfb attempt also stalled before test output. Deterministic unit, protocol, webview, visual, and compiled integration coverage is recorded without claiming native lifecycle execution.
+- Next: Task 15 accessibility, keyboard, IME, and clipboard hardening

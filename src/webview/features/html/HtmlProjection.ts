@@ -14,6 +14,7 @@ import {
   type FrontmatterProjection
 } from '../frontmatter/FrontmatterProjection.js';
 import { classifyRawHtml, type ClassifiedHtmlRange } from './html.js';
+import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 export interface HtmlProjection extends ClassifiedHtmlRange {
   readonly replaceSource: boolean;
@@ -31,13 +32,15 @@ export function documentSyntax(): Extension {
 
 export const documentSyntaxField = StateField.define<DecorationSet>({
   create(state) {
-    return decorationsFor(state.doc.toString(), state.selection.main.from, state.selection.main.to, state);
+    const selection = syntaxSelection(state);
+    return decorationsFor(state.doc.toString(), selection.from, selection.to, state);
   },
   update(_value, transaction) {
+    const selection = syntaxSelection(transaction.state);
     return decorationsFor(
       transaction.state.doc.toString(),
-      transaction.state.selection.main.from,
-      transaction.state.selection.main.to,
+      selection.from,
+      selection.to,
       transaction.state
     );
   },

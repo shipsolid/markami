@@ -1,6 +1,7 @@
 import { StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from '@codemirror/view';
 import { findImages, type MarkdownImage } from './images.js';
+import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 interface Resolution {
   readonly key: string;
@@ -17,7 +18,8 @@ const resolvedImage = StateEffect.define<Resolution>();
 const imageProjectionField = StateField.define<ImageProjectionState>({
   create(state) {
     const resolutions = new Map<string, string | undefined>();
-    return { resolutions, decorations: imageDecorations(state.doc.toString(), state.selection.main.from, state.selection.main.to, resolutions) };
+    const selection = syntaxSelection(state);
+    return { resolutions, decorations: imageDecorations(state.doc.toString(), selection.from, selection.to, resolutions) };
   },
   update(value, transaction) {
     const resolutions = transaction.docChanged
@@ -26,12 +28,13 @@ const imageProjectionField = StateField.define<ImageProjectionState>({
     for (const effect of transaction.effects) {
       if (effect.is(resolvedImage)) resolutions.set(effect.value.key, effect.value.uri);
     }
+    const selection = syntaxSelection(transaction.state);
     return {
       resolutions,
       decorations: imageDecorations(
         transaction.state.doc.toString(),
-        transaction.state.selection.main.from,
-        transaction.state.selection.main.to,
+        selection.from,
+        selection.to,
         resolutions
       )
     };

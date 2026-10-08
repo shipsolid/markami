@@ -1,6 +1,7 @@
 import { StateField } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { parseGfmTables, planCellEdit, planTableOperation, type GfmTable } from '../../../core/markdown/tables.js';
+import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 export type TablePlan = GfmTable & { readonly replaceSource: boolean };
 
@@ -13,10 +14,12 @@ export function buildTablePlan(source: string, selection: { readonly from: numbe
 
 export const tableProjectionField = StateField.define<DecorationSet>({
   create(state) {
-    return decorations(state.doc.toString(), state.selection.main.from, state.selection.main.to);
+    const selection = syntaxSelection(state);
+    return decorations(state.doc.toString(), selection.from, selection.to);
   },
   update(_value, transaction) {
-    return decorations(transaction.state.doc.toString(), transaction.state.selection.main.from, transaction.state.selection.main.to);
+    const selection = syntaxSelection(transaction.state);
+    return decorations(transaction.state.doc.toString(), selection.from, selection.to);
   },
   provide: (field) => EditorView.decorations.from(field)
 });
