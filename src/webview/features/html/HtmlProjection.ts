@@ -117,6 +117,12 @@ class SafeHtmlWidget extends WidgetType {
       view.dispatch({ selection: { anchor: this.html.from + 1 }, scrollIntoView: true });
       view.focus();
     });
+    root.addEventListener('keydown', (event) => {
+      if (!(event instanceof KeyboardEvent) || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      view.dispatch({ selection: { anchor: this.html.from + 1 }, scrollIntoView: true });
+      view.focus();
+    });
     return root;
   }
 

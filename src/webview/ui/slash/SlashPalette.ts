@@ -207,14 +207,18 @@ export class SlashPalette {
     this.visibleEntries.forEach((entry, index) => {
       const option = this.element.ownerDocument.createElement('button');
       option.type = 'button';
+      option.id = `markami-slash-option-${entry.kind}`;
       option.dataset.kind = entry.kind;
       option.setAttribute('role', 'option');
       option.setAttribute('aria-selected', String(index === this.activeIndex));
+      option.tabIndex = index === this.activeIndex ? 0 : -1;
       option.textContent = entry.label;
       option.addEventListener('mousedown', (event) => event.preventDefault());
       option.addEventListener('click', () => void this.accept(entry.kind));
       this.element.append(option);
     });
+    const active = this.element.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (active !== null) this.element.setAttribute('aria-activedescendant', active.id);
     this.status.textContent = `${String(this.visibleEntries.length)} block${this.visibleEntries.length === 1 ? '' : 's'} available.`;
   }
 }

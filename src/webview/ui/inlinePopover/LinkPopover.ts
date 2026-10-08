@@ -12,11 +12,14 @@ export class LinkPopover {
     document: Document,
     private readonly registry: ActionRegistry,
     private readonly apply: (result: Extract<ActionResult, { ok: true }>) => void,
-    private readonly currentContext: () => ActionContext
+    private readonly currentContext: () => ActionContext,
+    private readonly restoreEditorFocus: () => void = () => undefined
   ) {
     this.element = document.createElement('form');
     this.element.hidden = true;
+    this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-label', 'Link destination');
+    this.element.setAttribute('aria-modal', 'false');
     this.input = document.createElement('input');
     this.input.type = 'text';
     this.input.setAttribute('aria-label', 'Link destination');
@@ -28,6 +31,12 @@ export class LinkPopover {
     this.element.addEventListener('submit', (event) => {
       event.preventDefault();
       this.confirm();
+    });
+    this.element.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      this.cancel();
+      this.restoreEditorFocus();
     });
     document.body.append(this.element);
   }
@@ -69,6 +78,7 @@ export class LinkPopover {
     }
     this.apply(result);
     this.cancel();
+    this.restoreEditorFocus();
     return true;
   }
 }

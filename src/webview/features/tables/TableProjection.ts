@@ -46,6 +46,9 @@ class TableWidget extends WidgetType {
     const grid = document.createElement('div');
     grid.className = 'markami-table-grid';
     grid.setAttribute('role', 'grid');
+    grid.setAttribute('aria-label', 'Markdown table');
+    grid.setAttribute('aria-rowcount', String(this.table.rows.length));
+    grid.setAttribute('aria-colcount', String(this.table.columnCount));
     const controls = document.createElement('div');
     controls.className = 'markami-table-controls';
     const operations = [
@@ -67,11 +70,16 @@ class TableWidget extends WidgetType {
     this.table.rows.forEach((row, rowIndex) => {
       const rowElement = document.createElement('div');
       rowElement.setAttribute('role', 'row');
+      rowElement.setAttribute('aria-rowindex', String(rowIndex + 1));
       for (let column = 0; column < this.table.columnCount; column += 1) {
         const cell = row.cells[column];
         const editor = document.createElement('div');
         editor.contentEditable = cell === undefined ? 'false' : 'true';
         editor.setAttribute('role', rowIndex === 0 ? 'columnheader' : 'gridcell');
+        editor.setAttribute('aria-rowindex', String(rowIndex + 1));
+        editor.setAttribute('aria-colindex', String(column + 1));
+        const header = this.table.rows[0]?.cells[column]?.value.trim() || `Column ${String(column + 1)}`;
+        editor.setAttribute('aria-label', rowIndex === 0 ? `Column ${header}` : `Row ${String(rowIndex + 1)}, ${header}`);
         editor.tabIndex = 0;
         editor.textContent = cell?.value ?? '';
         if (cell !== undefined) {

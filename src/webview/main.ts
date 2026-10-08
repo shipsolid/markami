@@ -19,6 +19,7 @@ import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState 
 import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
+import { createDocumentKeymap } from './editor/keymap.js';
 import { captureScrollAnchor, restoreScrollAnchor } from './editor/scrollAnchor.js';
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
@@ -30,7 +31,11 @@ import { ResourceClient } from './features/images/ResourceClient.js';
 import { imageProjection } from './features/images/ImageProjection.js';
 import { documentSyntax } from './features/html/HtmlProjection.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
-import { syntaxRevealPolicy } from './projection/syntaxReveal.js';
+import {
+  manualSyntaxReveal,
+  setManualSyntaxReveal,
+  syntaxRevealPolicy
+} from './projection/syntaxReveal.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
 import { ImagePopover } from './ui/images/ImagePopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
@@ -44,6 +49,9 @@ import {
   type AppearanceChange,
   type AppearancePreferences
 } from './ui/appearance/DocumentControls.js';
+import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
+import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
+import { DocumentOutline } from './ui/outline/DocumentOutline.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -69,14 +77,18 @@ let imagePopover: ImagePopover | undefined;
 let slashPalette: SlashPalette | undefined;
 let blockHandles: BlockHandles | undefined;
 let documentControls: DocumentControls | undefined;
+let documentFind: DocumentFind | undefined;
+let documentOutline: DocumentOutline | undefined;
 let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
 let blockHandlesEnabled = true;
+let outlineEnabled = true;
 let renderMermaid = true;
 let codeBlockWrap = false;
 let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
 let syntaxReveal: SyntaxRevealPolicy = 'activeBlock';
+let outlineCollapsed = false;
 const actions = createFormattingActionRegistry();
 const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
@@ -111,6 +123,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     slashCommandsEnabled = message.slashCommandsEnabled;
     mathEnabled = message.mathEnabled;
     blockHandlesEnabled = message.blockHandlesEnabled;
+    outlineEnabled = message.outlineEnabled;
     renderMermaid = message.renderMermaid;
     codeBlockWrap = message.codeBlockWrap;
     updateAppearance({
@@ -118,6 +131,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     });
     slashPalette?.setMathEnabled(mathEnabled);
     if (!blockHandlesEnabled) blockHandles?.hide();
+    documentOutline?.setEnabled(outlineEnabled);
     view?.dispatch({
       effects: technicalCompartment.reconfigure(technicalBlocks({
         renderMermaid,
@@ -151,6 +165,8 @@ function createEditor(text: string): void {
   imagePopover?.destroy();
   slashPalette?.destroy();
   blockHandles?.destroy();
+  documentFind?.destroy();
+  documentOutline?.destroy();
   view?.destroy();
   editorRevision = 0;
   view = new EditorView({
@@ -161,6 +177,7 @@ function createEditor(text: string): void {
         markdown({ codeLanguages: languages }),
         policyReloadCompartment.of(EditorView.editable.of(true)),
         syntaxRevealCompartment.of(syntaxRevealPolicy.of(syntaxReveal)),
+        manualSyntaxReveal,
         projectionField,
         documentSyntax(),
         linkProjectionField,
@@ -171,9 +188,14 @@ function createEditor(text: string): void {
         ),
         technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap })),
         tableProjectionField,
+        findHighlights,
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),
         keymap.of([
-          { key: 'Mod-s', preventDefault: true, run: requestSave },
+          ...createDocumentKeymap({
+            save: requestSave,
+            find: () => openFind('visible'),
+            toggleSourceReveal: () => revealCurrentBlock(true)
+          }),
           ...createSlashKeymap(),
           ...createListKeymap(),
           ...createFormattingKeymap(actions, currentActionContext, openLinkPopover),
@@ -225,6 +247,10 @@ function createEditor(text: string): void {
           }
           if (update.docChanged || update.selectionSet) {
             updateSlashPalette();
+            updateDocumentOutline();
+          }
+          if (update.docChanged) {
+            queueMicrotask(() => documentFind?.refresh());
           }
         }),
         EditorView.theme({
@@ -249,12 +275,12 @@ function createEditor(text: string): void {
     if (view !== undefined) {
       applyPlannedEdit(view, result.edit);
     }
-  }, currentActionContext);
+  }, currentActionContext, () => view?.focus());
   imagePopover = new ImagePopover(document, (result) => {
     if (view !== undefined) applyPlannedEdit(view, result.edit);
   }, currentActionContext, (destination) => {
     void resources.openLink(destination);
-  }, revealImageSource);
+  }, revealImageSource, () => view?.focus());
   slashPalette = new SlashPalette(document, (kind, state, args) => {
     const result = actions.plan(insertionActionId(kind), state.context, args);
     if (!result.ok) {
@@ -272,7 +298,20 @@ function createEditor(text: string): void {
     chooseImage: () => resources.pickImage(),
     currentContext: currentActionContext
   });
-  blockHandles = new BlockHandles(document, moveBlockTo, revealBlockSource, copyBlockMarkdown);
+  blockHandles = new BlockHandles(document, moveBlockTo, revealBlockSource, copyBlockMarkdown, () => view?.focus());
+  documentFind = new DocumentFind(
+    document,
+    () => view?.state.doc.toString() ?? '',
+    navigateFindMatch,
+    showFindResults,
+    () => view?.focus()
+  );
+  documentOutline = new DocumentOutline(document, navigateToSourceOffset, (collapsed) => {
+    requestViewPreferenceChange({ outlineCollapsed: collapsed });
+  });
+  documentOutline.setEnabled(outlineEnabled);
+  documentOutline.setCollapsed(outlineCollapsed);
+  updateDocumentOutline();
 }
 
 function currentActionContext(): ActionContext {
@@ -362,6 +401,54 @@ function executeHostAction(actionId: string, value?: string): void {
     vscode.postMessage({ type: 'resetWorkspaceViewPreferences' });
     return;
   }
+  if (actionId === 'markami.find') {
+    openFind('visible');
+    return;
+  }
+  if (actionId === 'markami.findSource') {
+    openFind('source');
+    return;
+  }
+  if (actionId === 'markami.toggleSourceReveal') {
+    revealCurrentBlock(true);
+    return;
+  }
+  if (actionId === 'markami.revealCurrentBlock') {
+    revealCurrentBlock(false);
+    return;
+  }
+  if (actionId === 'markami.copyCurrentBlockMarkdown') {
+    const block = activeBlock();
+    if (block !== undefined) copyBlockMarkdown(block.id);
+    return;
+  }
+  if (actionId === 'markami.refreshRenderedBlocks') {
+    view?.dispatch({});
+    updateDocumentOutline();
+    return;
+  }
+  if (actionId === 'markami.showDiagnostics') {
+    showDiagnostics();
+    return;
+  }
+  if (actionId === 'markami.insertHeading') {
+    const level = Number(window.prompt('Heading level (1-6)', '2'));
+    if (Number.isInteger(level) && level >= 1 && level <= 6) {
+      executeInsertion(`heading${String(level)}` as 'heading1');
+    }
+    return;
+  }
+  const insertion = insertionKindForCommand(actionId);
+  if (insertion !== undefined) {
+    if (insertion === 'image') {
+      void insertSelectedImage();
+    } else if (insertion === 'code') {
+      executeInsertion('code', { language: window.prompt('Code language (optional)', '') ?? '' });
+    } else {
+      executeInsertion(insertion);
+    }
+    return;
+  }
   if (actionId === 'markami.showSelectionToolbar') {
     updateSelectionToolbar(true);
     return;
@@ -404,12 +491,22 @@ function updateAppearance(change: AppearanceChange): void {
   if (toolbar?.capturedContext !== undefined) updateSelectionToolbar();
 }
 
-function requestViewPreferenceChange(change: AppearanceChange): void {
-  updateAppearance(change);
+function requestViewPreferenceChange(change: FileViewOverrideChanges): void {
+  updateAppearance({
+    ...(change.appearance === undefined ? {} : { appearance: change.appearance }),
+    ...(change.width === undefined ? {} : { width: change.width }),
+    ...(change.maxContentWidth === undefined ? {} : { maxContentWidth: change.maxContentWidth })
+  });
+  if (change.outlineCollapsed !== undefined) {
+    outlineCollapsed = change.outlineCollapsed;
+    documentOutline?.setCollapsed(outlineCollapsed);
+  }
   const changes: FileViewOverrideChanges = {};
   if (change.appearance !== undefined) changes.appearance = change.appearance;
   if (change.width !== undefined) changes.width = change.width;
   if (change.maxContentWidth !== undefined) changes.maxContentWidth = change.maxContentWidth;
+  if (change.syntaxReveal !== undefined) changes.syntaxReveal = change.syntaxReveal;
+  if (change.outlineCollapsed !== undefined) changes.outlineCollapsed = change.outlineCollapsed;
   if (Object.keys(changes).length > 0) {
     vscode.postMessage({ type: 'updateViewPreferences', changes });
   }
@@ -417,6 +514,7 @@ function requestViewPreferenceChange(change: AppearanceChange): void {
 
 function applyViewPreferencesState(state: ViewPreferencesState): void {
   syntaxReveal = state.effective.syntaxReveal;
+  outlineCollapsed = state.effective.outlineCollapsed;
   editorParent.dataset.syntaxReveal = syntaxReveal;
   editorParent.dataset.outlineCollapsed = String(state.effective.outlineCollapsed);
   editorParent.dataset.rememberPerFile = String(state.rememberPerFile);
@@ -426,6 +524,32 @@ function applyViewPreferencesState(state: ViewPreferencesState): void {
     maxContentWidth: state.effective.maxContentWidth
   });
   view?.dispatch({ effects: syntaxRevealCompartment.reconfigure(syntaxRevealPolicy.of(syntaxReveal)) });
+  documentOutline?.setCollapsed(outlineCollapsed);
+}
+
+function openFind(mode: FindMode): boolean {
+  documentFind?.open(mode);
+  return documentFind !== undefined;
+}
+
+function showFindResults(matches: readonly FindMatch[], activeIndex: number): void {
+  view?.dispatch({ effects: setFindHighlights.of({ matches, activeIndex }) });
+}
+
+function navigateFindMatch(match: FindMatch): void {
+  if (view === undefined) return;
+  view.dispatch({ selection: { anchor: match.from, head: match.to }, scrollIntoView: true });
+}
+
+function navigateToSourceOffset(sourceOffset: number): void {
+  if (view === undefined) return;
+  view.dispatch({ selection: { anchor: sourceOffset }, scrollIntoView: true });
+  view.focus();
+}
+
+function updateDocumentOutline(): void {
+  if (view === undefined || documentOutline === undefined) return;
+  documentOutline.update(view.state.doc.toString(), view.state.selection.main.head);
 }
 
 function updateSlashPalette(): void {
@@ -498,6 +622,55 @@ function requestSave(): boolean {
 function currentBlocks(): readonly MovableBlock[] {
   if (view === undefined) return [];
   return buildBlockIndex(view.state.doc.toString(), editorRevision);
+}
+
+function revealCurrentBlock(toggle: boolean): boolean {
+  if (view === undefined) return false;
+  const block = activeBlock();
+  if (block === undefined) return false;
+  const current = view.state.field(manualSyntaxReveal, false);
+  const alreadyRevealed = current?.from === block.core.from && current.to === block.core.to;
+  view.dispatch({ effects: setManualSyntaxReveal.of(toggle && alreadyRevealed ? undefined : block.core) });
+  view.focus();
+  return true;
+}
+
+type CommandInsertionKind = 'bullet' | 'numbered' | 'task' | 'code' | 'mermaid' | 'table' | 'image' | 'math' | 'divider';
+
+function insertionKindForCommand(actionId: string): CommandInsertionKind | undefined {
+  return commandInsertions[actionId as keyof typeof commandInsertions];
+}
+
+const commandInsertions = {
+  'markami.insertBulletList': 'bullet',
+  'markami.insertNumberedList': 'numbered',
+  'markami.insertTaskList': 'task',
+  'markami.insertCodeBlock': 'code',
+  'markami.insertMermaidBlock': 'mermaid',
+  'markami.insertTable': 'table',
+  'markami.insertImage': 'image',
+  'markami.insertMathBlock': 'math',
+  'markami.insertDivider': 'divider'
+} as const;
+
+function executeInsertion(kind: Parameters<typeof insertionActionId>[0], args?: unknown): boolean {
+  if (view === undefined) return false;
+  const result = actions.plan(insertionActionId(kind), currentActionContext(), args);
+  if (!result.ok) return false;
+  applyPlannedEdit(view, result.edit);
+  return true;
+}
+
+async function insertSelectedImage(): Promise<void> {
+  const imageMarkdown = await resources.pickImage();
+  if (imageMarkdown !== undefined) executeInsertion('image', { imageMarkdown });
+}
+
+function showDiagnostics(): void {
+  const source = view?.state.doc.toString() ?? '';
+  if (blockHandles !== undefined) {
+    blockHandles.status.textContent = `markami diagnostics: ${String(source.length)} UTF-16 units, ${String(currentBlocks().length)} top-level blocks, host version ${String(bridge.queue?.acknowledgedVersion ?? 0)}.`;
+  }
 }
 
 function activeBlock(): MovableBlock | undefined {

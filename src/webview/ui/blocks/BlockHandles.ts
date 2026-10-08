@@ -22,7 +22,8 @@ export class BlockHandles {
     document: Document,
     private readonly move: MoveBlock,
     private readonly revealSource: (blockId: string) => void,
-    private readonly copyMarkdown: (blockId: string) => void
+    private readonly copyMarkdown: (blockId: string) => void,
+    private readonly restoreEditorFocus: () => void = () => undefined
   ) {
     this.element = document.createElement('div');
     this.element.hidden = true;
@@ -54,15 +55,22 @@ export class BlockHandles {
     this.status = document.createElement('div');
     this.status.setAttribute('role', 'status');
     this.status.setAttribute('aria-live', 'polite');
+    this.element.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      this.hide();
+      this.restoreEditorFocus();
+    });
     document.body.append(this.element, this.insertionLine, this.status);
   }
 
-  public show(block: MovableBlock, position: { readonly left: number; readonly top: number }): void {
+  public show(block: MovableBlock, position: { readonly left: number; readonly top: number }, focus = false): void {
     this.activeBlock = block;
     this.element.hidden = false;
     this.element.style.left = `${String(Math.max(0, position.left))}px`;
     this.element.style.top = `${String(Math.max(0, position.top))}px`;
     this.setMoveAvailability(block);
+    if (focus) this.element.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus({ preventScroll: true });
   }
 
   public get isDragging(): boolean {
@@ -191,9 +199,9 @@ class BlockHandleMarker extends GutterMarker {
     button.draggable = this.block.movable;
     button.textContent = '⋮⋮';
     button.setAttribute('aria-label', `Actions for ${this.block.kind} block`);
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
       const rect = button.getBoundingClientRect();
-      controllerShow(this.controller(), this.block, rect, this.blocks().length);
+      controllerShow(this.controller(), this.block, rect, this.blocks().length, event.detail === 0);
     });
     button.addEventListener('dragstart', (event) => {
       if (this.controller()?.beginDrag(this.block, this.block.version) === true) {
@@ -211,9 +219,10 @@ function controllerShow(
   controller: BlockHandles | undefined,
   block: MovableBlock,
   rect: DOMRect,
-  totalBlocks: number
+  totalBlocks: number,
+  focus: boolean
 ): void {
-  controller?.show(block, { left: rect.right + 4, top: rect.top });
+  controller?.show(block, { left: rect.right + 4, top: rect.top }, focus);
   const down = controller?.element.querySelector<HTMLButtonElement>('[data-action="moveDown"]');
   if (down !== null && down !== undefined) down.disabled = !block.movable || block.order >= totalBlocks - 1;
 }

@@ -9,6 +9,7 @@ import {
   type PreferenceChoice
 } from './appearanceCommands.js';
 import { ScopedMementoViewPreferencesStorage, ViewPreferencesStore } from './ViewPreferencesStore.js';
+import { FORWARDED_COMMANDS } from './commands.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
@@ -25,26 +26,12 @@ export function activate(context: vscode.ExtensionContext): void {
       .get<boolean>('viewPreferences.rememberPerFile', true)
   });
   const provider = new MarkamiProvider(context.extensionUri, sessions, history, viewPreferences);
-  const formattingCommands = [
-    'markami.bold',
-    'markami.italic',
-    'markami.strikethrough',
-    'markami.inlineCode',
-    'markami.link',
-    'markami.clearFormatting',
-    'markami.paragraph',
-    'markami.heading1',
-    'markami.heading2',
-    'markami.heading3',
-    'markami.heading4',
-    'markami.heading5',
-    'markami.heading6',
-    'markami.showSelectionToolbar',
-    'markami.openSlashCommands',
-    'markami.moveBlockUp',
-    'markami.moveBlockDown',
-    'markami.moveBlockTo'
-  ];
+  const directlyRegistered = new Set([
+    'markami.setDocumentAppearance',
+    'markami.setDocumentWidth',
+    'markami.resetFileViewPreferences',
+    'markami.resetWorkspaceViewPreferences'
+  ]);
   const pickPreference = (items: readonly PreferenceChoice[]): Thenable<PreferenceChoice | undefined> =>
     vscode.window.showQuickPick(items, { placeHolder: 'Choose a document presentation setting' });
 
@@ -88,7 +75,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidCloseTextDocument((document) => {
       void viewPreferences.closeSession(document.uri.toString());
     }),
-    ...formattingCommands.map((command) => vscode.commands.registerCommand(command, () => provider.executeAction(command)))
+    ...FORWARDED_COMMANDS
+      .filter((command) => !directlyRegistered.has(command.id))
+      .map((command) => vscode.commands.registerCommand(command.id, () => provider.executeAction(command.id)))
   );
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     context.subscriptions.push(vscode.commands.registerCommand('markami.test.inspectViewPreferences', (uri: string) =>

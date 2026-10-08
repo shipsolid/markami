@@ -43,20 +43,28 @@
         "title": "markami: Open Source Editor"
       },
       {
+        "command": "markami.toggleSourceReveal",
+        "title": "markami: Toggle Source Reveal for Current Block"
+      },
+      {
+        "command": "markami.revealCurrentBlock",
+        "title": "markami: Reveal Current Block as Markdown"
+      },
+      {
         "command": "markami.bold",
-        "title": "markami: Bold"
+        "title": "markami: Toggle Bold"
       },
       {
         "command": "markami.italic",
-        "title": "markami: Italic"
+        "title": "markami: Toggle Italic"
       },
       {
         "command": "markami.strikethrough",
-        "title": "markami: Strikethrough"
+        "title": "markami: Toggle Strikethrough"
       },
       {
         "command": "markami.inlineCode",
-        "title": "markami: Inline Code"
+        "title": "markami: Toggle Inline Code"
       },
       {
         "command": "markami.link",
@@ -64,7 +72,7 @@
       },
       {
         "command": "markami.clearFormatting",
-        "title": "markami: Clear Formatting"
+        "title": "markami: Clear Inline Formatting"
       },
       {
         "command": "markami.paragraph",
@@ -124,11 +132,71 @@
       },
       {
         "command": "markami.resetFileViewPreferences",
-        "title": "markami: Reset View Preferences for This File"
+        "title": "markami: Reset File View Preferences"
       },
       {
         "command": "markami.resetWorkspaceViewPreferences",
-        "title": "markami: Reset View Preferences for This Workspace"
+        "title": "markami: Reset Workspace View Preferences"
+      },
+      {
+        "command": "markami.insertHeading",
+        "title": "markami: Insert Heading"
+      },
+      {
+        "command": "markami.insertBulletList",
+        "title": "markami: Insert Bullet List"
+      },
+      {
+        "command": "markami.insertNumberedList",
+        "title": "markami: Insert Numbered List"
+      },
+      {
+        "command": "markami.insertTaskList",
+        "title": "markami: Insert Task List"
+      },
+      {
+        "command": "markami.insertCodeBlock",
+        "title": "markami: Insert Code Block"
+      },
+      {
+        "command": "markami.insertMermaidBlock",
+        "title": "markami: Insert Mermaid Block"
+      },
+      {
+        "command": "markami.insertTable",
+        "title": "markami: Insert Table"
+      },
+      {
+        "command": "markami.refreshRenderedBlocks",
+        "title": "markami: Refresh Rendered Blocks"
+      },
+      {
+        "command": "markami.copyCurrentBlockMarkdown",
+        "title": "markami: Copy Current Block as Markdown"
+      },
+      {
+        "command": "markami.insertImage",
+        "title": "markami: Insert Image"
+      },
+      {
+        "command": "markami.insertMathBlock",
+        "title": "markami: Insert Math Block"
+      },
+      {
+        "command": "markami.insertDivider",
+        "title": "markami: Insert Divider"
+      },
+      {
+        "command": "markami.showDiagnostics",
+        "title": "markami: Show Diagnostics"
+      },
+      {
+        "command": "markami.find",
+        "title": "markami: Find in Document Text"
+      },
+      {
+        "command": "markami.findSource",
+        "title": "markami: Find in Markdown Source"
       }
     ],
     "keybindings": [
@@ -149,11 +217,29 @@
         "key": "ctrl+k",
         "mac": "cmd+k",
         "when": "activeCustomEditorId == markami.editor"
+      },
+      {
+        "command": "markami.toggleSourceReveal",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "activeCustomEditorId == markami.editor"
+      },
+      {
+        "command": "markami.find",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "activeCustomEditorId == markami.editor"
       }
     ],
     "configuration": {
       "title": "markami",
       "properties": {
+        "markami.openAsDefault": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Record an opt-in preference to use markami by default. Use VS Code's Reopen With or Configure Default Editor command to change associations explicitly."
+        },
         "markami.selectionToolbar.enabled": {
           "type": "boolean",
           "default": true,
@@ -178,6 +264,12 @@
           "scope": "resource",
           "description": "Render Mermaid diagrams locally while preserving their fenced source."
         },
+        "markami.renderSafeHtml": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Render allowlisted local HTML. Unsafe or uncertain HTML always remains editable source."
+        },
         "markami.codeBlock.wrap": {
           "type": "boolean",
           "default": false,
@@ -189,6 +281,12 @@
           "default": true,
           "scope": "resource",
           "description": "Show top-level block handles. Keyboard block-move commands remain available when disabled."
+        },
+        "markami.outline.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show the document heading outline. Collapse state may be remembered per file."
         },
         "markami.appearance.mode": {
           "type": "string",
@@ -234,10 +332,34 @@
           "scope": "resource",
           "description": "Use the configured VS Code editor font in VS Code appearance mode. Document mode always uses the UI font."
         },
+        "markami.sourceIslands.showLabel": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show a source-only label for Markdown regions that cannot be rendered safely."
+        },
+        "markami.assets.pasteDirectory": {
+          "type": "string",
+          "default": "assets/${documentBasename}",
+          "scope": "resource",
+          "description": "Workspace-relative destination template reserved for explicitly accepted image copies."
+        },
+        "markami.fidelity.strict": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Fall back to editable Markdown source when a transformation cannot be proven source-safe."
+        },
+        "markami.debug.showSourceRanges": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "Show source-range diagnostics for markami development and troubleshooting."
+        },
         "markami.remoteImages": {
           "type": "string",
           "enum": ["block", "prompt", "allow"],
-          "default": "block",
+          "default": "prompt",
           "scope": "resource",
           "description": "Control whether remote HTTPS images are blocked, confirmed before loading, or allowed. Document source is always preserved."
         }

@@ -4,7 +4,11 @@ import { EditorSelection, EditorState, Compartment } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, describe, expect, test } from 'vitest';
 import { projectionField } from '../../src/webview/projection/ProjectionPlugin.js';
-import { syntaxRevealPolicy } from '../../src/webview/projection/syntaxReveal.js';
+import {
+  manualSyntaxReveal,
+  setManualSyntaxReveal,
+  syntaxRevealPolicy
+} from '../../src/webview/projection/syntaxReveal.js';
 
 let view: EditorView | undefined;
 
@@ -36,5 +40,26 @@ describe('view preference projection', () => {
 
     expect(view.state.doc.toString()).toBe(source);
     expect(view.state.selection.main).toEqual(originalState.selection.main);
+  });
+
+  test('manual source reveal exposes only the requested range without changing source', () => {
+    const source = '**first** and **second**';
+    view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        doc: source,
+        selection: EditorSelection.cursor(12),
+        extensions: [syntaxRevealPolicy.of('manual'), manualSyntaxReveal, projectionField]
+      })
+    });
+    const selection = view.state.selection;
+
+    expect(view.contentDOM.textContent).toContain('first and second');
+    view.dispatch({ effects: setManualSyntaxReveal.of({ from: 0, to: 9 }) });
+    expect(view.contentDOM.textContent).toContain('**first** and second');
+    view.dispatch({ effects: setManualSyntaxReveal.of(undefined) });
+    expect(view.contentDOM.textContent).toContain('first and second');
+    expect(view.state.doc.toString()).toBe(source);
+    expect(view.state.selection).toBe(selection);
   });
 });

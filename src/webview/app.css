@@ -172,3 +172,92 @@
   margin-right: 8px;
   padding: 1px 5px;
 }
+
+.markami-find {
+  align-items: center;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-contrastBorder, transparent));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, transparent);
+  color: var(--vscode-editorWidget-foreground);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  position: fixed;
+  right: 8px;
+  top: 8px;
+  z-index: 30;
+}
+
+.markami-find[hidden],
+.markami-outline[hidden] {
+  display: none;
+}
+
+.markami-find-match {
+  background: var(--vscode-editor-findMatchHighlightBackground);
+  outline: 1px solid var(--vscode-editor-findMatchHighlightBorder, transparent);
+}
+
+.markami-find-match-active {
+  background: var(--vscode-editor-findMatchBackground);
+  outline-color: var(--vscode-editor-findMatchBorder, var(--vscode-focusBorder));
+}
+
+.markami-outline {
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-contrastBorder, transparent));
+  box-sizing: border-box;
+  color: var(--vscode-editorWidget-foreground);
+  max-height: calc(100vh - 72px);
+  max-width: min(18rem, calc(100vw - 24px));
+  overflow: auto;
+  position: fixed;
+  right: 12px;
+  top: 58px;
+  width: 16rem;
+  z-index: 16;
+}
+
+.markami-outline[data-collapsed='true'] {
+  width: auto;
+}
+
+.markami-outline ol {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+
+.markami-outline li button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  overflow: hidden;
+  padding: 4px 8px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.markami-outline li button[data-level='2'] { padding-left: 18px; }
+.markami-outline li button[data-level='3'] { padding-left: 28px; }
+.markami-outline li button[data-level='4'] { padding-left: 38px; }
+.markami-outline li button[data-level='5'] { padding-left: 48px; }
+.markami-outline li button[data-level='6'] { padding-left: 58px; }
+
+.markami-outline [aria-current='location'] {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .markami-outline {
+    max-height: 50vh;
+    right: 6px;
+    top: 52px;
+  }
+}

@@ -14,12 +14,15 @@ export class ImagePopover {
     private readonly apply: (result: Extract<ActionResult, { ok: true }>) => void,
     private readonly currentContext: () => ActionContext,
     private readonly openAsset: (destination: string) => void,
-    private readonly revealSource: (image: MarkdownImage) => void
+    private readonly revealSource: (image: MarkdownImage) => void,
+    private readonly restoreEditorFocus: () => void = () => undefined
   ) {
     this.element = document.createElement('form');
     this.element.hidden = true;
     this.element.className = 'markami-image-popover';
+    this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-label', 'Edit image');
+    this.element.setAttribute('aria-modal', 'false');
     this.alt = this.field(document, 'Alt text');
     this.destination = this.field(document, 'Image path');
     this.title = this.field(document, 'Image title');
@@ -43,6 +46,12 @@ export class ImagePopover {
     this.element.addEventListener('submit', (event) => {
       event.preventDefault();
       this.confirm();
+    });
+    this.element.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      this.cancel();
+      this.restoreEditorFocus();
     });
     document.body.append(this.element);
   }
@@ -76,6 +85,7 @@ export class ImagePopover {
     }
     this.apply(result);
     this.cancel();
+    this.restoreEditorFocus();
     return true;
   }
 

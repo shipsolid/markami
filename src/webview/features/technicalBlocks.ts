@@ -219,6 +219,13 @@ class MermaidWidget extends WidgetType {
       view.dispatch({ selection: { anchor: this.sourceOffset }, scrollIntoView: true });
       view.focus();
     });
+    root.addEventListener('keydown', (event) => {
+      if (!(event instanceof KeyboardEvent)) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      view.dispatch({ selection: { anchor: this.sourceOffset }, scrollIntoView: true });
+      view.focus();
+    });
     this.jobs.schedule(this.source, (result) => {
       if (!root.isConnected) return;
       if (result.ok) {
@@ -255,6 +262,13 @@ class MathWidget extends WidgetType {
     root.tabIndex = 0;
     root.setAttribute('aria-label', 'Math expression. Activate to edit source.');
     root.addEventListener('click', () => {
+      view.dispatch({ selection: { anchor: this.math.from }, scrollIntoView: true });
+      view.focus();
+    });
+    root.addEventListener('keydown', (event) => {
+      if (!(event instanceof KeyboardEvent)) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
       view.dispatch({ selection: { anchor: this.math.from }, scrollIntoView: true });
       view.focus();
     });

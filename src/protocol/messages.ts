@@ -43,6 +43,7 @@ export type HostMessage =
       readonly slashCommandsEnabled: boolean;
       readonly mathEnabled: boolean;
       readonly blockHandlesEnabled: boolean;
+      readonly outlineEnabled: boolean;
       readonly renderMermaid: boolean;
       readonly codeBlockWrap: boolean;
       readonly useEditorFont: boolean;

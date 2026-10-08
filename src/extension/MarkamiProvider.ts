@@ -293,7 +293,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
 
   private remoteImagePolicy(document: vscode.TextDocument): RemoteResourcePolicy {
     return vscode.workspace.getConfiguration('markami', document.uri)
-      .get<RemoteResourcePolicy>('remoteImages', 'block');
+      .get<RemoteResourcePolicy>('remoteImages', 'prompt');
   }
 
   private sendConfiguration(resource: vscode.Uri, webview: vscode.Webview): Thenable<boolean> {
@@ -305,6 +305,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       slashCommandsEnabled: configuration.get<boolean>('slashCommands.enabled', true),
       mathEnabled: configuration.get<boolean>('renderMath', true),
       blockHandlesEnabled: configuration.get<boolean>('blockHandles.enabled', true),
+      outlineEnabled: configuration.get<boolean>('outline.enabled', true),
       renderMermaid: configuration.get<boolean>('renderMermaid', true),
       codeBlockWrap: configuration.get<boolean>('codeBlock.wrap', false),
       useEditorFont: typeof configuredEditorFont === 'boolean' ? configuredEditorFont : true
