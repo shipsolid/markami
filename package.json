@@ -1,17 +1,34 @@
 {
   "name": "markami",
   "displayName": "markami",
-  "description": "Source-preserving rendered Markdown editing for VS Code.",
+  "description": "Edit Markdown where you read it without surrendering source fidelity.",
   "version": "0.1.0",
   "publisher": "markami-dev",
   "license": "MIT",
   "private": true,
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shipsolid/markami.git"
+  },
+  "homepage": "https://github.com/shipsolid/markami#readme",
+  "bugs": {
+    "url": "https://github.com/shipsolid/markami/issues"
+  },
+  "keywords": [
+    "markdown",
+    "editor",
+    "wysiwym",
+    "source-preserving",
+    "mermaid"
+  ],
   "engines": {
     "vscode": "^1.102.0",
     "node": ">=22"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -382,9 +399,12 @@
     "test:visual": "vitest run test/visual",
     "test:visual:browser": "playwright test --config playwright.visual.config.ts",
     "bench": "node scripts/bench.mjs",
+    "test:package": "node scripts/checkPackage.test.mjs",
     "check:licenses": "node scripts/checkLicenses.mjs",
-    "package": "npm run build && vsce package --out artifacts/markami-0.1.0.vsix",
-    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run check:licenses && npm run build"
+    "generate:notices": "node scripts/generateNotices.mjs",
+    "package": "node scripts/package.mjs",
+    "check:package": "node scripts/checkPackage.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run check:licenses && npm run build"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",
@@ -423,6 +443,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.1",
     "vite": "8.3.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "yauzl": "3.4.0"
   }
 }

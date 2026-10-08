@@ -241,3 +241,36 @@
 - Review: independent read-only review identified recovery, generation, IME, outbound-size, event-correlation, replay-memory, and resource-bound defects; the TDD fix pass resolved every Critical/Important finding, and the final re-review approved the slice.
 - Evidence boundary: Chromium and native VS Code 1.141.0 both fail before tests because this WSL2 host lacks `libnspr4.so`. VS Code 1.102, Node 22, Windows, macOS, native Linux, real IME, and screen-reader smoke were unavailable and are not claimed. See `docs/delivery/verification.md`.
 - Next: Task 17 packaged VSIX, user documentation, package inspection, and clean-profile installation evidence
+
+## Task 17 — Packaged VSIX, user docs, and installation evidence
+
+- Status: package complete and structurally verified; native clean-profile interaction smoke remains
+  explicitly unavailable on this host
+- Changed paths: strict `.vscodeignore`, version-derived package/checksum tooling, ZIP content policy
+  test, generated third-party notices, extension metadata/icon, README/changelog/security/privacy,
+  syntax/contributor guidance, marketplace capture policy, and install evidence
+- RED: `scripts/checkPackage.test.mjs` initially failed because no package validator existed; the first
+  package attempts also exposed a VSCE dependency-mode entrypoint failure and a sandbox-incompatible
+  external `unzip` subprocess, resolved with bundled-extension packaging and in-process ZIP inspection
+- Package evidence:
+  - `npm run package` — pass; `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,827 bytes
+  - `npm run check:package` — pass; manifest/runtime/user/legal/icon/local-assets allowlist validated
+  - SHA-256 — `3225977815d26d6d0707663b261fa097ccaf7223c448333f0161e1ab7323d7c3`
+  - `sha256sum -c` and `unzip -t` — pass
+  - dependency notices — 242 production records represented by 86 exact installed license texts
+- Publisher boundary: `markami-dev` is documented as local testing only and must be replaced by the
+  owner's verified publisher before public delivery; no Marketplace ownership or publication is claimed
+- Installation boundary: isolated WSL remote CLI could not connect to its IPC socket; the cached native
+  VS Code 1.141.0 CLI then failed before startup because `libnspr4.so` is absent. Install/open/edit/save/
+  undo/offline-widget/uninstall checks and actual-product captures remain unexecuted and are not claimed.
+- Upgrade boundary: no prior packaged preview exists, so upgrade/migration behavior is untested for this
+  first VSIX
+- Review fix: Vite now emits relative webview asset URLs; the validator resolves CSS URLs plus
+  JavaScript static imports, re-exports, dynamic imports, and `new URL` references inside the VSIX;
+  packaging launches npm/VSCE through Node for Windows compatibility
+- Final gates: `npm run verify` passed (89 unit, 32 protocol, 55 fidelity, 5 package-policy tests,
+  242 production license records, lint/type/build); `npm run test:webview` passed 74 tests;
+  `npm run test:visual` passed 5 tests; `npm run build:integration` passed
+- Review: independent read-only review approved the final slice with no Critical or Important blockers
+- Evidence: see `docs/delivery/install-smoke.md`
+- Next: Task 18 release automation and owner-authorized Marketplace delivery

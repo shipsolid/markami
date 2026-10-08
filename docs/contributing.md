@@ -1,0 +1,66 @@
+# Contributing
+
+## Non-negotiable contract
+
+- `vscode.TextDocument` is the only canonical Markdown state.
+- Webviews send validated, version-bound local patches; never serialize a rendered AST to Markdown.
+- Preserve untouched UTF-16 ranges and line separators exactly.
+- Keep renderer assets local, CSP restrictive, resource access host-controlled, and diagnostics
+  content-free by default.
+- Add a failing behavioral test before production changes and record evidence in
+  `docs/delivery/progress.md`.
+
+## Setup
+
+Requirements: Node.js 22 or newer, npm, and VS Code 1.102 or newer.
+
+```bash
+npm ci
+npm run verify
+```
+
+Use the smallest relevant red/green loop, then run the appropriate gates:
+
+```bash
+npm run test:webview
+npm run test:visual
+npm run build:integration
+npm run bench
+```
+
+Native integration, browser visual, IME, accessibility, and cross-platform checks are release gates
+when the host can run them. Never turn an unavailable environment into a passing claim.
+
+## Change boundaries
+
+- Put source parsing, ranges, and patch planning in `src/core`.
+- Keep protocol schemas and versioning in `src/protocol`; treat every webview message as untrusted.
+- Keep filesystem, VS Code API, navigation, and preference persistence in `src/extension`.
+- Keep projection and interaction in `src/webview`; an interaction must resolve back to confirmed source
+  ranges before it writes.
+- Add fidelity fixtures for EOL, Unicode, malformed syntax, delimiters, and surrounding-byte invariants.
+
+Run `npm run check:licenses` after dependency changes and regenerate
+`THIRD_PARTY_NOTICES.txt` with `npm run generate:notices`.
+
+## Package locally
+
+```bash
+npm run package
+npm run check:package
+```
+
+The package command builds production bundles, creates `artifacts/markami-<version>.vsix`, checks its
+strict contents allowlist, and writes a SHA-256 checksum. Inspect and install that exact artifact in a
+clean profile before release work.
+
+`markami-dev` is a local development publisher only. Do not publish it. A public release requires the
+owner's verified Marketplace publisher, explicit authorization, credentials, and the release preflight.
+
+## Commits and reviews
+
+- Keep one logical change per imperative commit; explain why in the body when the motivation is not
+  obvious.
+- Do not bypass hooks or force-push protected branches.
+- Review source fidelity, stale-version behavior, protocol bounds, CSP/resource boundaries, recovery,
+  keyboard/accessibility behavior, and package contents—not only the rendered happy path.
