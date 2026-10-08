@@ -7,13 +7,14 @@ import { PROTOCOL_VERSION } from '../protocol/version.js';
 import type { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
 import type { HistoryRouter } from './history.js';
 import { ResourceService, resolveResource } from './resources.js';
-import type { RemoteResourcePolicy } from './security.js';
+import { webviewContentSecurityPolicy, type RemoteResourcePolicy } from './security.js';
 import type { ResourceRequest, ResourceResponse } from '../protocol/resourceMessages.js';
 import type { EffectiveViewPreferences, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { resolveViewPreferences, type ViewPreferencesStore } from './ViewPreferencesStore.js';
 import type { DocumentSession } from './DocumentSession.js';
 import { readRemoteImagePolicy, readWebviewConfiguration } from './configuration.js';
 import { ActiveViewTracker, type ActiveViewLease } from './ActiveViewTracker.js';
+import { isProtocolTextWithinLimit, MAX_PROTOCOL_TEXT_BYTES } from '../protocol/limits.js';
 
 interface OpenPreferenceSession {
   readonly session: DocumentSession;
@@ -68,13 +69,23 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     return this.preferenceState(uri);
   }
 
-  public resolveCustomTextEditor(
+  public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     panel: vscode.WebviewPanel,
     token: vscode.CancellationToken
   ): Promise<void> {
     if (token.isCancellationRequested) {
-      return Promise.resolve();
+      return;
+    }
+    if (!isProtocolTextWithinLimit(document.getText())) {
+      panel.webview.options = { enableScripts: false, localResourceRoots: [] };
+      panel.webview.html = this.renderOversizedDocumentHtml(panel.webview);
+      void vscode.window.showWarningMessage(
+        `markami supports rendered documents up to ${String(MAX_PROTOCOL_TEXT_BYTES / (1024 * 1024))} MiB. Opening this file in the source editor without truncation.`
+      );
+      await vscode.commands.executeCommand('vscode.openWith', document.uri, 'default', panel.viewColumn);
+      panel.dispose();
+      return;
     }
 
     const webviewRoot = vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview');
@@ -104,6 +115,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
         session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
         await this.sendConfiguration(vscode.Uri.parse(preferenceUri(), true), panel.webview);
+        session.sendRecoveryNotice(viewId);
       } else if (parsed.data.type === 'ready') {
         await panel.webview.postMessage({
           type: 'showError',
@@ -120,7 +132,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
           baseVersion: parsed.data.request.baseVersion,
           patches: parsed.data.request.patches.map((patch) => createTextPatch(patch.from, patch.to, patch.insert)),
           ...(parsed.data.request.draftText === undefined ? {} : { draftText: parsed.data.request.draftText })
-        });
+        }, viewId);
       } else if (parsed.data.type === 'save') {
         let saved = false;
         if (document.isUntitled) {
@@ -143,6 +155,25 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       } else if (parsed.data.type === 'history') {
         await session.flush();
         await this.history.requestHistoryAction(viewId, parsed.data.action);
+      } else if (parsed.data.type === 'recoveryChoice') {
+        const recovered = session.recoveredDraft();
+        if (recovered === undefined) return;
+        if (parsed.data.choice === 'inspect') {
+          const draft = await vscode.workspace.openTextDocument({ content: recovered.draftText, language: 'markdown' });
+          await vscode.commands.executeCommand(
+            'vscode.diff',
+            document.uri,
+            draft.uri,
+            `${path.basename(document.uri.path)} ↔ recovered markami draft`
+          );
+        } else if (parsed.data.choice === 'copy') {
+          await vscode.env.clipboard.writeText(recovered.draftText);
+          void vscode.window.showInformationMessage('Copied the recovered markami draft to the clipboard.');
+        } else if (parsed.data.choice === 'reload') {
+          session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
+        } else {
+          await session.clearRecoveredDraft();
+        }
       } else if (parsed.data.type === 'resourceRequest') {
         await this.handleResourceRequest(document, panel.webview, parsed.data);
       } else if (parsed.data.type === 'policyReloadReady' && parsed.data.requestId === pendingPolicyReload) {
@@ -189,7 +220,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       this.openPreferenceSessions.delete(viewId);
       this.history.unregister(viewId);
     });
-    return Promise.resolve();
+    return;
   }
 
   private async handleResourceRequest(
@@ -360,13 +391,14 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     const nonce = randomBytes(18).toString('base64');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewRoot, 'main.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewRoot, 'assets', 'main.css'));
+    const csp = webviewContentSecurityPolicy(webview.cspSource, this.remoteImagePolicy(document), nonce);
 
     return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:${this.remoteImagePolicy(document) === 'block' ? '' : ' https:'}; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src ${webview.cspSource} 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
   <link rel="stylesheet" href="${styleUri.toString()}">
   <title>markami</title>
 </head>
@@ -374,6 +406,19 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   <main id="editor" aria-label="Markdown document"></main>
   <script nonce="${nonce}" type="module" src="${scriptUri.toString()}"></script>
 </body>
+</html>`;
+  }
+
+  private renderOversizedDocumentHtml(webview: vscode.Webview): string {
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>markami source fallback</title>
+</head>
+<body><p>This document exceeds markami's 4 MiB rendered-editor limit. It is opening in VS Code's source editor without truncation.</p></body>
 </html>`;
   }
 }

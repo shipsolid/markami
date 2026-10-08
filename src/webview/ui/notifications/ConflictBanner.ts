@@ -22,4 +22,8 @@ export class ConflictBanner {
     }
     this.element = banner;
   }
+
+  public destroy(): void {
+    this.element.remove();
+  }
 }

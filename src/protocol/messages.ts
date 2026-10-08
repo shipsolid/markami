@@ -3,6 +3,8 @@ import type { PROTOCOL_VERSION } from './version.js';
 import type { ResourceRequest, ResourceResponse } from './resourceMessages.js';
 import type { FileViewOverrideChanges, ViewPreferencesState } from './viewPreferences.js';
 
+export type RecoveryChoice = 'inspect' | 'copy' | 'reload' | 'discard';
+
 export interface PatchRequest {
   readonly requestId: string;
   readonly viewId: string;
@@ -37,6 +39,7 @@ export type HostMessage =
   | { readonly type: 'executeAction'; readonly actionId: string; readonly value?: string }
   | { readonly type: 'viewPreferencesChanged'; readonly viewPreferences: ViewPreferencesState }
   | { readonly type: 'preparePolicyReload'; readonly requestId: string }
+  | { readonly type: 'recoveryAvailable'; readonly baseMatches: boolean; readonly timestamp: number }
   | {
       readonly type: 'configuration';
       readonly selectionToolbarEnabled: boolean;
@@ -61,6 +64,7 @@ export type WebviewMessage =
   | { readonly type: 'save' }
   | { readonly type: 'history'; readonly action: 'undo' | 'redo' }
   | { readonly type: 'policyReloadReady'; readonly requestId: string }
+  | { readonly type: 'recoveryChoice'; readonly choice: RecoveryChoice }
   | { readonly type: 'updateViewPreferences'; readonly changes: FileViewOverrideChanges }
   | { readonly type: 'resetFileViewPreferences' }
   | { readonly type: 'resetWorkspaceViewPreferences' }

@@ -68,7 +68,15 @@ export class PatchQueue {
   }
 
   public applyExternal(patches: readonly TextPatch[], beforeVersion: number, version: number): void {
-    if (beforeVersion !== this.acknowledgedVersion || this.inFlight !== undefined || this.pending.length > 0) {
+    if (version <= this.acknowledgedVersion) {
+      return;
+    }
+    if (beforeVersion !== this.acknowledgedVersion) {
+      this.conflictReason = 'external change version gap';
+      this.state = 'conflict';
+      return;
+    }
+    if (this.inFlight !== undefined || this.pending.length > 0) {
       this.conflictReason = 'external change overlaps pending edits';
       this.state = 'conflict';
       return;

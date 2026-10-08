@@ -4,7 +4,7 @@ export interface RecoveredDraft {
   readonly baseMatches: boolean;
 }
 
-export type RecoveryChoice = 'inspect' | 'copy' | 'reload' | 'discard';
+export type { RecoveryChoice } from '../../protocol/messages.js';
 
 export function prepareRecoveredDraft(
   canonicalText: string,

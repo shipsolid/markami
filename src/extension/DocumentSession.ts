@@ -1,7 +1,7 @@
 import { applyPatchSet, validatePatchSet, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage, PatchRequest } from '../protocol/messages.js';
 import { PROTOCOL_VERSION } from '../protocol/version.js';
-import { RecoveryStore } from './RecoveryStore.js';
+import { RecoveryStore, type RecoveryRecord } from './RecoveryStore.js';
 import type { ViewPreferencesState } from '../protocol/viewPreferences.js';
 
 export type DocumentApplyResult =
@@ -21,12 +21,17 @@ export interface WebviewEndpoint {
   postMessage(message: HostMessage): PromiseLike<boolean>;
 }
 
+interface ProcessedRequest {
+  readonly fingerprint: string;
+  readonly response: HostMessage;
+}
+
 export class DocumentSession {
   public readonly uri: string;
   public isApplying = false;
 
   private readonly views = new Map<string, WebviewEndpoint>();
-  private readonly processed = new Map<string, HostMessage>();
+  private readonly processed = new Map<string, ProcessedRequest>();
   private queue: Promise<void> = Promise.resolve();
   private disposed = false;
 
@@ -46,9 +51,10 @@ export class DocumentSession {
     this.views.delete(viewId);
   }
 
-  public enqueuePatch(request: PatchRequest): Promise<void> {
-    this.queue = this.queue.then(() => this.processPatch(request));
-    return this.queue;
+  public enqueuePatch(request: PatchRequest, senderViewId = request.viewId): Promise<void> {
+    const processing = this.queue.then(() => this.processPatch(request, senderViewId));
+    this.queue = processing.catch(() => undefined);
+    return processing;
   }
 
   public flush(): Promise<void> {
@@ -98,31 +104,60 @@ export class DocumentSession {
     this.broadcast({ type: 'viewPreferencesChanged', viewPreferences });
   }
 
+  public sendRecoveryNotice(viewId: string): void {
+    const record = this.recoveredDraft();
+    const view = this.views.get(viewId);
+    if (record === undefined || view === undefined) return;
+    void view.postMessage({
+      type: 'recoveryAvailable',
+      baseMatches: record.canonicalBaseHash === RecoveryStore.hashCanonical(this.document.getText()),
+      timestamp: record.timestamp
+    });
+  }
+
+  public recoveredDraft(): RecoveryRecord | undefined {
+    return this.recovery?.get(this.uri);
+  }
+
+  public clearRecoveredDraft(): Promise<void> {
+    return this.recovery?.clear(this.uri) ?? Promise.resolve();
+  }
+
   public dispose(): void {
     this.disposed = true;
     this.views.clear();
     this.processed.clear();
   }
 
-  private async processPatch(request: PatchRequest): Promise<void> {
+  private async processPatch(request: PatchRequest, senderViewId: string): Promise<void> {
     this.assertActive();
-    const view = this.views.get(request.viewId);
+    const view = this.views.get(senderViewId);
     if (view === undefined) {
       return;
     }
-    const replay = this.processed.get(request.requestId);
+    if (request.viewId !== senderViewId) {
+      await this.reject(view, request.requestId, 'request view does not match sender');
+      return;
+    }
+    const identity = requestIdentity(request);
+    const fingerprint = requestFingerprint(request);
+    const replay = this.processed.get(identity);
     if (replay !== undefined) {
-      await view.postMessage(replay);
+      if (replay.fingerprint !== fingerprint) {
+        await this.reject(view, request.requestId, 'request id reused with different payload');
+        return;
+      }
+      await view.postMessage(replay.response);
       return;
     }
     if (request.baseVersion !== this.document.version) {
-      await this.reject(view, request.requestId, 'stale version');
+      await this.reject(view, request.requestId, 'stale version', identity, fingerprint);
       return;
     }
     const source = this.document.getText();
     const validation = validatePatchSet(source, request.patches);
     if (!validation.ok) {
-      await this.reject(view, request.requestId, validation.reason);
+      await this.reject(view, request.requestId, validation.reason, identity, fingerprint);
       return;
     }
     const expected = applyPatchSet(source, request.patches);
@@ -148,39 +183,47 @@ export class DocumentSession {
       result = await this.document.apply(request.baseVersion, request.patches);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'unknown apply failure';
-      await this.reject(view, request.requestId, `apply failed: ${message}`);
+      await this.reject(view, request.requestId, `apply failed: ${message}`, identity, fingerprint);
       return;
     } finally {
       this.isApplying = false;
     }
     if (!result.ok) {
-      await this.reject(view, request.requestId, result.reason);
+      await this.reject(view, request.requestId, result.reason, identity, fingerprint);
       return;
     }
     if (result.text !== expected) {
-      await this.reject(view, request.requestId, 'canonical result mismatch');
+      await this.reject(view, request.requestId, 'canonical result mismatch', identity, fingerprint);
       return;
     }
     this.handleDocumentChanged(request.baseVersion, result.version, request.patches, request.requestId);
     const accepted: HostMessage = { type: 'patchAccepted', requestId: request.requestId, version: result.version };
-    this.remember(request.requestId, accepted);
+    this.remember(identity, fingerprint, accepted);
     await view.postMessage(accepted);
     await this.recovery?.clear(this.uri);
   }
 
-  private async reject(view: WebviewEndpoint, requestId: string, reason: string): Promise<void> {
+  private async reject(
+    view: WebviewEndpoint,
+    requestId: string,
+    reason: string,
+    identity?: string,
+    fingerprint?: string
+  ): Promise<void> {
     const rejected: HostMessage = {
       type: 'patchRejected',
       requestId,
       reason,
       document: { text: this.document.getText(), version: this.document.version }
     };
-    this.remember(requestId, rejected);
+    if (identity !== undefined && fingerprint !== undefined) {
+      this.remember(identity, fingerprint, rejected);
+    }
     await view.postMessage(rejected);
   }
 
-  private remember(requestId: string, response: HostMessage): void {
-    this.processed.set(requestId, response);
+  private remember(identity: string, fingerprint: string, response: HostMessage): void {
+    this.processed.set(identity, { fingerprint, response });
     if (this.processed.size > 256) {
       const oldest = this.processed.keys().next().value;
       if (oldest !== undefined) {
@@ -200,4 +243,16 @@ export class DocumentSession {
       throw new Error('document session is disposed');
     }
   }
+}
+
+function requestIdentity(request: PatchRequest): string {
+  return `${request.viewId}\u0000${String(request.generation)}\u0000${request.requestId}`;
+}
+
+function requestFingerprint(request: PatchRequest): string {
+  return JSON.stringify({
+    baseVersion: request.baseVersion,
+    patches: request.patches,
+    ...(request.draftText === undefined ? {} : { draftText: request.draftText })
+  });
 }

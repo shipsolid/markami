@@ -4,9 +4,9 @@ const requestId = z.string().min(1).max(200);
 const rawPath = z.string().min(1).max(16_384);
 
 export const resourceRequestSchema = z.discriminatedUnion('action', [
-  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('pickImage') }),
-  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('resolveImage'), rawPath }),
-  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('openLink'), rawPath })
+  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('pickImage') }).strict(),
+  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('resolveImage'), rawPath }).strict(),
+  z.object({ type: z.literal('resourceRequest'), requestId, action: z.literal('openLink'), rawPath }).strict()
 ]);
 
 export type ResourceRequest = z.infer<typeof resourceRequestSchema>;

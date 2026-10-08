@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { resourceRequestSchema } from './resourceMessages.js';
+import { isProtocolTextWithinLimit, MAX_PROTOCOL_TEXT_BYTES, protocolTextBytes } from './limits.js';
 
 const patchSchema = z.object({
   from: z.number().int().nonnegative(),
   to: z.number().int().nonnegative(),
-  insert: z.string()
-});
+  insert: z.string().refine(isProtocolTextWithinLimit, 'patch insert exceeds the protocol text limit')
+}).strict();
 
 const viewPreferenceChangesSchema = z.object({
   appearance: z.enum(['vscode', 'document']).optional(),
@@ -21,7 +22,16 @@ export const patchRequestSchema = z.object({
   generation: z.number().int().nonnegative(),
   baseVersion: z.number().int().nonnegative(),
   patches: z.array(patchSchema).max(10_000),
-  draftText: z.string().max(10 * 1024 * 1024).optional()
+  draftText: z.string().refine(isProtocolTextWithinLimit, 'draft exceeds the protocol text limit').optional()
+}).strict().superRefine((request, context) => {
+  let insertedBytes = request.draftText === undefined ? 0 : protocolTextBytes(request.draftText);
+  for (const patch of request.patches) {
+    insertedBytes += protocolTextBytes(patch.insert);
+    if (insertedBytes > MAX_PROTOCOL_TEXT_BYTES) {
+      context.addIssue({ code: 'custom', path: ['patches'], message: 'patch inserts exceed the protocol text limit' });
+      return;
+    }
+  }
 });
 
 export const webviewMessageSchema = z.discriminatedUnion('type', [
@@ -31,6 +41,7 @@ export const webviewMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('save') }).strict(),
   z.object({ type: z.literal('history'), action: z.enum(['undo', 'redo']) }).strict(),
   z.object({ type: z.literal('policyReloadReady'), requestId: z.string().min(1).max(200) }).strict(),
+  z.object({ type: z.literal('recoveryChoice'), choice: z.enum(['inspect', 'copy', 'reload', 'discard']) }).strict(),
   z.object({ type: z.literal('updateViewPreferences'), changes: viewPreferenceChangesSchema }).strict(),
   z.object({ type: z.literal('resetFileViewPreferences') }).strict(),
   z.object({ type: z.literal('resetWorkspaceViewPreferences') }).strict(),

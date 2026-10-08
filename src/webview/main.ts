@@ -15,6 +15,7 @@ import { planBlockMove } from '../core/markdown/moveBlock.js';
 import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/source/CoordinateMap.js';
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
+import { CompositionGate } from './bridge/compositionGate.js';
 import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
@@ -58,6 +59,7 @@ import {
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
 import { DocumentOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
+import { ConflictBanner } from './ui/notifications/ConflictBanner.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -85,6 +87,7 @@ let blockHandles: BlockHandles | undefined;
 let documentControls: DocumentControls | undefined;
 let documentFind: DocumentFind | undefined;
 let documentOutline: DocumentOutline | undefined;
+let conflictBanner: ConflictBanner | undefined;
 let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
@@ -105,6 +108,7 @@ const policyReloadCompartment = new Compartment();
 const syntaxRevealCompartment = new Compartment();
 const documentSyntaxCompartment = new Compartment();
 const resources = new ResourceClient(vscode, navigateFragment);
+const compositionGate = new CompositionGate<HostMessage>();
 let pendingPolicyReload: string | undefined;
 registerTechnicalFeatures(featureRegistry);
 featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
@@ -124,6 +128,16 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     createEditor(coordinateMap.editorText);
   } else if (message.type === 'viewPreferencesChanged') {
     applyViewPreferencesState(message.viewPreferences);
+  } else if (message.type === 'recoveryAvailable') {
+    conflictBanner?.destroy();
+    conflictBanner = new ConflictBanner((choice) => {
+      vscode.postMessage({ type: 'recoveryChoice', choice });
+      if (choice === 'reload' || choice === 'discard') {
+        conflictBanner?.destroy();
+        conflictBanner = undefined;
+      }
+    });
+    document.body.prepend(conflictBanner.element);
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
     applyHostPatches(message.changes);
   } else if (message.type === 'executeAction') {
@@ -168,7 +182,12 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
 
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
   if (isHostMessage(event.data)) {
-    bridge.handle(event.data);
+    if (event.data.type === 'hydrate') compositionGate.reset();
+    if (event.data.type === 'documentChanged') {
+      compositionGate.deliverOrDefer(event.data, (message) => bridge.handle(message));
+    } else {
+      bridge.handle(event.data);
+    }
   }
 });
 window.addEventListener('resize', () => {
@@ -177,9 +196,12 @@ window.addEventListener('resize', () => {
     updateSelectionToolbar();
   }
 });
+window.addEventListener('pagehide', () => resources.dispose(), { once: true });
 bridge.ready();
 
 function createEditor(text: string): void {
+  conflictBanner?.destroy();
+  conflictBanner = undefined;
   documentControls?.destroy();
   toolbar?.destroy();
   linkPopover?.destroy();
@@ -228,7 +250,12 @@ function createEditor(text: string): void {
         ]),
         EditorView.domEventHandlers({
           compositionstart: () => {
+            compositionGate.start();
             toolbar?.hide();
+            return false;
+          },
+          compositionend: () => {
+            queueMicrotask(() => compositionGate.end((message) => bridge.handle(message)));
             return false;
           },
           dragstart: () => {

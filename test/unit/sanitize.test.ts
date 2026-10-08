@@ -14,7 +14,10 @@ describe('raw HTML sanitizer', () => {
     '<div onmouseover="globalThis.pwned = true">hover</div>',
     '<iframe srcdoc="<script>pwned()</script>"></iframe>',
     '<form action="javascript:pwned()"><button>Send</button></form>',
-    '<a href="command:workbench.action.closeWindow">bad</a>'
+    '<a href="command:workbench.action.closeWindow">bad</a>',
+    '<svg><a href="javascript:pwned()"><text>bad</text></a></svg>',
+    '<math><mtext onclick="pwned()">bad</mtext></math>',
+    '<div style="background:url(https://example.com/track)">bad</div>'
   ])('removes executable HTML from %s', (source) => {
     const sanitized = sanitizeRawHtml(source);
     const root = document.createElement('div');

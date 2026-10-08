@@ -73,4 +73,35 @@ describe('RecoveryStore', () => {
       baseMatches: false
     });
   });
+
+  test('migrates renamed files and prunes deleted directory records', async () => {
+    const storage = new MemoryStorage();
+    const store = new RecoveryStore(storage, 1024);
+    await store.put({
+      uri: 'file:///workspace/docs/a.md', baseVersion: 1, canonicalBaseHash: 'a', draftText: 'a', timestamp: 1
+    });
+    await store.put({
+      uri: 'file:///workspace/keep.md', baseVersion: 1, canonicalBaseHash: 'b', draftText: 'b', timestamp: 2
+    });
+
+    await store.rename('file:///workspace/docs', 'file:///workspace/renamed');
+    expect(store.get('file:///workspace/renamed/a.md')?.draftText).toBe('a');
+    expect(store.get('file:///workspace/docs/a.md')).toBeUndefined();
+
+    await store.delete('file:///workspace/renamed');
+    expect(store.get('file:///workspace/renamed/a.md')).toBeUndefined();
+    expect(store.get('file:///workspace/keep.md')?.draftText).toBe('b');
+  });
+
+  test('serializes concurrent updates so drafts are not lost', async () => {
+    const storage = new MemoryStorage();
+    const store = new RecoveryStore(storage, 1024);
+
+    await Promise.all([
+      store.put({ uri: 'file:///a.md', baseVersion: 1, canonicalBaseHash: 'a', draftText: 'a', timestamp: 1 }),
+      store.put({ uri: 'file:///b.md', baseVersion: 1, canonicalBaseHash: 'b', draftText: 'b', timestamp: 2 })
+    ]);
+
+    expect(storage.value.map((record) => record.uri)).toEqual(['file:///a.md', 'file:///b.md']);
+  });
 });

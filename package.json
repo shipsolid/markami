@@ -369,7 +369,7 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p tsconfig.bench.json --noEmit",
     "build:extension": "node esbuild.mjs",
     "build:webview": "vite build",
     "build:integration": "tsc -p tsconfig.integration.json",
@@ -382,8 +382,9 @@
     "test:visual": "vitest run test/visual",
     "test:visual:browser": "playwright test --config playwright.visual.config.ts",
     "bench": "node scripts/bench.mjs",
+    "check:licenses": "node scripts/checkLicenses.mjs",
     "package": "npm run build && vsce package --out artifacts/markami-0.1.0.vsix",
-    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run build"
+    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run check:licenses && npm run build"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

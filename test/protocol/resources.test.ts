@@ -18,5 +18,8 @@ describe('resource protocol', () => {
     expect(webviewMessageSchema.safeParse({
       type: 'resourceRequest', requestId: 'x', action: 'readFile', rawPath: './secret'
     }).success).toBe(false);
+    expect(webviewMessageSchema.safeParse({
+      type: 'resourceRequest', requestId: 'x', action: 'resolveImage', rawPath: './image.png', injected: true
+    }).success).toBe(false);
   });
 });

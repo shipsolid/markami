@@ -1,7 +1,11 @@
-import type { ResourceResponse } from '../../../protocol/resourceMessages.js';
+import type { ResourceRequest, ResourceResponse } from '../../../protocol/resourceMessages.js';
 import type { VsCodeTransport } from '../../bridge/hostBridge.js';
 
-type Pending = (message: ResourceResponse) => void;
+interface Pending {
+  readonly action: ResourceRequest['action'];
+  readonly resolve: (message: ResourceResponse) => void;
+  readonly timer: ReturnType<typeof setTimeout>;
+}
 
 export class ResourceClient {
   private sequence = 0;
@@ -9,7 +13,8 @@ export class ResourceClient {
 
   public constructor(
     private readonly transport: VsCodeTransport,
-    private readonly navigateFragment: (fragment: string) => void
+    private readonly navigateFragment: (fragment: string) => void,
+    private readonly timeoutMs = 30_000
   ) {}
 
   public pickImage(): Promise<string | undefined> {
@@ -32,18 +37,35 @@ export class ResourceClient {
   }
 
   public handle(message: ResourceResponse): boolean {
-    const resolve = this.pending.get(message.requestId);
-    if (resolve === undefined) return false;
+    const pending = this.pending.get(message.requestId);
+    if (pending === undefined || pending.action !== message.action) return false;
     this.pending.delete(message.requestId);
-    resolve(message);
+    clearTimeout(pending.timer);
+    pending.resolve(message);
     return true;
+  }
+
+  public dispose(): void {
+    for (const [requestId, pending] of this.pending) {
+      clearTimeout(pending.timer);
+      pending.resolve({
+        type: 'resourceResult', requestId, action: pending.action, ok: false, reason: 'resource client disposed'
+      });
+    }
+    this.pending.clear();
   }
 
   private request(action: 'pickImage'): Promise<ResourceResponse>;
   private request(action: 'resolveImage' | 'openLink', rawPath: string): Promise<ResourceResponse>;
   private request(action: 'pickImage' | 'resolveImage' | 'openLink', rawPath?: string): Promise<ResourceResponse> {
     const requestId = `resource-${String(++this.sequence)}`;
-    const response = new Promise<ResourceResponse>((resolve) => this.pending.set(requestId, resolve));
+    const response = new Promise<ResourceResponse>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(requestId);
+        resolve({ type: 'resourceResult', requestId, action, ok: false, reason: 'resource request timed out' });
+      }, this.timeoutMs);
+      this.pending.set(requestId, { action, resolve, timer });
+    });
     this.transport.postMessage(rawPath === undefined
       ? { type: 'resourceRequest', requestId, action }
       : { type: 'resourceRequest', requestId, action, rawPath });

@@ -7,8 +7,20 @@ import { findLinks, githubSlug } from '../../src/webview/features/links/links.js
 import { planLinkDestination } from '../../src/webview/features/links/links.js';
 import { findImages, planImageField } from '../../src/webview/features/images/images.js';
 import { applyPatchSet } from '../../src/core/source/PatchSet.js';
+import { webviewContentSecurityPolicy } from '../../src/extension/security.js';
 
 describe('resource policy', () => {
+  test('keeps scripts local and only permits remote images when configured', () => {
+    const blocked = webviewContentSecurityPolicy('vscode-webview:', 'block', 'nonce-value');
+    const allowed = webviewContentSecurityPolicy('vscode-webview:', 'allow', 'nonce-value');
+
+    expect(blocked).toContain("default-src 'none'");
+    expect(blocked).toContain("script-src vscode-webview: 'nonce-nonce-value'");
+    expect(blocked).not.toContain('https:');
+    expect(allowed).toContain('img-src vscode-webview: data: https:');
+    expect(allowed).not.toMatch(/(?:script-src|font-src)[^;]*https:/u);
+  });
+
   test('resolves encoded relative files and same-document fragments', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'markami-resources-'));
     const docs = path.join(root, 'docs');
@@ -38,6 +50,9 @@ describe('resource policy', () => {
     await expect(resolveResource(path.join(root, 'index.md'), './escape.png', [root], 'prompt')).resolves.toMatchObject({ ok: false });
     await expect(resolveResource(path.join(root, 'index.md'), './missing.png', [root], 'prompt')).resolves.toEqual({ ok: false, reason: 'resource does not exist' });
     await expect(resolveResource(path.join(root, 'index.md'), 'javascript:alert(1)', [root], 'prompt')).resolves.toEqual({ ok: false, reason: 'resource scheme is blocked' });
+    await expect(resolveResource(path.join(root, 'index.md'), '//evil.example/asset', [root], 'prompt')).resolves.toMatchObject({ ok: false });
+    await expect(resolveResource(path.join(root, 'index.md'), 'data:text/html,pwned', [root], 'prompt')).resolves.toEqual({ ok: false, reason: 'resource scheme is blocked' });
+    await expect(resolveResource(path.join(root, 'index.md'), 'command:%77orkbench.action.closeWindow', [root], 'prompt')).resolves.toEqual({ ok: false, reason: 'resource scheme is blocked' });
   });
 
   test('enforces remote image block, prompt, and allow policy', async () => {

@@ -21,6 +21,8 @@ export type RecoveryPutResult =
   | { readonly ok: false; readonly reason: 'capacity exceeded'; readonly draft: RecoveryRecord };
 
 export class RecoveryStore {
+  private mutation: Promise<void> = Promise.resolve();
+
   public constructor(
     private readonly storage: RecoveryStorage,
     private readonly maxBytes = RECOVERY_SCOPE_LIMIT_BYTES
@@ -30,23 +32,48 @@ export class RecoveryStore {
     return this.storage.get().find((record) => record.uri === uri);
   }
 
-  public async put(record: RecoveryRecord): Promise<RecoveryPutResult> {
-    const records = [...this.storage.get().filter((item) => item.uri !== record.uri), record];
-    const bytes = records.reduce((total, item) => total + new TextEncoder().encode(item.draftText).byteLength, 0);
-    if (bytes > this.maxBytes) {
-      return { ok: false, reason: 'capacity exceeded', draft: record };
-    }
-    await this.storage.update(records.sort((left, right) => left.timestamp - right.timestamp));
-    return { ok: true };
+  public put(record: RecoveryRecord): Promise<RecoveryPutResult> {
+    return this.mutate(async () => {
+      const records = [...this.storage.get().filter((item) => item.uri !== record.uri), record];
+      const bytes = records.reduce((total, item) => total + new TextEncoder().encode(item.draftText).byteLength, 0);
+      if (bytes > this.maxBytes) {
+        return { ok: false, reason: 'capacity exceeded', draft: record };
+      }
+      await this.storage.update(records.sort((left, right) => left.timestamp - right.timestamp));
+      return { ok: true };
+    });
   }
 
-  public async clear(uri: string): Promise<void> {
-    await this.storage.update(this.storage.get().filter((record) => record.uri !== uri));
+  public clear(uri: string): Promise<void> {
+    return this.mutate(() => this.storage.update(this.storage.get().filter((record) => record.uri !== uri)));
+  }
+
+  public rename(oldUri: string, newUri: string): Promise<void> {
+    return this.mutate(() => this.storage.update(this.storage.get().map((record) => {
+      if (!sameOrDescendantUri(record.uri, oldUri)) return record;
+      return { ...record, uri: `${newUri}${record.uri.slice(oldUri.length)}` };
+    })));
+  }
+
+  public delete(uri: string): Promise<void> {
+    return this.mutate(() => this.storage.update(
+      this.storage.get().filter((record) => !sameOrDescendantUri(record.uri, uri))
+    ));
   }
 
   public static hashCanonical(text: string): string {
     return `sha256:${createHash('sha256').update(text, 'utf8').digest('hex')}`;
   }
+
+  private mutate<T>(operation: () => PromiseLike<T>): Promise<T> {
+    const next = this.mutation.then(() => operation());
+    this.mutation = next.then(() => undefined, () => undefined);
+    return next;
+  }
+}
+
+function sameOrDescendantUri(candidate: string, root: string): boolean {
+  return candidate === root || candidate.startsWith(root.endsWith('/') ? root : `${root}/`);
 }
 
 export class MementoRecoveryStorage implements RecoveryStorage {

@@ -71,10 +71,16 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.executeAction('markami.resetWorkspaceViewPreferences')),
     vscode.workspace.onDidRenameFiles((event) => {
       void Promise.all(event.files.map(({ oldUri, newUri }) =>
-        provider.renameViewPreferences(oldUri, newUri)));
+        Promise.all([
+          provider.renameViewPreferences(oldUri, newUri),
+          recovery.rename(oldUri.toString(), newUri.toString())
+        ])));
     }),
     vscode.workspace.onDidDeleteFiles((event) => {
-      void Promise.all(event.files.map((uri) => viewPreferences.delete(uri.toString())));
+      void Promise.all(event.files.map((uri) => Promise.all([
+        viewPreferences.delete(uri.toString()),
+        recovery.delete(uri.toString())
+      ])));
     }),
     vscode.workspace.onDidCloseTextDocument((document) => {
       void viewPreferences.closeSession(document.uri.toString());
