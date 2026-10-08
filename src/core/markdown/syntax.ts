@@ -1,3 +1,5 @@
+import { markdownLanguage } from '@codemirror/lang-markdown';
+
 export type SyntaxKind = 'strong' | 'emphasis' | 'strike' | 'inlineCode' | 'heading1' | 'heading2' | 'heading3' | 'quote' | 'list' | 'divider';
 
 export interface SourceRange {
@@ -35,13 +37,14 @@ export interface ProjectionPlan {
 export interface ProjectionOptions {
   readonly selection?: SourceRange;
   readonly semanticRanges?: readonly (SourceRange & { readonly kind: string })[];
+  readonly sourceIslands?: readonly SourceIslandSpec[];
 }
 
 export function buildProjectionPlan(source: string, options: ProjectionOptions = {}): ProjectionPlan {
   const marks: MarkDecoration[] = [];
   const hiddenTokens: HiddenToken[] = [];
   const lineStyles: LineStyle[] = [];
-  const sourceIslands = findUnterminatedFence(source);
+  const sourceIslands = mergeIslands([...findUnterminatedFence(source), ...(options.sourceIslands ?? [])]);
 
   collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands);
   collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hiddenTokens, options.selection, sourceIslands);
@@ -53,6 +56,61 @@ export function buildProjectionPlan(source: string, options: ProjectionOptions =
     return emptyWithIsland(source.length, 'parser disagreement');
   }
   return { version: 1, marks, hiddenTokens, lineStyles, widgets: [], sourceIslands };
+}
+
+export interface RawHtmlRange extends SourceRange {
+  readonly nodeType: 'block' | 'tag' | 'comment';
+  readonly source: string;
+}
+
+export function findRawHtmlRanges(source: string): readonly RawHtmlRange[] {
+  const ranges: RawHtmlRange[] = [];
+  markdownLanguage.parser.parse(source).cursor().iterate((node) => {
+    const nodeType = node.name === 'HTMLBlock'
+      ? 'block'
+      : node.name === 'HTMLTag'
+        ? 'tag'
+        : node.name === 'CommentBlock'
+          ? 'comment'
+          : undefined;
+    if (nodeType !== undefined) {
+      ranges.push({ from: node.from, to: node.to, nodeType, source: source.slice(node.from, node.to) });
+    }
+  });
+  return ranges;
+}
+
+export function findUnknownSyntaxRanges(source: string): readonly SourceIslandSpec[] {
+  const ranges: SourceIslandSpec[] = [];
+  const protectedRanges = codeRanges(source);
+  for (const match of source.matchAll(/^:::[\w-]+[^\r\n]*(?:\r\n|\r|\n)/gmu)) {
+    const endPattern = /^:::\s*$/gmu;
+    endPattern.lastIndex = match.index + match[0].length;
+    const closing = endPattern.exec(source);
+    const to = closing === null ? source.length : closing.index + closing[0].length;
+    const range = { from: match.index, to, reason: 'custom directive' } as const;
+    if (!protectedRanges.some((candidate) => overlaps(candidate, range))) ranges.push(range);
+  }
+  for (const match of source.matchAll(/^(?:import|export)\s[^\r\n]*(?:\r\n|\r|\n|$)/gmu)) {
+    const range = { from: match.index, to: match.index + match[0].length, reason: 'MDX' } as const;
+    if (!protectedRanges.some((candidate) => overlaps(candidate, range))) ranges.push(range);
+  }
+  for (const html of findRawHtmlRanges(source)) {
+    if (/^<\/?[A-Z]/u.test(html.source.trimStart())) {
+      ranges.push({ from: html.from, to: html.to, reason: 'MDX' });
+    }
+  }
+  return mergeIslands(ranges);
+}
+
+function codeRanges(source: string): SourceRange[] {
+  const ranges: SourceRange[] = [];
+  markdownLanguage.parser.parse(source).cursor().iterate((node) => {
+    if (node.name === 'FencedCode' || node.name === 'CodeBlock' || node.name === 'InlineCode') {
+      ranges.push({ from: node.from, to: node.to });
+    }
+  });
+  return ranges;
 }
 
 function collectLines(
@@ -157,4 +215,15 @@ function emptyWithIsland(length: number, reason: string): ProjectionPlan {
     widgets: [],
     sourceIslands: [{ from: 0, to: length, reason }]
   };
+}
+
+function mergeIslands(islands: readonly SourceIslandSpec[]): SourceIslandSpec[] {
+  const sorted = [...islands].sort((left, right) => left.from - right.from || right.to - left.to);
+  const merged: SourceIslandSpec[] = [];
+  for (const island of sorted) {
+    const previous = merged.at(-1);
+    if (previous !== undefined && island.from >= previous.from && island.to <= previous.to) continue;
+    merged.push(island);
+  }
+  return merged;
 }

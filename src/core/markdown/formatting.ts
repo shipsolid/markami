@@ -1,4 +1,6 @@
 import { createTextPatch, type TextPatch } from '../source/PatchSet.js';
+import { findFrontmatter } from './frontmatter.js';
+import { findRawHtmlRanges, findUnknownSyntaxRanges } from './syntax.js';
 
 export interface ActionContext {
   readonly hostVersion: number;
@@ -310,10 +312,10 @@ function protectedRanges(source: string): readonly { readonly from: number; read
   if (openFence !== undefined) {
     ranges.push({ from: openFence.from, to: source.length });
   }
-  const frontmatter = /^(---|\+\+\+)\n[\s\S]*?\n\1(?:\n|$)/u.exec(source);
-  if (frontmatter !== null) {
-    ranges.push({ from: 0, to: frontmatter[0].length });
-  }
+  const frontmatter = findFrontmatter(source);
+  if (frontmatter !== undefined) ranges.push({ from: frontmatter.from, to: frontmatter.to });
+  ranges.push(...findRawHtmlRanges(source).map(({ from, to }) => ({ from, to })));
+  ranges.push(...findUnknownSyntaxRanges(source).map(({ from, to }) => ({ from, to })));
   for (const wrapper of findWrappers(source)) {
     if (wrapper.kind === 'code') {
       ranges.push({ from: wrapper.from, to: wrapper.to });

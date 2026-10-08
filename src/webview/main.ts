@@ -26,6 +26,7 @@ import { findLinkAt, githubSlug, linkNavigationExtension } from './features/link
 import { linkProjectionField } from './features/links/LinkProjection.js';
 import { ResourceClient } from './features/images/ResourceClient.js';
 import { imageProjection } from './features/images/ImageProjection.js';
+import { documentSyntax } from './features/html/HtmlProjection.js';
 import { projectionField } from './projection/ProjectionPlugin.js';
 import { LinkPopover } from './ui/inlinePopover/LinkPopover.js';
 import { ImagePopover } from './ui/images/ImagePopover.js';
@@ -70,6 +71,8 @@ const resources = new ResourceClient(vscode, navigateFragment);
 let pendingPolicyReload: string | undefined;
 registerTechnicalFeatures(featureRegistry);
 featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
+featureRegistry.register({ id: 'frontmatter', sourceKinds: ['yamlFrontmatter'] });
+featureRegistry.register({ id: 'html-source-islands', sourceKinds: ['rawHtml', 'mdx', 'customDirective'] });
 
 const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   if (message.type === 'resourceResult') {
@@ -136,6 +139,7 @@ function createEditor(text: string): void {
         markdown({ codeLanguages: languages }),
         policyReloadCompartment.of(EditorView.editable.of(true)),
         projectionField,
+        documentSyntax(),
         linkProjectionField,
         linkNavigationExtension((destination) => void resources.openLink(destination)),
         ...imageProjection(

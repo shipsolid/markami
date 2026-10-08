@@ -157,3 +157,18 @@
 - Security: filesystem access and external opening remain in the extension host; copied-image destinations are realpath-confined after directory creation; code spans/fences and escaped resource examples never resolve or navigate; policy changes disable editing until the canonical patch queue is synchronized, then reload under the new CSP
 - Limitation: initial 1.0 platform commitment is local filesystem workspaces. Non-file resource operations fail closed with an explicit message; URI-native `workspace.fs` support and remote-workspace smoke coverage remain a Task 16 gate
 - Next: Task 12 frontmatter, HTML, and unknown syntax fidelity
+
+## Task 12 — Frontmatter, HTML, and unknown syntax fidelity
+
+- Status: complete
+- Commit: `feat: preserve frontmatter and unsupported document syntax`
+- Changed paths: BOM/EOL-aware frontmatter ranges and CST validation, compact metadata/source projection, strict DOMPurify allowlist, conservative HTML/MDX/directive source islands, formatting/slash suppression, and CSP integration coverage
+- RED: the document-syntax suites initially failed because frontmatter, HTML classification, sanitizer, and projection modules did not exist; follow-up RED cases exposed formatting leakage inside islands, Markdown decoration leakage, YAML-comment punctuation, and directive false positives inside code
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 50 unit tests, 8 protocol tests, 42 fidelity tests, production builds
+  - `npm run test:webview` — pass; 38 webview tests
+  - VS Code 1.141.0 Linux/Xvfb — 8 integration tests passing, including CSP-hosted unsafe syntax and exact CRLF source preservation
+- Covered boundaries: BOM and CRLF fences, comments, anchors, quoted scalars, ordering, duplicate keys, invalid YAML, exact local source edits, safe inactive HTML, script/event/iframe/form/unsafe-link denial, MDX and custom directives, code exclusions, source reveal, and no-touch source guarantees
+- Security: safe HTML is parsed conservatively and rendered only after a narrow DOMPurify tag/attribute allowlist; ambiguous or executable input remains editable CodeMirror source and is never serialized from sanitized DOM
+- Deliberate scope: scalar metadata forms are omitted until their interaction model has exact CST-range patch evidence; the declared `@lezer/yaml` parser is currently used only to classify syntax validity and never to regenerate YAML
+- Next: Task 13 appearance, width, and responsive document controls

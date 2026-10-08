@@ -122,3 +122,43 @@
   display: table-caption;
   padding: 4px;
 }
+
+.markami-frontmatter-summary {
+  align-items: center;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  margin-block: 0 12px;
+  padding: 8px 12px;
+}
+
+.markami-frontmatter-source,
+.markami-source-island-badge {
+  color: var(--vscode-textLink-foreground);
+}
+
+.markami-safe-html {
+  border-left: 2px solid var(--vscode-textBlockQuote-border);
+  box-sizing: border-box;
+  margin-block: 6px;
+  max-width: 100%;
+  padding-left: 10px;
+}
+
+.cm-line.markami-source-island {
+  background: var(--vscode-textCodeBlock-background);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.markami-source-island-badge {
+  background: var(--vscode-badge-background);
+  border-radius: 3px;
+  color: var(--vscode-badge-foreground);
+  display: inline-block;
+  font-family: var(--vscode-font-family);
+  font-size: 0.75rem;
+  margin-right: 8px;
+  padding: 1px 5px;
+}
