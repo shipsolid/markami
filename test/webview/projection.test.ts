@@ -58,4 +58,12 @@ describe('Markdown projection', () => {
     expect(plan.marks).toContainEqual(expect.objectContaining({ kind: 'strong', from: 15, to: 19 }));
     expect(source).toContain('**bold**');
   });
+
+  test('projects the complete heading hierarchy for appearance styling', () => {
+    const headings = '# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six';
+
+    expect(buildProjectionPlan(headings).lineStyles.map((style) => style.kind)).toEqual([
+      'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'
+    ]);
+  });
 });

@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "test/unit/**/*.ts", "test/protocol/**/*.ts", "test/fidelity/**/*.ts", "test/webview/**/*.ts", "test/visual/**/*.ts", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "test/unit/**/*.ts", "test/protocol/**/*.ts", "test/fidelity/**/*.ts", "test/webview/**/*.ts", "test/visual/**/*.ts", "test/visual-browser/**/*.ts", "playwright.visual.config.ts", "vite.config.ts", "vitest.config.ts"]
 }

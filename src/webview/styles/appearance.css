@@ -1,0 +1,119 @@
+.markami-document-shell {
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+
+.markami-document-shell[data-appearance='vscode'][data-editor-font='true'] .cm-content {
+  font-family: var(--vscode-editor-font-family);
+  line-height: 1.45;
+}
+
+.markami-document-shell[data-appearance='vscode'][data-editor-font='false'] .cm-content,
+.markami-document-shell[data-appearance='document'] .cm-content {
+  font-family: var(--vscode-font-family);
+}
+
+.markami-document-shell[data-appearance='document'] .cm-content {
+  font-size: calc(var(--vscode-font-size, 13px) + 1px);
+  line-height: 1.65;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line {
+  padding-block: 0.15em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line[class*='markami-heading'] {
+  font-family: var(--vscode-font-family);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-block: 0.55em 0.2em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading1 {
+  font-size: 1.8em;
+  font-weight: 700;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading2 {
+  font-size: 1.5em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading3 {
+  font-size: 1.3em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading4 {
+  font-size: 1.15em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading5 {
+  font-size: 1.05em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading6 {
+  color: var(--vscode-descriptionForeground);
+  font-size: 1em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-quote {
+  border-left: 3px solid var(--vscode-textBlockQuote-border);
+  color: var(--vscode-textBlockQuote-foreground, var(--vscode-editor-foreground));
+  padding-left: 12px;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-table,
+.markami-document-shell[data-appearance='document'] .markami-mermaid,
+.markami-document-shell[data-appearance='document'] .markami-math,
+.markami-document-shell[data-appearance='document'] .markami-frontmatter-summary,
+.markami-document-shell[data-appearance='document'] .markami-safe-html {
+  margin-block: 1em;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-table {
+  border-radius: 4px;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-table [role='gridcell'],
+.markami-document-shell[data-appearance='document'] .markami-table [role='columnheader'] {
+  padding: 8px 12px;
+}
+
+.markami-document-shell .markami-code-header,
+.markami-document-shell .markami-code-line,
+.markami-document-shell .markami-source-island {
+  font-family: var(--vscode-editor-font-family);
+}
+
+.markami-document-controls {
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-font-family);
+}
+
+.markami-document-controls select,
+.markami-document-controls input {
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-contrastBorder, transparent));
+  color: var(--vscode-dropdown-foreground);
+}
+
+.markami-document-controls :focus-visible,
+.markami-document-shell [tabindex]:focus-visible,
+.markami-document-shell button:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.vscode-high-contrast .markami-document-controls,
+.vscode-high-contrast-light .markami-document-controls {
+  border-color: var(--vscode-contrastBorder);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markami-document-shell *,
+  .markami-document-shell *::before,
+  .markami-document-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
+}

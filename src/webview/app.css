@@ -1,4 +1,6 @@
 @import 'katex/dist/katex.min.css';
+@import './styles/layout.css';
+@import './styles/appearance.css';
 
 .markami-link {
   color: var(--vscode-textLink-foreground);
@@ -97,9 +99,15 @@
 
 .markami-table {
   border: 1px solid var(--vscode-widget-border, transparent);
-  display: table;
+  display: block;
   max-width: 100%;
   overflow-x: auto;
+}
+
+.markami-table-grid {
+  display: table;
+  min-width: 100%;
+  width: max-content;
 }
 
 .markami-table [role='row'] {
@@ -119,7 +127,9 @@
 }
 
 .markami-table-controls {
-  display: table-caption;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   padding: 4px;
 }
 

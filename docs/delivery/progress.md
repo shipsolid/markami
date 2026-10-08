@@ -172,3 +172,19 @@
 - Security: safe HTML is parsed conservatively and rendered only after a narrow DOMPurify tag/attribute allowlist; ambiguous or executable input remains editable CodeMirror source and is never serialized from sanitized DOM
 - Deliberate scope: scalar metadata forms are omitted until their interaction model has exact CST-range patch evidence; the declared `@lezer/yaml` parser is currently used only to classify syntax validity and never to regenerate YAML
 - Next: Task 13 appearance, width, and responsive document controls
+
+## Task 13 — Appearance, width, and responsive document controls
+
+- Status: complete
+- Commit: `feat: add document appearance and width controls`
+- Changed paths: host-validated appearance settings, Quick Pick commands, accessible document controls, responsive shell/typography styles, semantic scroll anchoring, H1–H6 projection, table-local overflow, and webview/visual/platform tests
+- RED: appearance tests initially failed because the control, layout, and scroll-anchor modules did not exist; follow-up cases exposed the missing table overflow wrapper, incomplete H4–H6 projection, and command-palette workflows that focused controls without presenting a choice
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 53 unit tests, 8 protocol tests, 42 fidelity tests, and production builds
+  - `npm run test:webview` — 45 tests passing
+  - `npm run test:visual` — 4 deterministic theme/state and production-CSS baselines passing
+  - focused Task 13 suites — 20 tests passing across appearance commands, projection, webview appearance, and visual CSS
+  - VS Code integration test compiles and covers all appearance/width command values as source-neutral; native Electron execution is currently blocked on this host by missing `libnspr4.so`, and a containerized Xvfb attempt hung before Mocha output
+- Covered boundaries: vscode/document × auto/readable/full × 320/768/1440 width model, 960 default, 480–2400 validation, full-width cap bypass, accessible wrapped controls, Quick Pick routing, no EditorView recreation, text/selection/history/pending-patch neutrality, zoom-aware keyed source anchors, disconnected-view cancellation, local table overflow, local fonts, reduced motion, visible focus, high-contrast tokens, and Document H1–H6/table/block hierarchy
+- Deliberate evidence boundary: deterministic CSSOM/theme baselines load the production styles, but native pixel screenshots and real browser overflow measurement remain Task 16 release gates; the installed headless browser also lacks the host NSS runtime libraries
+- Next: Task 14 durable file preferences and multi-view presentation sync

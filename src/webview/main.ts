@@ -18,6 +18,7 @@ import type { HostMessage } from '../protocol/messages.js';
 import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
+import { captureScrollAnchor, restoreScrollAnchor } from './editor/scrollAnchor.js';
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
 import { registerTechnicalFeatures, technicalBlocks } from './features/technicalBlocks.js';
@@ -33,6 +34,14 @@ import { ImagePopover } from './ui/images/ImagePopover.js';
 import { blockHandleGutter, BlockHandles, computeAutoScrollVelocity } from './ui/blocks/BlockHandles.js';
 import { SlashPalette } from './ui/slash/SlashPalette.js';
 import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
+import {
+  DEFAULT_APPEARANCE,
+  DocumentControls,
+  applyAppearance,
+  normalizeAppearancePreferences,
+  type AppearanceChange,
+  type AppearancePreferences
+} from './ui/appearance/DocumentControls.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -57,12 +66,14 @@ let linkPopover: LinkPopover | undefined;
 let imagePopover: ImagePopover | undefined;
 let slashPalette: SlashPalette | undefined;
 let blockHandles: BlockHandles | undefined;
+let documentControls: DocumentControls | undefined;
 let selectionToolbarEnabled = true;
 let slashCommandsEnabled = true;
 let mathEnabled = true;
 let blockHandlesEnabled = true;
 let renderMermaid = true;
 let codeBlockWrap = false;
+let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
 const actions = createFormattingActionRegistry();
 const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
@@ -87,7 +98,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
     applyHostPatches(message.changes);
   } else if (message.type === 'executeAction') {
-    executeHostAction(message.actionId);
+    executeHostAction(message.actionId, message.value);
   } else if (message.type === 'configuration') {
     selectionToolbarEnabled = message.selectionToolbarEnabled;
     slashCommandsEnabled = message.slashCommandsEnabled;
@@ -95,6 +106,12 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     blockHandlesEnabled = message.blockHandlesEnabled;
     renderMermaid = message.renderMermaid;
     codeBlockWrap = message.codeBlockWrap;
+    updateAppearance({
+      appearance: message.appearance,
+      width: message.width,
+      maxContentWidth: message.maxContentWidth,
+      useEditorFont: message.useEditorFont
+    });
     slashPalette?.setMathEnabled(mathEnabled);
     if (!blockHandlesEnabled) blockHandles?.hide();
     view?.dispatch({
@@ -124,6 +141,7 @@ window.addEventListener('resize', () => {
 bridge.ready();
 
 function createEditor(text: string): void {
+  documentControls?.destroy();
   toolbar?.destroy();
   linkPopover?.destroy();
   imagePopover?.destroy();
@@ -205,12 +223,13 @@ function createEditor(text: string): void {
         }),
         EditorView.theme({
           '&': { height: '100%', fontSize: 'var(--vscode-editor-font-size)' },
-          '.cm-scroller': { fontFamily: 'var(--vscode-editor-font-family)', overflow: 'auto' },
-          '.cm-content': { padding: '24px' }
+          '.cm-scroller': { overflow: 'auto' }
         })
       ]
     })
   });
+  documentControls = new DocumentControls(document, editorParent, appearancePreferences, updateAppearance);
+  applyAppearance(view, appearancePreferences);
   toolbar = new SelectionToolbar(document, actions, (_actionId, _context, result) => {
     if (_actionId === 'markami.link') {
       linkPopover?.show(_context);
@@ -312,7 +331,23 @@ function currentFormattingStates(): Readonly<Record<string, 'active' | 'mixed' |
   };
 }
 
-function executeHostAction(actionId: string): void {
+function executeHostAction(actionId: string, value?: string): void {
+  if (actionId === 'markami.setDocumentAppearance') {
+    if (value === 'vscode' || value === 'document') {
+      updateAppearance({ appearance: value });
+    } else {
+      documentControls?.focusAppearance();
+    }
+    return;
+  }
+  if (actionId === 'markami.setDocumentWidth') {
+    if (value === 'auto' || value === 'readable' || value === 'full') {
+      updateAppearance({ width: value });
+    } else {
+      documentControls?.focusWidth();
+    }
+    return;
+  }
   if (actionId === 'markami.showSelectionToolbar') {
     updateSelectionToolbar(true);
     return;
@@ -342,6 +377,17 @@ function executeHostAction(actionId: string): void {
   if (view !== undefined) {
     executeEditorAction(view, actions, actionId, currentActionContext());
   }
+}
+
+function updateAppearance(change: AppearanceChange): void {
+  const next = normalizeAppearancePreferences({ ...appearancePreferences, ...change });
+  appearancePreferences = next;
+  documentControls?.setPreferences(next);
+  if (view === undefined) return;
+  const anchor = captureScrollAnchor(view);
+  applyAppearance(view, next);
+  restoreScrollAnchor(view, anchor);
+  if (toolbar?.capturedContext !== undefined) updateSelectionToolbar();
 }
 
 function updateSlashPalette(): void {

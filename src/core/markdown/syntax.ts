@@ -1,6 +1,8 @@
 import { markdownLanguage } from '@codemirror/lang-markdown';
 
-export type SyntaxKind = 'strong' | 'emphasis' | 'strike' | 'inlineCode' | 'heading1' | 'heading2' | 'heading3' | 'quote' | 'list' | 'divider';
+export type SyntaxKind = 'strong' | 'emphasis' | 'strike' | 'inlineCode' |
+  'heading1' | 'heading2' | 'heading3' | 'heading4' | 'heading5' | 'heading6' |
+  'quote' | 'list' | 'divider';
 
 export interface SourceRange {
   readonly from: number;
@@ -123,7 +125,7 @@ function collectLines(
   let offset = 0;
   for (const line of source.split('\n')) {
     const end = offset + line.length;
-    const heading = /^(#{1,3})\s/u.exec(line);
+    const heading = /^(#{1,6})\s/u.exec(line);
     const quote = /^>\s?/u.exec(line);
     const list = /^(?:[-+*]|\d+[.)])\s/u.exec(line);
     if (heading !== null) {

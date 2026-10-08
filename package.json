@@ -113,6 +113,14 @@
       {
         "command": "markami.moveBlockTo",
         "title": "markami: Move Block To…"
+      },
+      {
+        "command": "markami.setDocumentAppearance",
+        "title": "markami: Set Document Appearance"
+      },
+      {
+        "command": "markami.setDocumentWidth",
+        "title": "markami: Set Document Width"
       }
     ],
     "keybindings": [
@@ -174,6 +182,36 @@
           "scope": "resource",
           "description": "Show top-level block handles. Keyboard block-move commands remain available when disabled."
         },
+        "markami.appearance.mode": {
+          "type": "string",
+          "enum": ["vscode", "document"],
+          "enumDescriptions": ["Compact, editor-oriented typography.", "Comfortable document-oriented typography."],
+          "default": "vscode",
+          "scope": "resource",
+          "description": "Set the default presentation for rendered Markdown. This never changes document source."
+        },
+        "markami.document.width": {
+          "type": "string",
+          "enum": ["auto", "readable", "full"],
+          "enumDescriptions": ["Center content up to the configured maximum.", "Cap prose at 80 characters and the configured maximum.", "Use all available content width."],
+          "default": "auto",
+          "scope": "resource",
+          "description": "Set the default rendered document width. This never changes document source."
+        },
+        "markami.document.maxContentWidth": {
+          "type": "integer",
+          "minimum": 480,
+          "maximum": 2400,
+          "default": 960,
+          "scope": "resource",
+          "description": "Set the maximum content width in CSS pixels for Auto and Readable width modes."
+        },
+        "markami.theme.useEditorFont": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Use the configured VS Code editor font in VS Code appearance mode. Document mode always uses the UI font."
+        },
         "markami.remoteImages": {
           "type": "string",
           "enum": ["block", "prompt", "allow"],
@@ -198,6 +236,7 @@
     "test:webview": "vitest run test/webview",
     "test:integration": "npm run build && npm run build:integration && node scripts/runIntegration.mjs",
     "test:visual": "vitest run test/visual",
+    "test:visual:browser": "playwright test --config playwright.visual.config.ts",
     "bench": "node scripts/bench.mjs",
     "package": "npm run build && vsce package --out artifacts/markami-0.1.0.vsix",
     "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run build"

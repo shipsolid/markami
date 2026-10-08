@@ -40,7 +40,9 @@ class TableWidget extends WidgetType {
   public override toDOM(view: EditorView): HTMLElement {
     const root = document.createElement('div');
     root.className = 'markami-table';
-    root.setAttribute('role', 'grid');
+    const grid = document.createElement('div');
+    grid.className = 'markami-table-grid';
+    grid.setAttribute('role', 'grid');
     const controls = document.createElement('div');
     controls.className = 'markami-table-controls';
     const operations = [
@@ -58,7 +60,7 @@ class TableWidget extends WidgetType {
       button.addEventListener('click', () => this.applyStructure(view, operation));
       controls.append(button);
     }
-    root.append(controls);
+    root.append(controls, grid);
     this.table.rows.forEach((row, rowIndex) => {
       const rowElement = document.createElement('div');
       rowElement.setAttribute('role', 'row');
@@ -83,7 +85,7 @@ class TableWidget extends WidgetType {
         }
         rowElement.append(editor);
       }
-      root.append(rowElement);
+      grid.append(rowElement);
     });
     const reveal = document.createElement('button');
     reveal.type = 'button';

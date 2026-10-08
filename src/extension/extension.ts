@@ -3,6 +3,11 @@ import { DocumentSessionRegistry } from './DocumentSessionRegistry.js';
 import { HistoryRouter } from './history.js';
 import { MarkamiProvider } from './MarkamiProvider.js';
 import { MementoRecoveryStorage, RecoveryStore } from './RecoveryStore.js';
+import {
+  chooseDocumentAppearance,
+  chooseDocumentWidth,
+  type PreferenceChoice
+} from './appearanceCommands.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
@@ -29,6 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
     'markami.moveBlockDown',
     'markami.moveBlockTo'
   ];
+  const pickPreference = (items: readonly PreferenceChoice[]): Thenable<PreferenceChoice | undefined> =>
+    vscode.window.showQuickPick(items, { placeHolder: 'Choose a document presentation setting' });
 
   context.subscriptions.push(
     sessions,
@@ -47,6 +54,14 @@ export function activate(context: vscode.ExtensionContext): void {
       if (active instanceof vscode.TabInputCustom) {
         await vscode.commands.executeCommand('vscode.openWith', active.uri, 'default');
       }
+    }),
+    vscode.commands.registerCommand('markami.setDocumentAppearance', async (supplied?: unknown) => {
+      const appearance = await chooseDocumentAppearance(supplied, pickPreference);
+      return appearance === undefined ? false : provider.executeAction('markami.setDocumentAppearance', appearance);
+    }),
+    vscode.commands.registerCommand('markami.setDocumentWidth', async (supplied?: unknown) => {
+      const width = await chooseDocumentWidth(supplied, pickPreference);
+      return width === undefined ? false : provider.executeAction('markami.setDocumentWidth', width);
     }),
     ...formattingCommands.map((command) => vscode.commands.registerCommand(command, () => provider.executeAction(command)))
   );

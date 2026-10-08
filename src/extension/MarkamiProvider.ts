@@ -20,11 +20,15 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     private readonly history: HistoryRouter
   ) {}
 
-  public executeAction(actionId: string): Thenable<boolean> {
+  public executeAction(actionId: string, value?: string): Thenable<boolean> {
     if (this.activePanel === undefined) {
       return Promise.resolve(false);
     }
-    return this.activePanel.webview.postMessage({ type: 'executeAction', actionId });
+    return this.activePanel.webview.postMessage({
+      type: 'executeAction',
+      actionId,
+      ...(value === undefined ? {} : { value })
+    });
   }
 
   public resolveCustomTextEditor(
@@ -227,6 +231,20 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
 
   private sendConfiguration(document: vscode.TextDocument, webview: vscode.Webview): Thenable<boolean> {
     const configuration = vscode.workspace.getConfiguration('markami', document.uri);
+    const configuredAppearance = configuration.get<unknown>('appearance.mode');
+    const appearance = configuredAppearance === 'document' || configuredAppearance === 'vscode'
+      ? configuredAppearance
+      : 'vscode';
+    const configuredWidth = configuration.get<unknown>('document.width');
+    const width = configuredWidth === 'readable' || configuredWidth === 'full' || configuredWidth === 'auto'
+      ? configuredWidth
+      : 'auto';
+    const configuredMaximum = configuration.get<unknown>('document.maxContentWidth');
+    const maxContentWidth = typeof configuredMaximum === 'number' && Number.isInteger(configuredMaximum) &&
+      configuredMaximum >= 480 && configuredMaximum <= 2400
+      ? configuredMaximum
+      : 960;
+    const configuredEditorFont = configuration.get<unknown>('theme.useEditorFont');
     return webview.postMessage({
       type: 'configuration',
       selectionToolbarEnabled: configuration.get<boolean>('selectionToolbar.enabled', true),
@@ -234,7 +252,11 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       mathEnabled: configuration.get<boolean>('renderMath', true),
       blockHandlesEnabled: configuration.get<boolean>('blockHandles.enabled', true),
       renderMermaid: configuration.get<boolean>('renderMermaid', true),
-      codeBlockWrap: configuration.get<boolean>('codeBlock.wrap', false)
+      codeBlockWrap: configuration.get<boolean>('codeBlock.wrap', false),
+      appearance,
+      width,
+      maxContentWidth,
+      useEditorFont: typeof configuredEditorFont === 'boolean' ? configuredEditorFont : true
     });
   }
 

@@ -32,7 +32,7 @@ export type HostMessage =
       readonly reason: string;
       readonly document: { readonly text: string; readonly version: number };
     }
-  | { readonly type: 'executeAction'; readonly actionId: string }
+  | { readonly type: 'executeAction'; readonly actionId: string; readonly value?: string }
   | { readonly type: 'preparePolicyReload'; readonly requestId: string }
   | {
       readonly type: 'configuration';
@@ -42,6 +42,10 @@ export type HostMessage =
       readonly blockHandlesEnabled: boolean;
       readonly renderMermaid: boolean;
       readonly codeBlockWrap: boolean;
+      readonly appearance: 'vscode' | 'document';
+      readonly width: 'auto' | 'readable' | 'full';
+      readonly maxContentWidth: number;
+      readonly useEditorFont: boolean;
     }
   | ResourceResponse
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
