@@ -183,8 +183,9 @@
   - `npm run verify` — pass; lint, strict typecheck, 53 unit tests, 8 protocol tests, 42 fidelity tests, and production builds
   - `npm run test:webview` — 45 tests passing
   - `npm run test:visual` — 4 deterministic theme/state and production-CSS baselines passing
+  - `npm run test:visual:browser` — 2 Playwright tests passing in real Chromium across the full viewport/theme/appearance/width matrix, including measured local table/code overflow and reduced motion
   - focused Task 13 suites — 20 tests passing across appearance commands, projection, webview appearance, and visual CSS
   - VS Code integration test compiles and covers all appearance/width command values as source-neutral; native Electron execution is currently blocked on this host by missing `libnspr4.so`, and a containerized Xvfb attempt hung before Mocha output
 - Covered boundaries: vscode/document × auto/readable/full × 320/768/1440 width model, 960 default, 480–2400 validation, full-width cap bypass, accessible wrapped controls, Quick Pick routing, no EditorView recreation, text/selection/history/pending-patch neutrality, zoom-aware keyed source anchors, disconnected-view cancellation, local table overflow, local fonts, reduced motion, visible focus, high-contrast tokens, and Document H1–H6/table/block hierarchy
-- Deliberate evidence boundary: deterministic CSSOM/theme baselines load the production styles, but native pixel screenshots and real browser overflow measurement remain Task 16 release gates; the installed headless browser also lacks the host NSS runtime libraries
+- Deliberate evidence boundary: Playwright now measures production CSS layout and theme behavior in real Chromium; native VS Code/Electron pixel screenshots remain a Task 16 release gate because the host runtime lacks `libnspr4.so`
 - Next: Task 14 durable file preferences and multi-view presentation sync
