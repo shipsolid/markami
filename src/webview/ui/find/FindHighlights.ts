@@ -14,9 +14,10 @@ export const findHighlightState = StateField.define<DecorationSet>({
   update(value, transaction) {
     const update = transaction.effects.find((effect) => effect.is(setFindHighlights))?.value;
     if (update !== undefined) {
-      return Decoration.set(update.matches.map((match, index) => Decoration.mark({
-        class: index === update.activeIndex ? 'markami-find-match markami-find-match-active' : 'markami-find-match'
-      }).range(match.from, match.to)), true);
+      return Decoration.set(update.matches.flatMap((match, index) =>
+        (match.segments ?? [match]).map((range) => Decoration.mark({
+          class: index === update.activeIndex ? 'markami-find-match markami-find-match-active' : 'markami-find-match'
+        }).range(range.from, range.to))), true);
     }
     return transaction.docChanged ? value.map(transaction.changes) : value;
   },

@@ -17,7 +17,8 @@ import {
 import {
   DocumentOutline,
   activeHeadingIndex,
-  extractOutline
+  extractOutline,
+  sourceOffsetForHeadingFragment
 } from '../../src/webview/ui/outline/DocumentOutline.js';
 
 describe('document find', () => {
@@ -27,7 +28,11 @@ describe('document find', () => {
     const source = '# Alpha\n\nA **bold** [label](hidden-target.md).\n';
 
     expect(findDocumentMatches(source, 'Alpha', { mode: 'visible' })).toEqual([{ from: 2, to: 7 }]);
-    expect(findDocumentMatches(source, 'bold label', { mode: 'visible' })).toEqual([{ from: 13, to: 26 }]);
+    expect(findDocumentMatches(source, 'bold label', { mode: 'visible' })).toEqual([{
+      from: 13,
+      to: 26,
+      segments: [{ from: 13, to: 17 }, { from: 19, to: 20 }, { from: 21, to: 26 }]
+    }]);
     expect(findDocumentMatches(source, 'hidden-target', { mode: 'visible' })).toEqual([]);
     expect(findDocumentMatches(source, '**bold**', { mode: 'visible' })).toEqual([]);
     expect(findDocumentMatches(source, 'hidden-target', { mode: 'source' })).toEqual([{ from: 28, to: 41 }]);
@@ -39,6 +44,45 @@ describe('document find', () => {
     expect(findDocumentMatches(source, 'alpha', { mode: 'visible' })).toHaveLength(4);
     expect(findDocumentMatches(source, 'Alpha', { mode: 'visible', caseSensitive: true, wholeWord: true }))
       .toEqual([{ from: 0, to: 5 }, { from: 33, to: 38 }]);
+  });
+
+  test('tracks actually rendered text for URLs, escapes, references, widgets, and safe HTML', () => {
+    const source = [
+      '---',
+      'secret: hidden-frontmatter',
+      '---',
+      '',
+      'Visit https://example.com and <https://example.org>.',
+      'Escaped \\*star and [visible label][target].',
+      '',
+      '[target]: hidden-reference.md',
+      '',
+      '```mermaid',
+      'flowchart LR',
+      'HiddenNode',
+      '```',
+      '',
+      '$hidden-math$',
+      '',
+      '<div title="hidden-attribute">Visible HTML</div>'
+    ].join('\n');
+
+    expect(findDocumentMatches(source, 'https://example.com', { mode: 'visible' })).toHaveLength(1);
+    expect(findDocumentMatches(source, 'https://example.org', { mode: 'visible' })).toHaveLength(1);
+    expect(findDocumentMatches(source, '*star', { mode: 'visible' })).toHaveLength(1);
+    expect(findDocumentMatches(source, 'visible label', { mode: 'visible' })).toHaveLength(1);
+    expect(findDocumentMatches(source, 'Visible HTML', { mode: 'visible' })).toHaveLength(1);
+    for (const hidden of ['hidden-frontmatter', 'hidden-reference', 'flowchart', 'HiddenNode', 'hidden-math', 'hidden-attribute']) {
+      expect(findDocumentMatches(source, hidden, { mode: 'visible' }), hidden).toEqual([]);
+      expect(findDocumentMatches(source, hidden, { mode: 'source' }), hidden).toHaveLength(1);
+    }
+  });
+
+  test('whole-word matching treats astral letters and combining marks as word characters', () => {
+    expect(findDocumentMatches('𐐀alpha alpha', 'alpha', { mode: 'visible', wholeWord: true }))
+      .toEqual([{ from: 8, to: 13 }]);
+    expect(findDocumentMatches('a\u0301alpha alpha', 'alpha', { mode: 'visible', wholeWord: true }))
+      .toEqual([{ from: 8, to: 13 }]);
   });
 
   test('next and previous navigation wrap deterministically', () => {
@@ -148,5 +192,34 @@ describe('document outline', () => {
     expect(outline.element.dataset.collapsed).toBe('true');
     outline.setEnabled(false);
     expect(outline.element.hidden).toBe(true);
+  });
+
+  test('selection-only updates reuse heading controls and narrow navigation closes the drawer', () => {
+    const navigate = vi.fn();
+    const collapse = vi.fn();
+    const outline = new DocumentOutline(document, navigate, collapse);
+    const source = '# One\n\n## Two';
+    outline.update(source, 0);
+    const firstButton = outline.element.querySelector<HTMLButtonElement>('[data-heading-index="0"]');
+
+    outline.update(source, source.length);
+    expect(outline.element.querySelector('[data-heading-index="0"]')).toBe(firstButton);
+    expect(outline.element.querySelector('[aria-current="location"]')?.textContent).toBe('Two');
+
+    outline.setNarrow(true);
+    expect(outline.element.dataset.collapsed).toBe('true');
+    outline.toggleCollapsed();
+    outline.setNarrow(true);
+    expect(outline.element.dataset.collapsed).toBe('false');
+    outline.element.querySelector<HTMLButtonElement>('[data-heading-index="1"]')?.click();
+    expect(navigate).toHaveBeenCalledWith(7);
+    expect(outline.element.dataset.collapsed).toBe('true');
+    expect(collapse).toHaveBeenLastCalledWith(true);
+  });
+
+  test('fragment navigation reuses formatted Setext headings and duplicate slugs', () => {
+    const source = '# Hello *world*\n\nHello world\n-----------\n';
+    expect(sourceOffsetForHeadingFragment(source, 'hello-world')).toBe(0);
+    expect(sourceOffsetForHeadingFragment(source, 'hello-world-1')).toBe(17);
   });
 });

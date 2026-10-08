@@ -45,6 +45,9 @@ export type HostMessage =
       readonly blockHandlesEnabled: boolean;
       readonly outlineEnabled: boolean;
       readonly renderMermaid: boolean;
+      readonly renderSafeHtml: boolean;
+      readonly showSourceIslandLabels: boolean;
+      readonly debugShowSourceRanges: boolean;
       readonly codeBlockWrap: boolean;
       readonly useEditorFont: boolean;
     }

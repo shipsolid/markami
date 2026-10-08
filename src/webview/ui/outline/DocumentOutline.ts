@@ -35,14 +35,21 @@ export function activeHeadingIndex(headings: readonly OutlineHeading[], sourceOf
   return active;
 }
 
+export function sourceOffsetForHeadingFragment(source: string, fragment: string): number | undefined {
+  return extractOutline(source).find((heading) => heading.slug === fragment)?.from;
+}
+
 export class DocumentOutline {
   public readonly element: HTMLElement;
 
   private readonly list: HTMLElement;
   private readonly collapseButton: HTMLButtonElement;
   private headings: readonly OutlineHeading[] = [];
+  private source = '';
+  private activeIndex = -1;
   private collapsed = false;
   private enabled = true;
+  private narrow = false;
 
   public constructor(
     documentRef: Document,
@@ -64,8 +71,20 @@ export class DocumentOutline {
   }
 
   public update(source: string, sourceOffset: number): void {
-    this.headings = extractOutline(source);
+    if (source !== this.source) {
+      this.source = source;
+      this.headings = extractOutline(source);
+      this.renderHeadings();
+    }
     const active = activeHeadingIndex(this.headings, sourceOffset);
+    if (active === this.activeIndex) return;
+    this.activeIndex = active;
+    this.list.querySelector('[aria-current="location"]')?.removeAttribute('aria-current');
+    this.list.querySelector(`[data-heading-index="${String(active)}"]`)?.setAttribute('aria-current', 'location');
+  }
+
+  private renderHeadings(): void {
+    this.activeIndex = -1;
     this.list.replaceChildren();
     this.headings.forEach((heading, index) => {
       const item = this.list.ownerDocument.createElement('li');
@@ -75,8 +94,13 @@ export class DocumentOutline {
       button.dataset.level = String(heading.level);
       button.textContent = heading.text;
       button.title = heading.text;
-      if (index === active) button.setAttribute('aria-current', 'location');
-      button.addEventListener('click', () => this.navigate(heading.from));
+      button.addEventListener('click', () => {
+        this.navigate(heading.from);
+        if (this.narrow && !this.collapsed) {
+          this.setCollapsed(true);
+          this.onCollapsedChange(true);
+        }
+      });
       item.append(button);
       this.list.append(item);
     });
@@ -93,6 +117,13 @@ export class DocumentOutline {
   public toggleCollapsed(): void {
     this.setCollapsed(!this.collapsed);
     this.onCollapsedChange(this.collapsed);
+  }
+
+  public setNarrow(narrow: boolean): void {
+    if (this.narrow === narrow) return;
+    this.narrow = narrow;
+    this.element.dataset.narrow = String(narrow);
+    if (narrow && !this.collapsed) this.setCollapsed(true);
   }
 
   public setEnabled(enabled: boolean): void {

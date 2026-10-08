@@ -11,6 +11,9 @@ export interface WebviewConfiguration {
   readonly blockHandlesEnabled: boolean;
   readonly outlineEnabled: boolean;
   readonly renderMermaid: boolean;
+  readonly renderSafeHtml: boolean;
+  readonly showSourceIslandLabels: boolean;
+  readonly debugShowSourceRanges: boolean;
   readonly codeBlockWrap: boolean;
   readonly useEditorFont: boolean;
 }
@@ -23,6 +26,9 @@ export function readWebviewConfiguration(configuration: ConfigurationReader): We
     blockHandlesEnabled: readBoolean(configuration, 'blockHandles.enabled', true),
     outlineEnabled: readBoolean(configuration, 'outline.enabled', true),
     renderMermaid: readBoolean(configuration, 'renderMermaid', true),
+    renderSafeHtml: readBoolean(configuration, 'renderSafeHtml', true),
+    showSourceIslandLabels: readBoolean(configuration, 'sourceIslands.showLabel', true),
+    debugShowSourceRanges: readBoolean(configuration, 'debug.showSourceRanges', false),
     codeBlockWrap: readBoolean(configuration, 'codeBlock.wrap', false),
     useEditorFont: readBoolean(configuration, 'theme.useEditorFont', true)
   };

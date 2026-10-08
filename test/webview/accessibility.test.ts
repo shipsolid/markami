@@ -29,22 +29,30 @@ function context(source: string, anchor = 0, head = anchor): ActionContext {
 describe('keyboard and accessible semantics', () => {
   test('link and image dialogs expose dialog semantics, cancel on Escape, and restore editor focus', () => {
     const restoreLink = vi.fn();
+    let currentLink = context('[label](old)', 2, 7);
     const link = new LinkPopover(
       document,
       createFormattingActionRegistry(),
       vi.fn(),
-      () => context('[label](old)', 2, 7),
+      () => currentLink,
       restoreLink
     );
     link.show(context('[label](old)', 2, 7));
     expect(link.element.getAttribute('role')).toBe('dialog');
+    expect(link.element.classList.contains('markami-link-popover')).toBe(true);
     link.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(link.element.hidden).toBe(true);
     expect(restoreLink).toHaveBeenCalledOnce();
+    link.show(currentLink);
+    currentLink = context('X[label](old)', 3, 8);
+    expect(link.confirm()).toBe(false);
+    expect(restoreLink).toHaveBeenCalledTimes(2);
+    expect(link.status.textContent).toContain('changed');
 
     const restoreImage = vi.fn();
-    const image = new ImagePopover(document, vi.fn(), () => context('![alt](a.png)'), vi.fn(), vi.fn(), restoreImage);
-    image.show(context('![alt](a.png)'), {
+    let currentImage = context('![alt](a.png)');
+    const image = new ImagePopover(document, vi.fn(), () => currentImage, vi.fn(), vi.fn(), restoreImage);
+    const markdownImage = {
       from: 0,
       to: 13,
       alt: 'alt',
@@ -53,11 +61,17 @@ describe('keyboard and accessible semantics', () => {
       altRange: { from: 2, to: 5 },
       form: 'inline',
       titleInsertion: 12
-    });
+    } as const;
+    image.show(currentImage, markdownImage);
     expect(image.element.getAttribute('role')).toBe('dialog');
     image.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(image.element.hidden).toBe(true);
     expect(restoreImage).toHaveBeenCalledOnce();
+    image.show(currentImage, markdownImage);
+    currentImage = context('X![alt](a.png)');
+    expect(image.confirm()).toBe(false);
+    expect(restoreImage).toHaveBeenCalledTimes(2);
+    expect(image.status.textContent).toContain('changed');
   });
 
   test('slash listbox uses one roving option and reports the active descendant', () => {
@@ -71,6 +85,7 @@ describe('keyboard and accessible semantics', () => {
     const next = palette.element.querySelector<HTMLButtonElement>('[aria-selected="true"]');
     expect(next?.tabIndex).toBe(0);
     expect(palette.element.getAttribute('aria-activedescendant')).toBe(next?.id);
+    expect(palette.status.textContent).toContain(next?.textContent);
   });
 
   test('block action toolbar closes on Escape and restores focus', () => {
@@ -102,6 +117,29 @@ describe('keyboard and accessible semantics', () => {
     expect(cell?.getAttribute('aria-rowindex')).toBe('2');
     expect(cell?.getAttribute('aria-colindex')).toBe('1');
     expect(cell?.getAttribute('aria-label')).toBe('Row 2, Name');
+  });
+
+  test('table Tab commits the last cell, appends a row, and focuses its first cell', async () => {
+    const source = 'Before\n\n| Name | Value |\n| --- | --- |\n| alpha | old |\n\nAfter';
+    view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({ doc: source, extensions: [tableProjectionField] })
+    });
+    const cells = view.dom.querySelectorAll<HTMLElement>('[role="gridcell"]');
+    const last = cells.item(cells.length - 1);
+    last.textContent = 'changed';
+    last.focus();
+
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    await Promise.resolve();
+
+    expect(view.state.doc.toString()).toContain('| alpha | changed |\n|  |  |');
+    expect((document.activeElement as HTMLElement | null)?.getAttribute('aria-label')).toBe('Row 3, Name');
+    document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Tab', shiftKey: true, bubbles: true, cancelable: true
+    }));
+    await Promise.resolve();
+    expect((document.activeElement as HTMLElement | null)?.getAttribute('aria-label')).toBe('Row 2, Value');
   });
 
   test('rendered Mermaid can reveal source with Enter', () => {

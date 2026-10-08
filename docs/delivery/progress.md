@@ -206,3 +206,20 @@
 - Covered boundaries: full URI identity for duplicate basenames and remote authorities, dynamic workspace/global scope, sparse overrides and configuration inheritance, future schema preservation, security-field rejection, serialized concurrent writes, 1,000-record LRU, session-only disabled remembrance, document-close cleanup, dormant durable restoration, confirmed untitled Save As promotion, exact and directory rename migration, independent copies, deletion pruning, file/workspace reset, split-view convergence, protocol-version rejection, and source-neutral manual/selection/active-block syntax reveal
 - Deliberate evidence boundary: native VS Code/Electron execution is blocked before Mocha by the host's missing `libnspr4.so`; a containerized Xvfb attempt also stalled before test output. Deterministic unit, protocol, webview, visual, and compiled integration coverage is recorded without claiming native lifecycle execution.
 - Next: Task 15 accessibility, keyboard, IME, and clipboard hardening
+
+## Task 15 — Find, outline, command completeness, and accessibility
+
+- Status: complete
+- Commit: `feat: complete keyboard navigation and accessible controls` (with a focused runtime-configuration follow-up)
+- Changed paths: rendered/source find and disjoint source highlights, cached heading outline and fragment navigation, complete command/settings registry, active-view command leases, stale-safe async insertion, keyboard table traversal, dialog/listbox/live-region semantics, focus styles, and `docs/accessibility.md`
+- RED: navigation and accessibility suites initially failed because find/outline modules and command/configuration contracts did not exist; follow-up RED cases exposed hidden widget/source text leaking into rendered find, astral/combining word-boundary errors, outline DOM churn and narrow-pane coverage, divergent Setext/inline-heading fragments, stale cross-view actions, prompt-cancel insertion, stranded dialog focus, last-cell table data loss/focus loss, silent slash navigation, and inert HTML/source-island settings
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 76 unit tests, 11 protocol tests, 43 fidelity tests, and production builds
+  - `npm run test:webview` — pass; 66 webview tests
+  - `npm run test:visual` — pass; 5 deterministic theme/state/focus baselines
+  - focused Task 15 suites — 50 tests passing across commands, navigation, accessibility, dialogs, preferences, tables, and HTML/source-island behavior
+  - `npm run build:integration` — pass
+- Covered boundaries: visible text vs literal source search, bare/autolink URLs, escapes, reference definitions, hidden frontmatter/Mermaid/math/HTML attributes, source islands, disjoint highlights, Unicode whole words, next/previous/count/case filters, ATX/Setext/duplicate slugs, cached active-heading changes, narrow drawer collapse, all §22 command IDs and scoped shortcuts, cross-panel Quick Pick leases, stale image/link operations, prompt cancellation, table Tab/Shift+Tab with atomic last-cell append, live option/move/status announcements, labelled dialogs/grids/tasks, visible overlay focus, high-contrast tokens, reduced motion, and source/selection/history neutrality
+- Review: independent read-only review found no Critical issues and ten Important gaps; the single fix pass added a failing regression for each affected behavior before implementation. Two Minor findings remain deferred: `DocumentFind.destroy()` relies on editor destruction to discard highlights, and Open Rendered relies on VS Code rejecting unsupported non-Markdown inputs.
+- Environment boundary: `npm run test:visual:browser` and native `npm run test:integration` cannot launch Chromium/VS Code on this host because `libnspr4.so` is missing. Native screen-reader/AT-SPI smoke is unavailable in the headless environment. Deterministic DOM/CSS checks and the compiled integration suite pass; no native assistive-technology result is claimed.
+- Next: Task 16 hardening, recovery stress, property testing, corpus expansion, and performance evidence

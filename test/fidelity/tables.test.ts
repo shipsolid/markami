@@ -3,6 +3,7 @@ import { applyPatchSet } from '../../src/core/source/PatchSet.js';
 import {
   parseGfmTables,
   planCellEdit,
+  planCellEditAndAppendRow,
   planTableOperation
 } from '../../src/core/markdown/tables.js';
 
@@ -64,6 +65,20 @@ describe('GFM table source mapping', () => {
     const result = planTableOperation(source, table, { type: 'appendRow' });
     expect(result.ok).toBe(true);
     if (result.ok) expect(applyPatchSet(source, result.edit.patches)).toBe(`${source}\r\n|  |  |`);
+  });
+
+  test('last-cell Tab commits the pending value and appends in one bounded edit', () => {
+    const source = 'Before\n\n| A | B |\n| --- | --- |\n| 1 | old |\n\nAfter';
+    const table = parseGfmTables(source)[0];
+    if (table === undefined) throw new Error('missing table');
+    const result = planCellEditAndAppendRow(source, table, 1, 1, 'changed');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.reason);
+    expect(applyPatchSet(source, result.edit.patches)).toBe(
+      'Before\n\n| A | B |\n| --- | --- |\n| 1 | changed |\n|  |  |\n\nAfter'
+    );
+    expect(result.edit.patches).toHaveLength(2);
   });
 
   test('malformed delimiter falls back to source', () => {

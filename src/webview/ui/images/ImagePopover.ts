@@ -3,6 +3,7 @@ import { planImageFields, type MarkdownImage } from '../../features/images/image
 
 export class ImagePopover {
   public readonly element: HTMLFormElement;
+  public readonly status: HTMLElement;
   private readonly alt: HTMLInputElement;
   private readonly destination: HTMLInputElement;
   private readonly title: HTMLInputElement;
@@ -23,6 +24,7 @@ export class ImagePopover {
     this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-label', 'Edit image');
     this.element.setAttribute('aria-modal', 'false');
+    this.status = liveStatus(document);
     this.alt = this.field(document, 'Alt text');
     this.destination = this.field(document, 'Image path');
     this.title = this.field(document, 'Image title');
@@ -53,10 +55,11 @@ export class ImagePopover {
       this.cancel();
       this.restoreEditorFocus();
     });
-    document.body.append(this.element);
+    document.body.append(this.element, this.status);
   }
 
   public show(context: ActionContext, image: MarkdownImage): void {
+    this.status.textContent = '';
     this.captured = cloneContext(context);
     this.image = image;
     this.alt.value = image.alt;
@@ -71,6 +74,8 @@ export class ImagePopover {
     const image = this.image;
     if (captured === undefined || image === undefined || !sameAnchor(captured, this.currentContext())) {
       this.cancel();
+      this.status.textContent = 'Image editing cancelled because the document changed.';
+      this.restoreEditorFocus();
       return false;
     }
     const result = planImageFields(captured.source, image, {
@@ -97,6 +102,7 @@ export class ImagePopover {
 
   public destroy(): void {
     this.element.remove();
+    this.status.remove();
     this.captured = undefined;
     this.image = undefined;
   }
@@ -109,6 +115,17 @@ export class ImagePopover {
     input.addEventListener('input', () => input.setCustomValidity(''));
     return input;
   }
+}
+
+function liveStatus(document: Document): HTMLElement {
+  const status = document.createElement('div');
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  status.style.position = 'absolute';
+  status.style.width = '1px';
+  status.style.height = '1px';
+  status.style.overflow = 'hidden';
+  return status;
 }
 
 function sameAnchor(left: ActionContext, right: ActionContext): boolean {

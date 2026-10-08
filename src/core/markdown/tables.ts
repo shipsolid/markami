@@ -98,6 +98,28 @@ export function planCellEdit(
   };
 }
 
+export function planCellEditAndAppendRow(
+  source: string,
+  table: GfmTable,
+  row: number,
+  column: number,
+  value: string
+): ActionResult {
+  const cell = planCellEdit(source, table, row, column, value);
+  if (!cell.ok) return cell;
+  const append = planTableOperation(source, table, { type: 'appendRow' });
+  if (!append.ok) return append;
+  return {
+    ok: true,
+    edit: {
+      patches: [...cell.edit.patches, ...append.edit.patches],
+      selectionAfter: append.edit.selectionAfter,
+      allowedRanges: [...cell.edit.allowedRanges, ...append.edit.allowedRanges],
+      label: 'Edit table cell and append row'
+    }
+  };
+}
+
 export function planTableOperation(source: string, table: GfmTable, operation: TableOperation): ActionResult {
   const stale = validateTable(source, table);
   if (stale !== undefined) return { ok: false, reason: stale };

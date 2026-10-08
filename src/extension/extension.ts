@@ -9,7 +9,7 @@ import {
   type PreferenceChoice
 } from './appearanceCommands.js';
 import { ScopedMementoViewPreferencesStorage, ViewPreferencesStore } from './ViewPreferencesStore.js';
-import { FORWARDED_COMMANDS } from './commands.js';
+import { FORWARDED_COMMANDS, isMarkamiCustomEditorInput } from './commands.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
@@ -49,17 +49,21 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('markami.openSource', async () => {
       const active = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
-      if (active instanceof vscode.TabInputCustom) {
+      if (active instanceof vscode.TabInputCustom && isMarkamiCustomEditorInput(active)) {
         await vscode.commands.executeCommand('vscode.openWith', active.uri, 'default');
       }
     }),
     vscode.commands.registerCommand('markami.setDocumentAppearance', async (supplied?: unknown) => {
+      const target = provider.captureActiveView();
+      if (target === undefined) return false;
       const appearance = await chooseDocumentAppearance(supplied, pickPreference);
-      return appearance === undefined ? false : provider.executeAction('markami.setDocumentAppearance', appearance);
+      return appearance === undefined ? false : provider.executeAction('markami.setDocumentAppearance', appearance, target);
     }),
     vscode.commands.registerCommand('markami.setDocumentWidth', async (supplied?: unknown) => {
+      const target = provider.captureActiveView();
+      if (target === undefined) return false;
       const width = await chooseDocumentWidth(supplied, pickPreference);
-      return width === undefined ? false : provider.executeAction('markami.setDocumentWidth', width);
+      return width === undefined ? false : provider.executeAction('markami.setDocumentWidth', width, target);
     }),
     vscode.commands.registerCommand('markami.resetFileViewPreferences', () =>
       provider.executeAction('markami.resetFileViewPreferences')),

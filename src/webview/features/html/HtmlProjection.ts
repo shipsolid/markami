@@ -1,4 +1,4 @@
-import { StateField, type Extension } from '@codemirror/state';
+import { Facet, StateField, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { findFrontmatter } from '../../../core/markdown/frontmatter.js';
 import {
@@ -26,14 +26,33 @@ export interface DocumentSyntaxPlan {
   readonly sourceIslands: readonly SourceIslandSpec[];
 }
 
-export function documentSyntax(): Extension {
-  return [frontmatterProjectionField, documentSyntaxField];
+export interface DocumentSyntaxOptions {
+  readonly renderSafeHtml: boolean;
+  readonly showSourceIslandLabels: boolean;
+  readonly debugShowSourceRanges: boolean;
+}
+
+const defaultOptions: DocumentSyntaxOptions = {
+  renderSafeHtml: true,
+  showSourceIslandLabels: true,
+  debugShowSourceRanges: false
+};
+const documentSyntaxOptions = Facet.define<DocumentSyntaxOptions, DocumentSyntaxOptions>({
+  combine: (values) => values.at(-1) ?? defaultOptions
+});
+
+export function documentSyntax(options: Partial<DocumentSyntaxOptions> = {}): Extension {
+  return [
+    documentSyntaxOptions.of({ ...defaultOptions, ...options }),
+    frontmatterProjectionField,
+    documentSyntaxField
+  ];
 }
 
 export const documentSyntaxField = StateField.define<DecorationSet>({
   create(state) {
     const selection = syntaxSelection(state);
-    return decorationsFor(state.doc.toString(), selection.from, selection.to, state);
+    return decorationsFor(state.doc.toString(), selection.from, selection.to, state, state.facet(documentSyntaxOptions));
   },
   update(_value, transaction) {
     const selection = syntaxSelection(transaction.state);
@@ -41,13 +60,19 @@ export const documentSyntaxField = StateField.define<DecorationSet>({
       transaction.state.doc.toString(),
       selection.from,
       selection.to,
-      transaction.state
+      transaction.state,
+      transaction.state.facet(documentSyntaxOptions)
     );
   },
   provide: (field) => EditorView.decorations.from(field)
 });
 
-export function buildDocumentSyntaxPlan(source: string, selection: SourceRange): DocumentSyntaxPlan {
+export function buildDocumentSyntaxPlan(
+  source: string,
+  selection: SourceRange,
+  options: Partial<DocumentSyntaxOptions> = {}
+): DocumentSyntaxPlan {
+  const effective = { ...defaultOptions, ...options };
   const frontmatter = findFrontmatter(source);
   const frontmatterProjection = buildFrontmatterProjection(source, selection);
   const html = findRawHtmlRanges(source)
@@ -55,13 +80,17 @@ export function buildDocumentSyntaxPlan(source: string, selection: SourceRange):
     .map(classifyRawHtml)
     .map((range) => ({
       ...range,
-      replaceSource: range.classification === 'safe' && !selectionTouches(range, selection)
+      replaceSource: effective.renderSafeHtml && range.classification === 'safe' && !selectionTouches(range, selection)
     }));
   const sourceIslands: SourceIslandSpec[] = [
     ...(frontmatter?.validity === 'ambiguous'
       ? [{ from: frontmatter.from, to: frontmatter.to, reason: 'invalid or ambiguous frontmatter' }]
       : []),
     ...findUnknownSyntaxRanges(source),
+    ...(!effective.renderSafeHtml
+      ? html.filter((range) => range.classification === 'safe')
+        .map((range) => ({ from: range.from, to: range.to, reason: 'HTML rendering disabled' }))
+      : []),
     ...html
       .filter((range) => range.classification !== 'safe')
       .map((range) => ({
@@ -77,9 +106,10 @@ function decorationsFor(
   source: string,
   selectionFrom: number,
   selectionTo: number,
-  state: { readonly doc: { lineAt(position: number): { readonly from: number } } }
+  state: { readonly doc: { lineAt(position: number): { readonly from: number } } },
+  options: DocumentSyntaxOptions
 ): DecorationSet {
-  const plan = buildDocumentSyntaxPlan(source, { from: selectionFrom, to: selectionTo });
+  const plan = buildDocumentSyntaxPlan(source, { from: selectionFrom, to: selectionTo }, options);
   const ranges = [];
   for (const html of plan.html) {
     if (html.replaceSource) {
@@ -89,8 +119,13 @@ function decorationsFor(
   const decorated = new Set<number>();
   for (const island of plan.sourceIslands) {
     const lineFrom = state.doc.lineAt(island.from).from;
-    ranges.push(Decoration.line({ class: 'markami-source-island' }).range(lineFrom));
-    if (!decorated.has(island.from)) {
+    ranges.push(Decoration.line({
+      class: 'markami-source-island',
+      ...(options.debugShowSourceRanges
+        ? { attributes: { 'data-source-range': `${String(island.from)}:${String(island.to)}` } }
+        : {})
+    }).range(lineFrom));
+    if (options.showSourceIslandLabels && !decorated.has(island.from)) {
       decorated.add(island.from);
       ranges.push(Decoration.widget({ widget: new SourceIslandBadge(labelFor(island.reason)), side: -1 }).range(island.from));
     }
@@ -172,5 +207,6 @@ function labelFor(reason: string): string {
   if (reason === 'custom directive') return 'Unknown directive';
   if (reason === 'MDX') return 'MDX';
   if (reason === 'invalid or ambiguous frontmatter') return 'Metadata source';
+  if (reason === 'HTML rendering disabled') return reason;
   return 'Markdown source';
 }

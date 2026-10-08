@@ -78,4 +78,23 @@ describe('appearance visual-state baselines', () => {
     expect(appearanceCss).toContain('@media (prefers-reduced-motion: reduce)');
     expect(layoutCss).toContain('@media (max-width: 480px)');
   });
+
+  test('floating controls retain a visible keyboard focus indicator outside the editor shell', () => {
+    document.documentElement.style.setProperty('--vscode-focusBorder', '#007acc');
+    const style = document.createElement('style');
+    style.textContent = appearanceCss;
+    document.head.append(style);
+    const find = document.createElement('div');
+    find.className = 'markami-find';
+    const button = document.createElement('button');
+    button.textContent = 'Next match';
+    find.append(button);
+    document.body.append(find);
+
+    button.focus();
+
+    expect(document.activeElement).toBe(button);
+    expect(getComputedStyle(button).outline).toContain('2px solid');
+    expect(getComputedStyle(button).outlineOffset).toBe('2px');
+  });
 });

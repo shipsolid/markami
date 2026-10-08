@@ -3,6 +3,11 @@ import { describe, expect, test } from 'vitest';
 import { FORWARDED_COMMANDS, REQUIRED_COMMANDS } from '../../src/extension/commands.js';
 import { createDocumentKeymap } from '../../src/webview/editor/keymap.js';
 import { readRemoteImagePolicy, readWebviewConfiguration } from '../../src/extension/configuration.js';
+import { createFormattingActionRegistry, insertionActionId } from '../../src/webview/editor/actionRegistry.js';
+import { planCapturedEditorAction } from '../../src/webview/editor/commands.js';
+import { codeInsertionArgs } from '../../src/webview/editor/commands.js';
+import { ActiveViewTracker } from '../../src/extension/ActiveViewTracker.js';
+import { isMarkamiCustomEditorInput } from '../../src/extension/commands.js';
 
 interface PackageManifest {
   readonly contributes?: {
@@ -90,9 +95,57 @@ describe('command and configuration contract', () => {
       blockHandlesEnabled: true,
       outlineEnabled: false,
       renderMermaid: true,
+      renderSafeHtml: true,
+      showSourceIslandLabels: true,
+      debugShowSourceRanges: false,
       codeBlockWrap: false,
       useEditorFont: false
     });
     expect(readRemoteImagePolicy(configuration)).toBe('prompt');
+  });
+
+  test('deferred command refuses an insertion after the document context changes', () => {
+    const captured = {
+      hostVersion: 4,
+      editorRevision: 7,
+      source: 'before',
+      selection: { anchor: 6, head: 6 },
+      capabilities: {}
+    };
+    const current = {
+      ...captured,
+      editorRevision: 8,
+      source: 'before changed',
+      selection: { anchor: 14, head: 14 }
+    };
+
+    expect(planCapturedEditorAction(
+      createFormattingActionRegistry(),
+      insertionActionId('image'),
+      captured,
+      current,
+      { imageMarkdown: '![diagram](diagram.png)' }
+    )).toEqual({ ok: false, reason: 'document changed while the command was open' });
+  });
+
+  test('async host choices are leased to the panel that opened them', () => {
+    const tracker = new ActiveViewTracker<object>();
+    const first = {};
+    const second = {};
+    tracker.activate(first);
+    const lease = tracker.capture();
+    if (lease === undefined) throw new Error('missing active-view lease');
+
+    tracker.activate(second);
+
+    expect(tracker.isCurrent(lease)).toBe(false);
+    expect(tracker.current).toBe(second);
+  });
+
+  test('source command accepts only the markami custom editor and code prompt cancellation is neutral', () => {
+    expect(isMarkamiCustomEditorInput({ viewType: 'markami.editor' })).toBe(true);
+    expect(isMarkamiCustomEditorInput({ viewType: 'other.editor' })).toBe(false);
+    expect(codeInsertionArgs(null)).toBeUndefined();
+    expect(codeInsertionArgs('typescript')).toEqual({ language: 'typescript' });
   });
 });

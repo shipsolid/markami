@@ -13,6 +13,7 @@ import type { EffectiveViewPreferences, ViewPreferencesState } from '../protocol
 import { resolveViewPreferences, type ViewPreferencesStore } from './ViewPreferencesStore.js';
 import type { DocumentSession } from './DocumentSession.js';
 import { readRemoteImagePolicy, readWebviewConfiguration } from './configuration.js';
+import { ActiveViewTracker, type ActiveViewLease } from './ActiveViewTracker.js';
 
 interface OpenPreferenceSession {
   readonly session: DocumentSession;
@@ -21,7 +22,7 @@ interface OpenPreferenceSession {
 
 export class MarkamiProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'markami.editor';
-  private activePanel: vscode.WebviewPanel | undefined;
+  private readonly activeView = new ActiveViewTracker<vscode.WebviewPanel>();
   private readonly openPreferenceSessions = new Map<string, OpenPreferenceSession>();
 
   public constructor(
@@ -31,15 +32,20 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     private readonly viewPreferences: ViewPreferencesStore
   ) {}
 
-  public executeAction(actionId: string, value?: string): Thenable<boolean> {
-    if (this.activePanel === undefined) {
+  public executeAction(actionId: string, value?: string, lease?: ActiveViewLease): Thenable<boolean> {
+    const panel = this.activeView.current;
+    if (panel === undefined || (lease !== undefined && !this.activeView.isCurrent(lease))) {
       return Promise.resolve(false);
     }
-    return this.activePanel.webview.postMessage({
+    return panel.webview.postMessage({
       type: 'executeAction',
       actionId,
       ...(value === undefined ? {} : { value })
     });
+  }
+
+  public captureActiveView(): ActiveViewLease | undefined {
+    return this.activeView.capture();
   }
 
   public async renameViewPreferences(oldUri: vscode.Uri, newUri: vscode.Uri): Promise<void> {
@@ -79,7 +85,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     };
     panel.webview.html = this.renderHtml(document, panel.webview, webviewRoot);
     if (panel.active) {
-      this.activePanel = panel;
+      this.activeView.activate(panel);
     }
     const viewId = randomUUID();
     let remotePolicy = this.remoteImagePolicy(document);
@@ -155,9 +161,9 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     });
     const viewState = panel.onDidChangeViewState((event) => {
       if (event.webviewPanel.active) {
-        this.activePanel = event.webviewPanel;
-      } else if (this.activePanel === event.webviewPanel) {
-        this.activePanel = undefined;
+        this.activeView.activate(event.webviewPanel);
+      } else {
+        this.activeView.deactivate(event.webviewPanel);
       }
     });
     const configurationChanges = vscode.workspace.onDidChangeConfiguration((event) => {
@@ -178,9 +184,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
       messages.dispose();
       viewState.dispose();
       configurationChanges.dispose();
-      if (this.activePanel === panel) {
-        this.activePanel = undefined;
-      }
+      this.activeView.deactivate(panel);
       session.detach(viewId);
       this.openPreferenceSessions.delete(viewId);
       this.history.unregister(viewId);

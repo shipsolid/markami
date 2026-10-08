@@ -99,7 +99,21 @@
 
 .markami-document-controls :focus-visible,
 .markami-document-shell [tabindex]:focus-visible,
-.markami-document-shell button:focus-visible {
+.markami-document-shell button:focus-visible,
+.markami-find :focus-visible,
+.markami-outline :focus-visible,
+.markami-selection-toolbar :focus-visible,
+.markami-block-handles :focus-visible,
+.markami-slash-palette :focus-visible,
+.markami-link-popover :focus-visible,
+.markami-image-popover :focus-visible,
+.markami-find :focus,
+.markami-outline :focus,
+.markami-selection-toolbar :focus,
+.markami-block-handles :focus,
+.markami-slash-palette :focus,
+.markami-link-popover :focus,
+.markami-image-popover :focus {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
 }

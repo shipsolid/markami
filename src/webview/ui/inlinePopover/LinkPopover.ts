@@ -4,6 +4,7 @@ import { findLinkAt, planLinkDestination, type MarkdownLink } from '../../featur
 
 export class LinkPopover {
   public readonly element: HTMLFormElement;
+  public readonly status: HTMLElement;
   private readonly input: HTMLInputElement;
   private captured: ActionContext | undefined;
   private capturedLink: MarkdownLink | undefined;
@@ -17,9 +18,11 @@ export class LinkPopover {
   ) {
     this.element = document.createElement('form');
     this.element.hidden = true;
+    this.element.className = 'markami-link-popover';
     this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-label', 'Link destination');
     this.element.setAttribute('aria-modal', 'false');
+    this.status = liveStatus(document);
     this.input = document.createElement('input');
     this.input.type = 'text';
     this.input.setAttribute('aria-label', 'Link destination');
@@ -38,10 +41,11 @@ export class LinkPopover {
       this.cancel();
       this.restoreEditorFocus();
     });
-    document.body.append(this.element);
+    document.body.append(this.element, this.status);
   }
 
   public show(ctx: ActionContext, initialHref = ''): void {
+    this.status.textContent = '';
     this.captured = cloneContext(ctx);
     this.capturedLink = findLinkAt(ctx.source, ctx.selection.head);
     this.input.value = initialHref || this.capturedLink?.destination || '';
@@ -57,6 +61,7 @@ export class LinkPopover {
 
   public destroy(): void {
     this.element.remove();
+    this.status.remove();
     this.captured = undefined;
     this.capturedLink = undefined;
   }
@@ -66,6 +71,8 @@ export class LinkPopover {
     const current = this.currentContext();
     if (captured === undefined || !sameAnchor(captured, current)) {
       this.cancel();
+      this.status.textContent = 'Link editing cancelled because the document changed.';
+      this.restoreEditorFocus();
       return false;
     }
     const result = this.capturedLink === undefined
@@ -81,6 +88,17 @@ export class LinkPopover {
     this.restoreEditorFocus();
     return true;
   }
+}
+
+function liveStatus(document: Document): HTMLElement {
+  const status = document.createElement('div');
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  status.style.position = 'absolute';
+  status.style.width = '1px';
+  status.style.height = '1px';
+  status.style.overflow = 'hidden';
+  return status;
 }
 
 function sameAnchor(left: ActionContext, right: ActionContext): boolean {

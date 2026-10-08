@@ -219,6 +219,10 @@ export class SlashPalette {
     });
     const active = this.element.querySelector<HTMLElement>('[aria-selected="true"]');
     if (active !== null) this.element.setAttribute('aria-activedescendant', active.id);
-    this.status.textContent = `${String(this.visibleEntries.length)} block${this.visibleEntries.length === 1 ? '' : 's'} available.`;
+    const activeEntry = this.visibleEntries[this.activeIndex];
+    this.status.textContent = activeEntry === undefined
+      ? `${String(this.visibleEntries.length)} blocks available.`
+      : `${activeEntry.label}, ${String(this.activeIndex + 1)} of ${String(this.visibleEntries.length)}. ` +
+        `${String(this.visibleEntries.length)} block${this.visibleEntries.length === 1 ? '' : 's'} available.`;
   }
 }

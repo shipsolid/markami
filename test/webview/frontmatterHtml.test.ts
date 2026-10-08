@@ -61,4 +61,29 @@ describe('document syntax projection', () => {
     expect(document.querySelector('.markami-strong')).toBeNull();
     expect(view.state.doc.toString()).toBe(source);
   });
+
+  test('HTML rendering, source-island labels, and debug ranges follow runtime settings', () => {
+    const safe = '<div><strong>Safe</strong></div>';
+    view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({ doc: safe, extensions: [documentSyntax({ renderSafeHtml: false })] })
+    });
+    expect(document.querySelector('.markami-safe-html')).toBeNull();
+    expect(document.querySelector('.cm-line.markami-source-island')).not.toBeNull();
+    expect(document.querySelector('.markami-source-island-badge')?.textContent).toBe('HTML rendering disabled');
+    view.destroy();
+    document.body.replaceChildren();
+
+    const unsafe = '<script>unsafe()</script>';
+    view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        doc: unsafe,
+        extensions: [documentSyntax({ showSourceIslandLabels: false, debugShowSourceRanges: true })]
+      })
+    });
+    expect(document.querySelector('.markami-source-island-badge')).toBeNull();
+    expect(document.querySelector<HTMLElement>('.cm-line.markami-source-island')?.dataset.sourceRange).toBe('0:25');
+    expect(view.state.doc.toString()).toBe(unsafe);
+  });
 });

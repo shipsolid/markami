@@ -3,6 +3,10 @@ export interface MarkamiCommand {
   readonly title: string;
 }
 
+export function isMarkamiCustomEditorInput(input: unknown): input is { readonly viewType: 'markami.editor' } {
+  return typeof input === 'object' && input !== null && 'viewType' in input && input.viewType === 'markami.editor';
+}
+
 export const REQUIRED_COMMANDS: readonly MarkamiCommand[] = [
   command('markami.openRendered', 'Open Rendered Editor'),
   command('markami.openSource', 'Open Source Editor'),

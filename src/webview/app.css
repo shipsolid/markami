@@ -31,6 +31,7 @@
   margin-left: 0.4rem;
 }
 
+.markami-link-popover,
 .markami-image-popover {
   background: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border);
@@ -44,6 +45,7 @@
   z-index: 24;
 }
 
+.markami-link-popover[hidden],
 .markami-image-popover[hidden] {
   display: none;
 }
@@ -257,6 +259,7 @@
 @media (max-width: 480px) {
   .markami-outline {
     max-height: 50vh;
+    max-width: 65vw;
     right: 6px;
     top: 52px;
   }

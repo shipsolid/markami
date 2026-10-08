@@ -1,6 +1,12 @@
 import { StateField } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
-import { parseGfmTables, planCellEdit, planTableOperation, type GfmTable } from '../../../core/markdown/tables.js';
+import {
+  parseGfmTables,
+  planCellEdit,
+  planCellEditAndAppendRow,
+  planTableOperation,
+  type GfmTable
+} from '../../../core/markdown/tables.js';
 import { syntaxSelection } from '../../projection/syntaxReveal.js';
 
 export type TablePlan = GfmTable & { readonly replaceSource: boolean };
@@ -83,15 +89,36 @@ class TableWidget extends WidgetType {
         editor.tabIndex = 0;
         editor.textContent = cell?.value ?? '';
         if (cell !== undefined) {
-          editor.addEventListener('blur', () => this.commitCell(view, rowIndex, column, editor.textContent));
+          let committedByTab = false;
+          editor.addEventListener('blur', () => {
+            if (!committedByTab) this.commitCell(view, rowIndex, column, editor.textContent);
+          });
           editor.addEventListener('keydown', (event) => {
+            if (event.key !== 'Tab') return;
             const lastRow = rowIndex === this.table.rows.length - 1;
             const lastColumn = column === this.table.columnCount - 1;
-            if (event.key === 'Tab' && !event.shiftKey && lastRow && lastColumn) {
-              event.preventDefault();
-              const result = planTableOperation(view.state.doc.toString(), this.table, { type: 'appendRow' });
-              if (result.ok) dispatch(view, result.edit);
+            const firstCell = rowIndex === 0 && column === 0;
+            event.preventDefault();
+            committedByTab = true;
+            if (!event.shiftKey && lastRow && lastColumn) {
+              const result = planCellEditAndAppendRow(
+                view.state.doc.toString(),
+                this.table,
+                rowIndex,
+                column,
+                editor.textContent
+              );
+              if (result.ok) {
+                dispatch(view, result.edit, true);
+                focusTableCell(view, rowIndex + 1, 0);
+              }
+              return;
             }
+            const linear = rowIndex * this.table.columnCount + column + (event.shiftKey ? -1 : 1);
+            const result = planCellEdit(view.state.doc.toString(), this.table, rowIndex, column, editor.textContent);
+            if (result.ok) dispatch(view, result.edit, true);
+            if (event.shiftKey && firstCell) focusTableControls(view);
+            else focusTableCell(view, Math.floor(linear / this.table.columnCount), linear % this.table.columnCount);
           });
         }
         rowElement.append(editor);
@@ -115,7 +142,7 @@ class TableWidget extends WidgetType {
 
   private commitCell(view: EditorView, row: number, column: number, value: string): void {
     const result = planCellEdit(view.state.doc.toString(), this.table, row, column, value);
-    if (result.ok) dispatch(view, result.edit);
+    if (result.ok) dispatch(view, result.edit, true);
   }
 
   private applyStructure(
@@ -132,16 +159,32 @@ class TableWidget extends WidgetType {
             ? { type: 'deleteColumn' as const, column: this.table.columnCount - 1 }
             : { type: 'align' as const, column: 0, alignment: nextAlignment(this.table.alignments[0] ?? 'none') };
     const result = planTableOperation(view.state.doc.toString(), this.table, action);
-    if (result.ok) dispatch(view, result.edit);
+    if (result.ok) dispatch(view, result.edit, true);
   }
 }
 
-function dispatch(view: EditorView, edit: Extract<ReturnType<typeof planCellEdit>, { ok: true }>['edit']): void {
+function dispatch(
+  view: EditorView,
+  edit: Extract<ReturnType<typeof planCellEdit>, { ok: true }>['edit'],
+  preserveSelection = false
+): void {
   view.dispatch({
     changes: edit.patches.map((patch) => ({ from: Number(patch.from), to: Number(patch.to), insert: patch.insert })),
-    selection: edit.selectionAfter,
+    ...(preserveSelection ? {} : { selection: edit.selectionAfter }),
     userEvent: 'input.markami.table'
   });
+}
+
+function focusTableCell(view: EditorView, row: number, column: number): void {
+  queueMicrotask(() => view.dom.querySelector<HTMLElement>(
+    `[role="gridcell"][aria-rowindex="${String(row + 1)}"][aria-colindex="${String(column + 1)}"],` +
+    `[role="columnheader"][aria-rowindex="${String(row + 1)}"][aria-colindex="${String(column + 1)}"]`
+  )?.focus({ preventScroll: true }));
+}
+
+function focusTableControls(view: EditorView): void {
+  queueMicrotask(() => view.dom.querySelector<HTMLButtonElement>('.markami-table-controls button:last-child')
+    ?.focus({ preventScroll: true }));
 }
 
 function nextAlignment(current: 'none' | 'left' | 'center' | 'right'): 'none' | 'left' | 'center' | 'right' {

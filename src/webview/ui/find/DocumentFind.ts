@@ -1,5 +1,14 @@
 import { markdownLanguage } from '@codemirror/lang-markdown';
-import { findUnknownSyntaxRanges, type SourceRange } from '../../../core/markdown/syntax.js';
+import { findFrontmatter } from '../../../core/markdown/frontmatter.js';
+import {
+  findRawHtmlRanges,
+  findUnknownSyntaxRanges,
+  type SourceRange
+} from '../../../core/markdown/syntax.js';
+import { findFencedBlocks } from '../../features/codeBlocks/codeFence.js';
+import { classifyRawHtml } from '../../features/html/html.js';
+import { findLinks } from '../../features/links/links.js';
+import { findMathRanges } from '../../features/math/mathRenderer.js';
 
 export type FindMode = 'visible' | 'source';
 
@@ -12,6 +21,7 @@ export interface FindOptions {
 export interface FindMatch {
   readonly from: number;
   readonly to: number;
+  readonly segments?: readonly SourceRange[];
 }
 
 interface VisibleProjection {
@@ -23,15 +33,13 @@ const HIDDEN_NODE_NAMES = new Set([
   'CodeInfo',
   'CodeMark',
   'EmphasisMark',
-  'Escape',
   'HeaderMark',
   'LinkMark',
   'LinkTitle',
   'ListMark',
   'QuoteMark',
   'TableDelimiter',
-  'TaskMarker',
-  'URL'
+  'TaskMarker'
 ]);
 
 export function findDocumentMatches(source: string, query: string, options: FindOptions): readonly FindMatch[] {
@@ -45,9 +53,13 @@ export function findDocumentMatches(source: string, query: string, options: Find
     const index = match.index;
     const matched = match[0];
     if (options.wholeWord === true && !isWholeWord(projection.text, index, index + matched.length)) continue;
-    const from = projection.sourceOffsets[index];
-    const last = projection.sourceOffsets[index + matched.length - 1];
-    if (from !== undefined && last !== undefined) matches.push({ from, to: last + 1 });
+    const offsets = projection.sourceOffsets.slice(index, index + matched.length);
+    const from = offsets[0];
+    const last = offsets.at(-1);
+    if (from !== undefined && last !== undefined) {
+      const segments = contiguousRanges(offsets);
+      matches.push({ from, to: last + 1, ...(segments.length > 1 ? { segments } : {}) });
+    }
   }
   return matches;
 }
@@ -175,21 +187,47 @@ export class DocumentFind {
 }
 
 function buildVisibleProjection(source: string): VisibleProjection {
-  const islands = findUnknownSyntaxRanges(source);
-  const hidden: SourceRange[] = [];
+  const islands = [...findUnknownSyntaxRanges(source)];
+  const hidden = new Uint8Array(source.length);
+  const hide = (range: SourceRange): void => {
+    hidden.fill(1, range.from, range.to);
+  };
+
+  const frontmatter = findFrontmatter(source);
+  if (frontmatter?.validity === 'valid') hide(frontmatter);
+  for (const block of findFencedBlocks(source)) {
+    if (block.closed && block.language.toLocaleLowerCase() === 'mermaid') hide(block);
+  }
+  findMathRanges(source).forEach(hide);
+  for (const link of findLinks(source)) {
+    hide({ from: link.from, to: link.labelRange.from });
+    hide({ from: link.labelRange.to, to: link.to });
+  }
+  for (const match of source.matchAll(/^ {0,3}\[[^\]\r\n]+\]:[^\r\n]*(?:\r\n|\r|\n|$)/gmu)) {
+    hide({ from: match.index, to: match.index + match[0].length });
+  }
+  for (const rawHtml of findRawHtmlRanges(source)) {
+    const html = classifyRawHtml(rawHtml);
+    if (html.classification !== 'safe') {
+      islands.push({ from: html.from, to: html.to, reason: `${html.classification} HTML` });
+      continue;
+    }
+    for (const tag of rawHtml.source.matchAll(/<[^>]*>/gu)) {
+      hide({ from: rawHtml.from + tag.index, to: rawHtml.from + tag.index + tag[0].length });
+    }
+  }
   markdownLanguage.parser.parse(source).cursor().iterate((node) => {
-    if (HIDDEN_NODE_NAMES.has(node.name) && !islands.some((island) => contains(island, node.from, node.to))) {
-      hidden.push({ from: node.from, to: node.to });
+    if (node.name === 'Escape') {
+      hide({ from: node.from, to: Math.max(node.from, node.to - 1) });
+    } else if (HIDDEN_NODE_NAMES.has(node.name)) {
+      hide({ from: node.from, to: node.to });
     }
   });
-  hidden.sort((left, right) => left.from - right.from || left.to - right.to);
+  for (const island of islands) hidden.fill(0, island.from, island.to);
   let text = '';
   const sourceOffsets: number[] = [];
-  let hiddenIndex = 0;
   for (let index = 0; index < source.length; index += 1) {
-    while ((hidden[hiddenIndex]?.to ?? Number.POSITIVE_INFINITY) <= index) hiddenIndex += 1;
-    const range = hidden[hiddenIndex];
-    if (range !== undefined && index >= range.from && index < range.to) continue;
+    if (hidden[index] === 1) continue;
     const character = source[index];
     if (character === undefined) continue;
     text += character;
@@ -199,12 +237,35 @@ function buildVisibleProjection(source: string): VisibleProjection {
 }
 
 function isWholeWord(text: string, from: number, to: number): boolean {
-  const word = /[\p{L}\p{N}_]/u;
-  return (from === 0 || !word.test(text[from - 1] ?? '')) && (to === text.length || !word.test(text[to] ?? ''));
+  const word = /[\p{L}\p{M}\p{N}_]/u;
+  const before = codePointBefore(text, from);
+  const afterPoint = text.codePointAt(to);
+  const after = afterPoint === undefined ? '' : String.fromCodePoint(afterPoint);
+  return !word.test(before) && !word.test(after);
 }
 
-function contains(range: SourceRange, from: number, to: number): boolean {
-  return from >= range.from && to <= range.to;
+function codePointBefore(text: string, index: number): string {
+  if (index <= 0) return '';
+  let start = index - 1;
+  const trailing = text.charCodeAt(start);
+  if (trailing >= 0xDC00 && trailing <= 0xDFFF && start > 0) {
+    const leading = text.charCodeAt(start - 1);
+    if (leading >= 0xD800 && leading <= 0xDBFF) start -= 1;
+  }
+  return text.slice(start, index);
+}
+
+function contiguousRanges(offsets: readonly number[]): readonly SourceRange[] {
+  const ranges: SourceRange[] = [];
+  for (const offset of offsets) {
+    const previous = ranges.at(-1);
+    if (previous !== undefined && previous.to === offset) {
+      ranges[ranges.length - 1] = { from: previous.from, to: offset + 1 };
+    } else {
+      ranges.push({ from: offset, to: offset + 1 });
+    }
+  }
+  return ranges;
 }
 
 function escapeRegExp(value: string): string {

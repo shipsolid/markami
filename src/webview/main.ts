@@ -18,14 +18,20 @@ import type { HostMessage } from '../protocol/messages.js';
 import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { HostBridge } from './bridge/hostBridge.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
-import { applyPlannedEdit, createFormattingKeymap, executeEditorAction } from './editor/commands.js';
+import {
+  applyPlannedEdit,
+  codeInsertionArgs,
+  createFormattingKeymap,
+  executeEditorAction,
+  planCapturedEditorAction
+} from './editor/commands.js';
 import { createDocumentKeymap } from './editor/keymap.js';
 import { captureScrollAnchor, restoreScrollAnchor } from './editor/scrollAnchor.js';
 import { canOpenSlash, openSlashState } from './editor/slashState.js';
 import { planListEnter, planListIndent } from './features/tasks/listPlanner.js';
 import { registerTechnicalFeatures, technicalBlocks } from './features/technicalBlocks.js';
 import { tableProjectionField } from './features/tables/TableProjection.js';
-import { findLinkAt, githubSlug, linkNavigationExtension } from './features/links/links.js';
+import { findLinkAt, linkNavigationExtension } from './features/links/links.js';
 import { linkProjectionField } from './features/links/LinkProjection.js';
 import { ResourceClient } from './features/images/ResourceClient.js';
 import { imageProjection } from './features/images/ImageProjection.js';
@@ -51,7 +57,7 @@ import {
 } from './ui/appearance/DocumentControls.js';
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
-import { DocumentOutline } from './ui/outline/DocumentOutline.js';
+import { DocumentOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
   postMessage(message: unknown): void;
@@ -85,6 +91,9 @@ let mathEnabled = true;
 let blockHandlesEnabled = true;
 let outlineEnabled = true;
 let renderMermaid = true;
+let renderSafeHtml = true;
+let showSourceIslandLabels = true;
+let debugShowSourceRanges = false;
 let codeBlockWrap = false;
 let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
 let syntaxReveal: SyntaxRevealPolicy = 'activeBlock';
@@ -94,6 +103,7 @@ const featureRegistry = new FeatureRegistry();
 const technicalCompartment = new Compartment();
 const policyReloadCompartment = new Compartment();
 const syntaxRevealCompartment = new Compartment();
+const documentSyntaxCompartment = new Compartment();
 const resources = new ResourceClient(vscode, navigateFragment);
 let pendingPolicyReload: string | undefined;
 registerTechnicalFeatures(featureRegistry);
@@ -125,6 +135,9 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     blockHandlesEnabled = message.blockHandlesEnabled;
     outlineEnabled = message.outlineEnabled;
     renderMermaid = message.renderMermaid;
+    renderSafeHtml = message.renderSafeHtml;
+    showSourceIslandLabels = message.showSourceIslandLabels;
+    debugShowSourceRanges = message.debugShowSourceRanges;
     codeBlockWrap = message.codeBlockWrap;
     updateAppearance({
       useEditorFont: message.useEditorFont
@@ -133,11 +146,18 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin) => {
     if (!blockHandlesEnabled) blockHandles?.hide();
     documentOutline?.setEnabled(outlineEnabled);
     view?.dispatch({
-      effects: technicalCompartment.reconfigure(technicalBlocks({
-        renderMermaid,
-        renderMath: mathEnabled,
-        codeWrap: codeBlockWrap
-      }))
+      effects: [
+        technicalCompartment.reconfigure(technicalBlocks({
+          renderMermaid,
+          renderMath: mathEnabled,
+          codeWrap: codeBlockWrap
+        })),
+        documentSyntaxCompartment.reconfigure(documentSyntax({
+          renderSafeHtml,
+          showSourceIslandLabels,
+          debugShowSourceRanges
+        }))
+      ]
     });
     if (!selectionToolbarEnabled) {
       toolbar?.hide();
@@ -152,6 +172,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   }
 });
 window.addEventListener('resize', () => {
+  documentOutline?.setNarrow(window.innerWidth <= 480);
   if (toolbar?.capturedContext !== undefined) {
     updateSelectionToolbar();
   }
@@ -179,7 +200,11 @@ function createEditor(text: string): void {
         syntaxRevealCompartment.of(syntaxRevealPolicy.of(syntaxReveal)),
         manualSyntaxReveal,
         projectionField,
-        documentSyntax(),
+        documentSyntaxCompartment.of(documentSyntax({
+          renderSafeHtml,
+          showSourceIslandLabels,
+          debugShowSourceRanges
+        })),
         linkProjectionField,
         linkNavigationExtension((destination) => void resources.openLink(destination)),
         ...imageProjection(
@@ -311,6 +336,7 @@ function createEditor(text: string): void {
   });
   documentOutline.setEnabled(outlineEnabled);
   documentOutline.setCollapsed(outlineCollapsed);
+  documentOutline.setNarrow(window.innerWidth <= 480);
   updateDocumentOutline();
 }
 
@@ -443,7 +469,8 @@ function executeHostAction(actionId: string, value?: string): void {
     if (insertion === 'image') {
       void insertSelectedImage();
     } else if (insertion === 'code') {
-      executeInsertion('code', { language: window.prompt('Code language (optional)', '') ?? '' });
+      const args = codeInsertionArgs(window.prompt('Code language (optional)', ''));
+      if (args !== undefined) executeInsertion('code', args);
     } else {
       executeInsertion(insertion);
     }
@@ -538,7 +565,7 @@ function showFindResults(matches: readonly FindMatch[], activeIndex: number): vo
 
 function navigateFindMatch(match: FindMatch): void {
   if (view === undefined) return;
-  view.dispatch({ selection: { anchor: match.from, head: match.to }, scrollIntoView: true });
+  view.dispatch({ selection: { anchor: match.from }, scrollIntoView: true });
 }
 
 function navigateToSourceOffset(sourceOffset: number): void {
@@ -662,8 +689,19 @@ function executeInsertion(kind: Parameters<typeof insertionActionId>[0], args?: 
 }
 
 async function insertSelectedImage(): Promise<void> {
+  const targetView = view;
+  if (targetView === undefined) return;
+  const captured = currentActionContext();
   const imageMarkdown = await resources.pickImage();
-  if (imageMarkdown !== undefined) executeInsertion('image', { imageMarkdown });
+  if (imageMarkdown === undefined || view !== targetView) return;
+  const result = planCapturedEditorAction(
+    actions,
+    insertionActionId('image'),
+    captured,
+    currentActionContext(),
+    { imageMarkdown }
+  );
+  if (result.ok) applyPlannedEdit(targetView, result.edit);
 }
 
 function showDiagnostics(): void {
@@ -792,21 +830,10 @@ function navigateFragment(fragment: string): void {
   if (view === undefined) return;
   const target = decodeFragment(fragment);
   const source = view.state.doc.toString();
-  const used: string[] = [];
-  let offset = 0;
-  for (const line of source.split('\n')) {
-    const heading = /^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+[ \t]*)?$/u.exec(line)?.[1];
-    if (heading !== undefined) {
-      const slug = githubSlug(heading, used);
-      used.push(slug);
-      if (slug === target) {
-        view.dispatch({ selection: { anchor: offset }, scrollIntoView: true });
-        view.focus();
-        return;
-      }
-    }
-    offset += line.length + 1;
-  }
+  const offset = sourceOffsetForHeadingFragment(source, target);
+  if (offset === undefined) return;
+  view.dispatch({ selection: { anchor: offset }, scrollIntoView: true });
+  view.focus();
 }
 
 function decodeFragment(fragment: string): string {
