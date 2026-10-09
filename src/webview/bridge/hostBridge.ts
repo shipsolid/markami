@@ -38,6 +38,7 @@ export class HostBridge {
   private draftInFlight: DraftPublication | undefined;
   private latestDraft: DraftPublication | undefined;
   private resolveRecoveryOnHydrate = false;
+  private invalidHostStateRecoveryRequested = false;
 
   public constructor(
     private readonly transport: VsCodeTransport,
@@ -53,6 +54,12 @@ export class HostBridge {
     this.transport.postMessage({ type: 'ready', protocolVersion: PROTOCOL_VERSION });
   }
 
+  public requestSnapshotRecovery(): void {
+    if (this.invalidHostStateRecoveryRequested) return;
+    this.invalidHostStateRecoveryRequested = true;
+    this.transport.postMessage({ type: 'requestSnapshot' });
+  }
+
   public handle(message: HostMessage): void {
     let ownedOrigin = false;
     let externalChange: ExternalChangeDisposition | undefined;
@@ -60,6 +67,7 @@ export class HostBridge {
     let restoredDraft: string | undefined;
     if (message.type === 'hydrate') {
       if (!isCurrentProtocol(message.protocolVersion)) return;
+      this.invalidHostStateRecoveryRequested = false;
       this.queue?.dispose();
       this.draftRevision = 0;
       this.draftInFlight = undefined;
@@ -105,9 +113,15 @@ export class HostBridge {
     } else if (message.type === 'documentChanged') {
       ownedOrigin = message.originRequestId !== undefined && (this.queue?.ownsRequest(message.originRequestId) ?? false);
       if (!ownedOrigin) {
-        externalChange = this.queue?.applyExternal(
-          message.changes, message.beforeVersion, message.version
-        ) ?? 'ignored';
+        try {
+          externalChange = this.queue?.applyExternal(
+            message.changes, message.beforeVersion, message.version
+          ) ?? 'ignored';
+        } catch (error: unknown) {
+          if (!(error instanceof RangeError)) throw error;
+          externalChange = 'conflict';
+          this.requestSnapshotRecovery();
+        }
       }
     }
     this.onMessage?.(message, ownedOrigin, {

@@ -7,8 +7,8 @@ Date: 2026-10-09
 | Field | Result |
 |---|---|
 | Package | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,182,803 bytes |
-| SHA-256 | `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5` |
+| Size | 4,210,591 bytes |
+| SHA-256 | `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051` |
 | Publisher | `markami-dev` — local testing only |
 | VSIX contents | 282 files; strict package policy passed |
 | Archive integrity | `unzip -t` passed for every entry |
@@ -37,6 +37,10 @@ unzip -t artifacts/markami-0.1.0.vsix
 - Cached VS Code Linux x64 `1.141.0`
 
 ## Clean-profile attempt
+
+The launch attempt below used an earlier package candidate. The native runtime failed before VS Code
+could install or load that candidate, so it provides environment evidence only and makes no behavioral
+claim about the final artifact identified above.
 
 A unique profile was created at `/tmp/markami-install.Qx4ISS` with separate `user-data` and
 `extensions` directories. The WSL remote CLI ignored those desktop-only directory switches and could

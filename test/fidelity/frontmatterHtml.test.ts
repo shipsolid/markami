@@ -109,10 +109,11 @@ describe('frontmatter, HTML, and unknown syntax fidelity', () => {
 
   test('unknown-syntax discovery parses Markdown only once per snapshot', () => {
     const parse = vi.spyOn(markdownLanguage.parser, 'parse');
-
-    findUnknownSyntaxRanges('```md\n:::custom\n```\n\n<Component />');
-
-    expect(parse).toHaveBeenCalledTimes(1);
-    parse.mockRestore();
+    try {
+      findUnknownSyntaxRanges('```md\n:::custom\n```\n\n<Component />');
+      expect(parse).toHaveBeenCalledTimes(1);
+    } finally {
+      parse.mockRestore();
+    }
   });
 });

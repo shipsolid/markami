@@ -17,6 +17,8 @@ Developer-preview VSIX for local evaluation.
 - Local Mermaid, KaTeX, syntax highlighting, fonts, strict CSP, resource policy, and offline widgets.
 - Deterministic fidelity, protocol, webview, visual, property, stress, security, license, and benchmark
   evidence.
+- Runtime validation for host-to-webview messages, configurable workspace-relative image paste
+  destinations, and sanitized Mermaid SVG insertion.
 
 ### Known limitations
 
@@ -26,5 +28,6 @@ Developer-preview VSIX for local evaluation.
   deferred and remote workspaces are best-effort.
 - Native Windows/macOS/Linux, IME, screen-reader, clean-profile GUI, and upgrade smoke evidence remains
   pending where documented in `docs/delivery/`.
-- Mermaid's nested KaTeX dependency currently carries two documented low-severity audit findings; the
-  available automated fix is breaking and has not been applied silently.
+- Mermaid's bundled KaTeX dependency currently carries two documented low-severity audit findings.
+  Mermaid SVG is sanitized before insertion as a compensating control; the available automated fix
+  is a breaking downgrade and has not been applied silently.

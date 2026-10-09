@@ -71,6 +71,10 @@ describe('protocol payload limits', () => {
       document: { text: '# Safe\n', version: 1, eol: '\n' },
       viewPreferences
     }).success).toBe(true);
+    expect(parseHostMessage({
+      type: 'hydrate', protocolVersion: PROTOCOL_VERSION + 1, viewId: 'view', generation: 1,
+      document: { text: '', version: 1, eol: '\n' }, viewPreferences
+    })).toEqual({ ok: false, requestSnapshot: true });
     expect(hostMessageSchema.safeParse({
       type: 'hydrate',
       protocolVersion: PROTOCOL_VERSION,
@@ -94,6 +98,16 @@ describe('protocol payload limits', () => {
       changes: [{ from: 0, to: 0, insert: 'safe' }],
       injected: true
     }).success).toBe(false);
+    expect(parseHostMessage({
+      type: 'documentChanged',
+      beforeVersion: 1,
+      version: 2,
+      changes: [{ from: 4, to: 2, insert: 'unsafe' }]
+    })).toEqual({ ok: false, requestSnapshot: true });
+    expect(parseHostMessage({
+      type: 'documentChanged', beforeVersion: 1, version: 2,
+      changes: [{ from: 0, to: 2, insert: '' }, { from: 1, to: 3, insert: '' }]
+    })).toEqual({ ok: false, requestSnapshot: true });
     expect(parseHostMessage({ type: 'documentChanged', version: 2 })).toEqual({
       ok: false,
       requestSnapshot: true

@@ -102,6 +102,32 @@ describe('protocol stress and spoof resistance', () => {
     expect(bridge.queue?.acknowledgedText).toBe('ab');
   });
 
+  test('requests a canonical snapshot when a host patch is outside the acknowledged document', () => {
+    const sent: unknown[] = [];
+    const bridge = new HostBridge({ postMessage: (message) => sent.push(message) });
+    bridge.handle(hydration(1, 'abc', 1));
+    bridge.requestSnapshotRecovery();
+    bridge.requestSnapshotRecovery();
+
+    expect(() => bridge.handle({
+      type: 'documentChanged', beforeVersion: 1, version: 2,
+      changes: [createTextPatch(4, 4, '!')]
+    })).not.toThrow();
+    expect(sent).toContainEqual({ type: 'requestSnapshot' });
+    expect(bridge.queue?.acknowledgedText).toBe('abc');
+    bridge.handle({
+      type: 'documentChanged', beforeVersion: 1, version: 3,
+      changes: [createTextPatch(5, 5, '?')]
+    });
+    expect(sent.filter((message) => (message as { type?: string }).type === 'requestSnapshot')).toHaveLength(1);
+    bridge.handle(hydration(2, 'canonical', 2));
+    bridge.handle({
+      type: 'documentChanged', beforeVersion: 2, version: 3,
+      changes: [createTextPatch(10, 10, '?')]
+    });
+    expect(sent.filter((message) => (message as { type?: string }).type === 'requestSnapshot')).toHaveLength(2);
+  });
+
   test('ignores a delayed rejection from the previous hydrated generation', () => {
     const matched: boolean[] = [];
     const sent: unknown[] = [];

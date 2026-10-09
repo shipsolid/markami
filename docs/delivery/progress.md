@@ -252,8 +252,8 @@
 - RED: `scripts/checkPackage.test.mjs` initially failed because no package validator existed; the first
   package attempts also exposed a VSCE dependency-mode entrypoint failure and a sandbox-incompatible
   external `unzip` subprocess, resolved with bundled-extension packaging and in-process ZIP inspection
-- Package evidence:
-  - `npm run package` — pass; `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,803 bytes
+- Historical package evidence (superseded candidate; no longer present at the current artifact path):
+  - `npm run package` — pass; 282 files, 4,182,803 bytes
   - `npm run check:package` — pass; manifest/runtime/user/legal/icon/local-assets allowlist validated
   - SHA-256 — `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5`
   - `sha256sum -c` and `unzip -t` — pass
@@ -298,7 +298,8 @@
   - `actionlint .github/workflows/*.yml` and `git diff --check` — pass
   - `npm audit --omit=dev --audit-level=high` — pass threshold; two documented low KaTeX findings
     remain for explicit owner acceptance or remediation
-- Artifact evidence: `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,803 bytes, SHA-256
+- Historical artifact evidence (superseded candidate; no longer present at the current artifact path):
+  282 files, 4,182,803 bytes, SHA-256
   `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5`; strict package policy,
   checksum, ZIP integrity, and credential-free artifact preflight passed
 - Reproducibility evidence: two consecutive clean packaging executions used
@@ -326,3 +327,28 @@
   job independently revalidates its downloaded VSIX, checksum, and notes
 - Final review: independent read-only re-review approved the slice with no Critical or Important
   blockers after reproducible ZIP timestamps and visible release-note evidence validation were added
+
+## Task 19 — Repository audit remediation
+
+- Status: complete for deterministic and package gates; native/browser platform evidence remains unavailable
+- Changed paths: bidirectional protocol validation, image paste-directory wiring and confinement,
+  strict-fidelity contract cleanup, pinned/expanded CI, Node/config metadata, Mermaid SVG sanitization,
+  single-pass unknown-syntax discovery, tests, and release evidence
+- RED: host-message tests accepted malformed state, image copies ignored the configured destination,
+  CI used mutable action tags and omitted webview/main regression gates, the manifest exposed an inert
+  fidelity setting and an underspecified Node floor, Mermaid SVG entered the DOM unsanitized, and the
+  100 KiB typing proxy reproduced a 60.83 ms p95 miss
+- GREEN: focused protocol/resource/configuration/sanitizer/fidelity tests pass; the final optimized
+  typing proxy measured 34.73 ms p95 against the 50 ms target
+- Security ruling: Mermaid 12.1.0 has no supported non-breaking release that removes its bundled
+  vulnerable KaTeX. SVG output is sanitized at insertion as a tested compensating control; the low
+  advisory remains visible rather than being masked by an ineffective lockfile override.
+- Race ruling: VS Code exposes no versioned compare-and-swap edit. The adapter revalidates version and
+  exact source before dispatch, verifies canonical text afterward, rejects mismatch while preserving
+  recovery state, and retains minimum-version/platform race checks as release gates.
+- Final gates: `npm run verify` passed with 95 unit, 34 protocol, and 56 fidelity tests; webview,
+  deterministic visual, benchmark, package policy, artifact preflight, and high-severity audit
+  thresholds passed. The final VSIX contains 282 files (4,210,591 bytes), SHA-256
+  `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051`.
+- Review: independent read-only re-review found no remaining Critical or Important code blockers after
+  protocol recovery, symlink confinement, SVG URL sanitization, and artifact-evidence fixes.

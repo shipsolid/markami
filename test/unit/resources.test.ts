@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, test } from 'vitest';
@@ -154,6 +154,7 @@ describe('resource policy', () => {
 
     await expect(service.pickImage(document)).rejects.toThrow('outside the workspace');
     await expect(readFile(path.join(outside, 'guide', 'diagram.png'))).rejects.toThrow();
+    await expect(stat(path.join(outside, 'guide'))).rejects.toThrow();
   });
 
   test('rejects paste-directory traversal even in a trusted workspace', async () => {
@@ -171,6 +172,20 @@ describe('resource policy', () => {
     });
 
     await expect(service.pickImage(document)).rejects.toThrow('workspace-relative');
+  });
+
+  test('maps dot-only document basenames to a safe asset segment', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'markami-dot-name-'));
+    const external = await mkdtemp(path.join(tmpdir(), 'markami-dot-source-'));
+    const document = path.join(root, '...md');
+    const image = path.join(external, 'diagram.png');
+    await writeFile(document, '# Dot');
+    await writeFile(image, 'image');
+    const service = new ResourceService({
+      workspaceRoots: [root], trusted: true, pickFile: () => Promise.resolve(image)
+    });
+
+    await expect(service.pickImage(document)).resolves.toBe('![diagram](assets/document/diagram.png)');
   });
 
   test('ignores resource-looking Markdown inside code and honors collapsed references', () => {

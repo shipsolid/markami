@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { resourceRequestSchema } from './resourceMessages.js';
 import { isProtocolTextWithinLimit, MAX_PROTOCOL_TEXT_BYTES, protocolTextBytes } from './limits.js';
 import type { HostMessage } from './messages.js';
+import { PROTOCOL_VERSION } from './version.js';
 
 const requestIdSchema = z.string().min(1).max(200);
 const viewIdSchema = z.string().min(1).max(200);
@@ -11,7 +12,19 @@ const patchSchema = z.object({
   from: z.number().int().nonnegative(),
   to: z.number().int().nonnegative(),
   insert: z.string().refine(isProtocolTextWithinLimit, 'patch insert exceeds the protocol text limit')
-}).strict();
+}).strict().refine((patch) => patch.from <= patch.to, 'patch range is reversed');
+
+const patchListSchema = z.array(patchSchema).max(10_000).superRefine((patches, context) => {
+  const sorted = [...patches].sort((left, right) => left.from - right.from || left.to - right.to);
+  let occupiedUntil = -1;
+  for (const patch of sorted) {
+    if (patch.from < occupiedUntil) {
+      context.addIssue({ code: 'custom', message: 'patches overlap' });
+      return;
+    }
+    occupiedUntil = Math.max(occupiedUntil, patch.to);
+  }
+});
 
 const viewPreferenceChangesSchema = z.object({
   appearance: z.enum(['vscode', 'document']).optional(),
@@ -38,7 +51,7 @@ export const patchRequestSchema = z.object({
   viewId: viewIdSchema,
   generation: z.number().int().nonnegative(),
   baseVersion: z.number().int().nonnegative(),
-  patches: z.array(patchSchema).max(10_000),
+  patches: patchListSchema,
   draftText: z.string().refine(isProtocolTextWithinLimit, 'draft exceeds the protocol text limit').optional()
 }).strict().superRefine((request, context) => {
   let insertedBytes = request.draftText === undefined ? 0 : protocolTextBytes(request.draftText);
@@ -101,7 +114,7 @@ const resourceResponseSchema = z.union([
 const hostCoreMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('hydrate'),
-    protocolVersion: z.number().int(),
+    protocolVersion: z.literal(PROTOCOL_VERSION),
     viewId: viewIdSchema,
     generation: z.number().int().nonnegative(),
     document: z.object({
@@ -115,7 +128,7 @@ const hostCoreMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('documentChanged'),
     beforeVersion: z.number().int().nonnegative(),
     version: z.number().int().nonnegative(),
-    changes: z.array(patchSchema).max(10_000).superRefine((patches, context) => {
+    changes: patchListSchema.superRefine((patches, context) => {
       let insertedBytes = 0;
       for (const patch of patches) {
         insertedBytes += protocolTextBytes(patch.insert);

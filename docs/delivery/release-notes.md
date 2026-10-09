@@ -4,8 +4,8 @@ public_release: blocked
 publisher: pending-owner-input
 repository: shipsolid/markami
 listing_approved: false
-artifact_size: 4182803
-artifact_sha256: 6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5
+artifact_size: 4210591
+artifact_sha256: 5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051
 ---
 
 # markami 0.1.0 release evidence
@@ -20,8 +20,8 @@ listing, or public install has been verified.
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,182,803 bytes |
-| SHA-256 | `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5` |
+| Size | 4,210,591 bytes |
+| SHA-256 | `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051` |
 | Publisher | `markami-dev` — local development only |
 | Public extension ID | Pending the owner's verified publisher |
 | License | MIT |

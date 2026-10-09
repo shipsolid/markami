@@ -22,8 +22,11 @@ disclosure after a fix is available. No response-time SLA is promised for this d
 ## Security boundaries
 
 - Webview scripts, styles, fonts, Mermaid, and math assets are local and governed by a nonce-based CSP.
-- Webview messages are schema-, size-, view-, and generation-validated by the extension host.
+- Messages in both directions are schema- and size-validated at their trust boundary; edit requests
+  are also bound to the originating view and generation.
 - File access and external navigation remain host-controlled; traversal, symlink escape, and executable
   URL schemes fail closed.
-- Raw HTML is allowlist-sanitized for display and never serialized back to the source DOM.
+- Raw HTML is allowlist-sanitized for display and never serialized back to the source DOM. Mermaid
+  output is separately SVG-sanitized before DOM insertion; links, images, scripts, and foreign
+  content are removed.
 - Diagnostics exclude document content by default.

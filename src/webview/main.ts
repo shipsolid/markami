@@ -115,7 +115,6 @@ const documentSyntaxCompartment = new Compartment();
 const resources = new ResourceClient(vscode, navigateFragment);
 const compositionGate = new CompositionGate<HostMessage>();
 let pendingPolicyReload: string | undefined;
-let invalidHostStateRecoveryRequested = false;
 registerTechnicalFeatures(featureRegistry);
 featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
 featureRegistry.register({ id: 'frontmatter', sourceKinds: ['yamlFrontmatter'] });
@@ -195,15 +194,13 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
   const parsed = parseHostMessage(event.data);
   if (!parsed.ok) {
-    if (parsed.requestSnapshot && !invalidHostStateRecoveryRequested) {
-      invalidHostStateRecoveryRequested = true;
-      vscode.postMessage({ type: 'requestSnapshot' });
+    if (parsed.requestSnapshot) {
+      bridge.requestSnapshotRecovery();
     }
     return;
   }
   const message = parsed.message;
   if (message.type === 'hydrate') {
-    invalidHostStateRecoveryRequested = false;
     compositionGate.reset();
   }
   if (message.type === 'documentChanged') {

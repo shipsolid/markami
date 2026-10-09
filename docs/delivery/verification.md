@@ -20,7 +20,7 @@ Node 22, VS Code 1.102, native Windows, native macOS, and a native Linux desktop
 
 | Command | Result | Evidence boundary |
 |---|---|---|
-| `npm run verify` | Pass | Lint, strict typecheck, 89 unit, 32 protocol, 55 fidelity tests, license allowlist, production builds |
+| `npm run verify` | Pass | Lint, strict typecheck, 95 unit, 34 protocol, 56 fidelity tests, license allowlist, production builds |
 | `npm run test:webview` | Pass | 74 deterministic jsdom tests; this is not a native VS Code webview run |
 | `npm run test:visual` | Pass | 5 deterministic CSS/theme/focus baselines |
 | `npm run build:integration` | Pass | Extension-host integration suite type-compiles against VS Code APIs; it was not executed |
@@ -37,12 +37,12 @@ The benchmark ran five opening samples per size after bundling the production pa
 
 | Workload | Median | p95 | Target | Result |
 |---|---:|---:|---:|---|
-| 10 KiB open/projection proxy | 5.44 | 9.80 | 200 | Pass |
-| 100 KiB open/projection proxy | 37.21 | 56.01 | 500 | Pass |
-| 1 MiB open/projection proxy | 490.51 | 507.05 | 1,500 | Pass |
-| 100 KiB typing-to-projection proxy | 30.37 | 33.73 | 50 | Pass |
+| 10 KiB open/projection proxy | 22.64 | 46.38 | 200 | Pass |
+| 100 KiB open/projection proxy | 128.42 | 182.71 | 500 | Pass |
+| 1 MiB open/projection proxy | 513.72 | 536.39 | 1,500 | Pass |
+| 100 KiB typing-to-projection proxy | 28.23 | 34.73 | 50 | Pass |
 
-Twenty-five repeated projections produced a post-forced-GC heap delta of 821,264 bytes. This is a process-level diagnostic, not proof that a browser webview is leak-free. The benchmark does not measure VS Code activation, DOM layout, paint, native IME latency, or repeated Electron open/close behavior.
+Twenty-five repeated projections produced a post-forced-GC heap delta of 1,787,224 bytes. This is a process-level diagnostic, not proof that a browser webview is leak-free. The benchmark does not measure VS Code activation, DOM layout, paint, native IME latency, or repeated Electron open/close behavior.
 
 ## Security and dependency review
 
@@ -70,3 +70,22 @@ Twenty-five repeated projections produced a post-forced-GC heap delta of 821,264
 ## Release disposition
 
 No deterministic data-integrity failure is open in the tested suites. Public release evidence is incomplete: the native VS Code/browser gates, declared minimum runtime, Windows/macOS matrix, real IME, and screen-reader smoke remain outstanding. The low-severity transitive KaTeX advisory also remains an explicit dependency exception. A local VSIX may be prepared and inspected in Task 17, but this report does not authorize Marketplace publishing or describe the extension as fully platform-verified.
+
+## Task 19 audit-remediation follow-up — 2026-10-09
+
+The current working tree adds strict host-to-webview runtime schemas, bounded one-shot snapshot
+recovery for malformed state messages, a validated workspace-relative image paste-directory
+setting, pinned CI actions, pull-request webview tests, main-branch visual/benchmark gates, and a
+minimum Node runtime of 22.12.0. Strict fidelity is now documented as an invariant rather than an
+inactive setting.
+
+Mermaid 12.1.0 still bundles KaTeX 0.16.47, and no supported non-breaking Mermaid upgrade currently
+removes `GHSA-238p-pmpm-9mq7`. Generated Mermaid SVG is now sanitized immediately before DOM
+insertion, removing links, external images, scripts, and foreign content. The low-severity audit
+finding remains visible as an upstream dependency exception; no lockfile-only override is represented
+as remediating bundled renderer code.
+
+The typing benchmark initially reproduced a p95 miss and profiling traced most cost to two complete
+Markdown parses in unknown-syntax discovery. The path now collects code and HTML ranges in one parse;
+the final 100 KiB synthetic typing proxy measured 34.73 ms p95 against the 50 ms target. Native
+VS Code/browser, platform, IME, and screen-reader evidence remains subject to the release gates above.

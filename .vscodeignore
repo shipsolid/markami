@@ -1,6 +1,7 @@
 .agents/**
 .aws/**
 .codex/**
+.env*
 .github/**
 .superpowers/**
 .vscode-test/**

@@ -1,5 +1,5 @@
 import { constants } from 'node:fs';
-import { copyFile, mkdir, realpath, stat } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { classifyResourceScheme, type RemoteResourcePolicy } from './security.js';
 import {
@@ -127,7 +127,7 @@ export class ResourceService {
     if (!isWithin(documentRoot, destinationDirectory)) {
       throw new Error('Image destination is outside the workspace');
     }
-    await mkdir(destinationDirectory, { recursive: true });
+    await createConfinedDirectory(documentRoot, destinationDirectory);
     const resolvedDestinationDirectory = await realpath(destinationDirectory);
     if (!isWithin(documentRoot, resolvedDestinationDirectory)) {
       throw new Error('Image destination resolves outside the workspace');
@@ -135,6 +135,10 @@ export class ResourceService {
     const extension = path.extname(selectedPath).toLocaleLowerCase();
     const base = path.basename(selectedPath, path.extname(selectedPath));
     for (let suffix = 1; suffix <= 10_000; suffix += 1) {
+      const currentDirectory = await realpath(destinationDirectory);
+      if (currentDirectory !== resolvedDestinationDirectory || !isWithin(documentRoot, currentDirectory)) {
+        throw new Error('Image destination resolves outside the workspace');
+      }
       const name = suffix === 1 ? `${base}${extension}` : `${base}-${String(suffix)}${extension}`;
       const destination = path.join(resolvedDestinationDirectory, name);
       try {
@@ -145,6 +149,26 @@ export class ResourceService {
       }
     }
     throw new Error('Could not allocate a unique image name');
+  }
+}
+
+async function createConfinedDirectory(root: string, destination: string): Promise<void> {
+  const relative = path.relative(root, destination);
+  let current = root;
+  for (const segment of relative.split(path.sep).filter((value) => value.length > 0)) {
+    current = path.join(current, segment);
+    try {
+      await mkdir(current);
+    } catch (error) {
+      if (!hasCode(error, 'EEXIST')) throw error;
+    }
+    const metadata = await lstat(current);
+    if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+      throw new Error('Image destination resolves outside the workspace');
+    }
+    if (!isWithin(root, await realpath(current))) {
+      throw new Error('Image destination resolves outside the workspace');
+    }
   }
 }
 
@@ -203,7 +227,7 @@ function escapeAlt(value: string): string {
 
 function safeSegment(value: string): string {
   const result = value.replaceAll(/[^a-z0-9._-]+/giu, '-').replaceAll(/^-+|-+$/gu, '');
-  return result === '' ? 'document' : result;
+  return result === '' || result === '.' || result === '..' ? 'document' : result;
 }
 
 function hasCode(error: unknown, code: string): boolean {
