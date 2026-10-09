@@ -8,3 +8,4 @@ coverage/
 *.vsix
 test-results/
 playwright-report/
+.env
