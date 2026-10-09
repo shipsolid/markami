@@ -7,8 +7,8 @@ Date: 2026-10-09
 | Field | Result |
 |---|---|
 | Package | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,182,827 bytes |
-| SHA-256 | `3225977815d26d6d0707663b261fa097ccaf7223c448333f0161e1ab7323d7c3` |
+| Size | 4,182,803 bytes |
+| SHA-256 | `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5` |
 | Publisher | `markami-dev` — local testing only |
 | VSIX contents | 282 files; strict package policy passed |
 | Archive integrity | `unzip -t` passed for every entry |

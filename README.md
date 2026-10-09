@@ -1,6 +1,6 @@
 # markami
 
-Edit Markdown where you read it—without surrendering source fidelity.
+Edit Markdown where you read it.
 
 markami is a source-preserving rendered Markdown editor for VS Code. The open
 `vscode.TextDocument` remains canonical: markami applies validated local edits to the source and

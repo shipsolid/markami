@@ -1,0 +1,224 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact semantic version already committed and tagged
+        required: true
+        type: string
+      create_github_release:
+        description: Create the checksummed GitHub release after approval
+        required: true
+        default: false
+        type: boolean
+      publish_marketplace:
+        description: Publish the validated VSIX through protected OIDC
+        required: true
+        default: false
+        type: boolean
+      marketplace_publisher:
+        description: Owner-controlled publisher already committed in package.json
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_PUBLISHER: ${{ inputs.marketplace_publisher }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate clean tagged source
+        run: >-
+          node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase source --require-tag
+          --ref "$GITHUB_REF"
+      - name: Validate public delivery metadata
+        if: ${{ inputs.create_github_release || inputs.publish_marketplace }}
+        run: >-
+          node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase source --require-tag
+          --ref "$GITHUB_REF" --publish --publisher "$RELEASE_PUBLISHER"
+          --repository "$RELEASE_REPOSITORY"
+      - run: npm run verify
+      - run: npm run test:webview
+      - run: npm run test:visual
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:visual:browser
+      - run: npm run bench
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run generate:notices
+      - run: git diff --exit-code -- THIRD_PARTY_NOTICES.txt
+
+  platform:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux stable
+            os: ubuntu-latest
+            vscode: stable
+          - label: Windows stable
+            os: windows-latest
+            vscode: stable
+          - label: macOS stable
+            os: macos-latest
+            vscode: stable
+          - label: Linux VS Code 1.102
+            os: ubuntu-latest
+            vscode: 1.102.0
+    env:
+      VSCODE_VERSION: ${{ matrix.vscode }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run integration on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+      - name: Run integration on Windows and macOS
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+
+  package:
+    needs: [quality, platform]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run package
+      - run: npm run check:package
+      - run: >-
+          node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase artifact
+          --artifact "artifacts/markami-$RELEASE_VERSION.vsix"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: markami-${{ inputs.version }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            artifacts/markami-${{ inputs.version }}.vsix
+            artifacts/markami-${{ inputs.version }}.vsix.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: markami-${{ inputs.version }}-release-notes
+          if-no-files-found: error
+          retention-days: 30
+          path: docs/delivery/release-notes.md
+
+  github-release:
+    if: ${{ inputs.create_github_release }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: github-release
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: markami-${{ inputs.version }}
+          path: release-artifact
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: markami-${{ inputs.version }}-release-notes
+          path: release-notes
+      - name: Revalidate downloaded release artifacts
+        run: >-
+          node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase artifact
+          --artifact "release-artifact/markami-$RELEASE_VERSION.vsix"
+          --notes release-notes/release-notes.md
+      - run: >-
+          gh release create "v$RELEASE_VERSION"
+          "release-artifact/markami-$RELEASE_VERSION.vsix"
+          "release-artifact/markami-$RELEASE_VERSION.vsix.sha256"
+          --verify-tag --title "markami $RELEASE_VERSION"
+          --notes-file release-notes/release-notes.md
+
+  marketplace:
+    if: ${{ inputs.publish_marketplace }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: vscode-marketplace
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_PUBLISHER: ${{ inputs.marketplace_publisher }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: markami-${{ inputs.version }}
+          path: artifacts
+      - name: Revalidate downloaded artifact and protected OIDC
+        run: >-
+          node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase artifact
+          --artifact "artifacts/markami-$RELEASE_VERSION.vsix" --publish
+          --publisher "$RELEASE_PUBLISHER" --repository "$RELEASE_REPOSITORY" --require-oidc
+      - name: Publish exact validated VSIX
+        run: >-
+          node node_modules/@vscode/vsce/vsce publish --oidc
+          --packagePath "artifacts/markami-$RELEASE_VERSION.vsix"
+      - name: Download and validate public Marketplace artifact
+        run: |
+          public_vsix="/tmp/markami-$RELEASE_VERSION-public.vsix"
+          url="https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$RELEASE_PUBLISHER/vsextensions/markami/$RELEASE_VERSION/vspackage"
+          curl --fail --location --retry 6 --retry-all-errors --output "$public_vsix" "$url"
+          node scripts/checkPackage.mjs "$public_vsix"

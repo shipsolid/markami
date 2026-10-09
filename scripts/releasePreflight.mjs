@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -22,6 +22,9 @@ const DEVELOPMENT_PUBLISHERS = new Set(['markami-dev', 'publisher', 'todo', 'you
 
 export function validateReleaseSource(input) {
   if (!SEMVER.test(input.version)) throw new Error(`Release version must be an explicit semantic version: ${input.version}`);
+  if (input.publish && input.version.includes('-')) {
+    throw new Error('Visual Studio Marketplace publishing does not accept semantic prerelease versions.');
+  }
   if (input.manifest.version !== input.version) {
     throw new Error(`Manifest version ${String(input.manifest.version)} does not match release ${input.version}.`);
   }
@@ -41,7 +44,8 @@ export function validateReleaseSource(input) {
   }
 
   const repositoryUrl = repositoryUrlFrom(input.manifest.repository);
-  if (!repositoryUrl || /(?:example\.com|placeholder|todo)/iu.test(repositoryUrl)) {
+  const manifestRepository = repositoryUrl ? githubSlug(repositoryUrl) : undefined;
+  if (!repositoryUrl || !manifestRepository || /(?:example\.com|placeholder|todo)/iu.test(repositoryUrl)) {
     throw new Error('Manifest contains a missing or placeholder repository URL.');
   }
   if (input.notices.trim().length < 20) throw new Error('Third-party dependency notices are missing.');
@@ -51,11 +55,19 @@ export function validateReleaseSource(input) {
 
   const notes = parseFrontmatter(input.releaseNotes);
   if (notes.version !== input.version) throw new Error('Release notes version does not match the explicit release version.');
+  if (!/^\d+$/u.test(notes.artifact_size ?? '') || Number(notes.artifact_size) < 1) {
+    throw new Error('Release notes require a positive artifact_size value.');
+  }
+  if (!/^[a-f0-9]{64}$/u.test(notes.artifact_sha256 ?? '')) {
+    throw new Error('Release notes require a lowercase artifact_sha256 value.');
+  }
 
   const blockers = [];
   const publisher = String(input.manifest.publisher ?? '').toLowerCase();
   if (DEVELOPMENT_PUBLISHERS.has(publisher)) {
     blockers.push('package publisher is still the local development identifier');
+  } else if (!publisher || /(?:^|[-_.])(?:example|placeholder|todo)(?:$|[-_.])/u.test(publisher)) {
+    blockers.push('package publisher is missing or contains a placeholder identifier');
   }
   if (notes.public_release !== 'approved') blockers.push('public release notes are not approved');
   if (!notes.publisher || notes.publisher === 'pending-owner-input') {
@@ -63,6 +75,9 @@ export function validateReleaseSource(input) {
   }
   if (notes.listing_approved !== 'true') blockers.push('public Marketplace listing is not approved');
   if (!input.marketplaceCaptures?.length) blockers.push('actual Marketplace capture is missing');
+  else if (input.marketplaceCaptures.some((capture) => !input.readme.includes(capture))) {
+    blockers.push('Marketplace capture is not referenced by README listing content');
+  }
   if (/- \[ \]/u.test(input.releaseNotes)) blockers.push('public release checklist still has unchecked blockers');
 
   if (input.publish) {
@@ -72,8 +87,7 @@ export function validateReleaseSource(input) {
     if (!input.repositoryInput || input.repositoryInput !== notes.repository) {
       blockers.push('owner-supplied repository target does not match approved release notes');
     }
-    const manifestRepository = githubSlug(repositoryUrl);
-    if (!manifestRepository || manifestRepository !== input.repositoryInput) {
+    if (manifestRepository !== input.repositoryInput) {
       blockers.push('manifest repository does not match the owner-supplied release target');
     }
     if (blockers.length > 0) throw new Error(`Public release blocked: ${blockers.join('; ')}.`);
@@ -82,13 +96,25 @@ export function validateReleaseSource(input) {
   return { blockers, notes };
 }
 
-export function validateArtifact({ version, artifactName, artifact, checksum }) {
+export function validateArtifact({ version, artifactName, artifact, checksum, releaseNotes }) {
   const expectedName = `markami-${version}.vsix`;
   if (artifactName !== expectedName) throw new Error(`Release artifact must be named ${expectedName}.`);
   const match = checksum.match(/^([a-f0-9]{64})  ([^\r\n]+)\r?\n?$/u);
   if (!match || match[2] !== expectedName) throw new Error('Checksum file must name the exact versioned VSIX.');
   const actual = createHash('sha256').update(artifact).digest('hex');
   if (actual !== match[1]) throw new Error(`Artifact checksum mismatch: expected ${match[1]}, received ${actual}.`);
+  const notes = parseFrontmatter(releaseNotes);
+  if (notes.version !== version) throw new Error('Release notes version does not match the artifact version.');
+  if (notes.artifact_size !== String(artifact.length)) {
+    throw new Error(`Release notes artifact size does not match ${String(artifact.length)} bytes.`);
+  }
+  if (notes.artifact_sha256 !== actual) throw new Error('Release notes artifact SHA-256 does not match the VSIX.');
+  const visibleSize = releaseNotes.match(/^\| Size \| ([\d,]+) bytes \|$/mu)?.[1]?.replaceAll(',', '');
+  if (visibleSize !== String(artifact.length)) {
+    throw new Error(`Visible release-note size does not match ${String(artifact.length)} bytes.`);
+  }
+  const visibleDigest = releaseNotes.match(/^\| SHA-256 \| `([a-f0-9]{64})` \|$/mu)?.[1];
+  if (visibleDigest !== actual) throw new Error('Visible release-note SHA-256 does not match the VSIX.');
 }
 
 export function validateCleanRevision(status) {
@@ -99,6 +125,17 @@ export function validateCleanRevision(status) {
 export function validateReleaseTag(head, tagged, version) {
   if (!tagged) throw new Error(`Release tag v${version} does not exist.`);
   if (head !== tagged) throw new Error(`Release tag v${version} does not point at the checked-out revision.`);
+}
+
+export function validateReleaseRef(ref, version) {
+  const expected = `refs/tags/v${version}`;
+  if (ref !== expected) throw new Error(`Release workflow must run from ${expected}, received ${ref}.`);
+}
+
+export function validateOidcEnvironment(environment) {
+  if (!environment.ACTIONS_ID_TOKEN_REQUEST_URL || !environment.ACTIONS_ID_TOKEN_REQUEST_TOKEN) {
+    throw new Error('Public release blocked: GitHub Actions OIDC is unavailable in the protected environment.');
+  }
 }
 
 function parseFrontmatter(markdown) {
@@ -120,8 +157,18 @@ function repositoryUrlFrom(repository) {
 }
 
 function githubSlug(repositoryUrl) {
-  const match = repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)(?:\.git)?$/iu);
-  return match ? `${match[1]}/${match[2]}` : undefined;
+  const scp = repositoryUrl.match(/^git@github\.com:([^/]+)\/([^/]+?)(?:\.git)?$/iu);
+  if (scp) return `${scp[1]}/${scp[2]}`;
+
+  try {
+    const parsed = new URL(repositoryUrl.replace(/^git\+/u, ''));
+    if (!['https:', 'ssh:'].includes(parsed.protocol) || parsed.hostname.toLowerCase() !== 'github.com') return undefined;
+    if (parsed.search || parsed.hash) return undefined;
+    const match = parsed.pathname.match(/^\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/u);
+    return match ? `${match[1]}/${match[2]}` : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function escapeRegExp(value) {
@@ -135,7 +182,7 @@ function parseArguments(arguments_) {
     if (argument === '--publish') options.publish = true;
     else if (argument === '--require-tag') options.requireTag = true;
     else if (argument === '--require-oidc') options.requireOidc = true;
-    else if (['--version', '--phase', '--publisher', '--repository', '--artifact'].includes(argument)) {
+    else if (['--version', '--phase', '--publisher', '--repository', '--artifact', '--ref', '--notes'].includes(argument)) {
       const value = arguments_[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       options[argument.slice(2)] = value;
@@ -150,6 +197,7 @@ function parseArguments(arguments_) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+  const releaseNotesPath = options.notes ?? path.join('docs', 'delivery', 'release-notes.md');
   const requiredFiles = new Set();
   for (const required of REQUIRED_FILES) {
     try {
@@ -162,7 +210,7 @@ async function main() {
   const [changelog, readme, releaseNotes, notices] = await Promise.all([
     readFile('CHANGELOG.md', 'utf8'),
     readFile('README.md', 'utf8'),
-    readFile('docs/delivery/release-notes.md', 'utf8'),
+    readFile(releaseNotesPath, 'utf8'),
     readFile('THIRD_PARTY_NOTICES.txt', 'utf8')
   ]);
   const marketplaceCaptures = await findMarketplaceCaptures();
@@ -182,19 +230,26 @@ async function main() {
 
   if (options.phase === 'source') {
     requireCleanRevision();
-    if (options.requireTag) requireReleaseTag(options.version);
+    if (options.requireTag) {
+      requireReleaseTag(options.version);
+      if (options.ref) validateReleaseRef(options.ref, options.version);
+    }
   } else {
     const artifactPath = options.artifact ?? path.join('artifacts', `markami-${options.version}.vsix`);
     const [artifact, checksum] = await Promise.all([
       readFile(artifactPath),
       readFile(`${artifactPath}.sha256`, 'utf8')
     ]);
-    validateArtifact({ version: options.version, artifactName: path.basename(artifactPath), artifact, checksum });
+    validateArtifact({
+      version: options.version,
+      artifactName: path.basename(artifactPath),
+      artifact,
+      checksum,
+      releaseNotes
+    });
   }
 
-  if (options.requireOidc && options.publish && !process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
-    throw new Error('Public release blocked: GitHub Actions OIDC is unavailable in the protected environment.');
-  }
+  if (options.requireOidc && options.publish) validateOidcEnvironment(process.env);
 
   if (options.publish) {
     console.log(`Public release preflight passed for ${manifest.publisher}.markami@${options.version}.`);
@@ -216,19 +271,22 @@ async function findMarketplaceCaptures() {
 }
 
 function requireCleanRevision() {
-  const status = execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
+  const status = runGit(['status', '--porcelain', '--untracked-files=all']);
   validateCleanRevision(status);
 }
 
 function requireReleaseTag(version) {
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  let tagged;
-  try {
-    tagged = execFileSync('git', ['rev-list', '-n', '1', `refs/tags/v${version}`], { encoding: 'utf8' }).trim();
-  } catch {
-    tagged = '';
-  }
+  const head = runGit(['rev-parse', 'HEAD']).trim();
+  const tagged = runGit(['rev-list', '-n', '1', `refs/tags/v${version}`], true).trim();
   validateReleaseTag(head, tagged, version);
+}
+
+function runGit(arguments_, allowNonzero = false) {
+  const result = spawnSync('git', arguments_, { encoding: 'utf8' });
+  if (result.status === 0) return result.stdout;
+  if (allowNonzero && result.status !== null) return '';
+  if (result.error) throw result.error;
+  throw new Error(`git ${arguments_.join(' ')} failed: ${result.stderr.trim()}`);
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : undefined;

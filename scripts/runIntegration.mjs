@@ -5,6 +5,7 @@ import { runTests } from '@vscode/test-electron';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 await runTests({
+  version: process.env.VSCODE_VERSION ?? 'stable',
   extensionDevelopmentPath: root,
   extensionTestsPath: path.join(root, 'out', 'suite', 'index.js'),
   launchArgs: [

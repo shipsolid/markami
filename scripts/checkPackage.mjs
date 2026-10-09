@@ -115,7 +115,7 @@ async function main() {
   for (const [field, expected] of [
     ['name', 'markami'],
     ['version', packageManifest.version],
-    ['publisher', 'markami-dev'],
+    ['publisher', packageManifest.publisher],
     ['main', './dist/extension.js'],
     ['icon', 'media/icon.png'],
     ['license', 'MIT']

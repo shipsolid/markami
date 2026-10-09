@@ -253,9 +253,9 @@
   package attempts also exposed a VSCE dependency-mode entrypoint failure and a sandbox-incompatible
   external `unzip` subprocess, resolved with bundled-extension packaging and in-process ZIP inspection
 - Package evidence:
-  - `npm run package` — pass; `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,827 bytes
+  - `npm run package` — pass; `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,803 bytes
   - `npm run check:package` — pass; manifest/runtime/user/legal/icon/local-assets allowlist validated
-  - SHA-256 — `3225977815d26d6d0707663b261fa097ccaf7223c448333f0161e1ab7323d7c3`
+  - SHA-256 — `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5`
   - `sha256sum -c` and `unzip -t` — pass
   - dependency notices — 242 production records represented by 86 exact installed license texts
 - Publisher boundary: `markami-dev` is documented as local testing only and must be replaced by the
@@ -274,3 +274,55 @@
 - Review: independent read-only review approved the final slice with no Critical or Important blockers
 - Evidence: see `docs/delivery/install-smoke.md`
 - Next: Task 18 release automation and owner-authorized Marketplace delivery
+
+## Task 18 — Gated release automation and Marketplace preparation
+
+- Status: locally installable; Marketplace release prepared; public release deliberately blocked
+- Changed paths: manual protected release workflow, scheduled/PR security workflow, deterministic
+  release preflight and tests, environment-selectable VS Code integration runner, publisher-neutral
+  package inspection, locked tagline, release runbook, release evidence, and regenerated checksum
+- RED:
+  - preflight tests initially failed because clean-revision and exact-tag validators were not exported
+  - OIDC coverage initially failed because the validator did not require both GitHub token-request
+    values
+  - public prerelease coverage initially reached generic blockers instead of rejecting Marketplace-
+    incompatible semantic prerelease versions before provider invocation
+- GREEN:
+  - `npm run verify` — pass; lint, strict typecheck, 89 unit, 32 protocol, 55 fidelity, 5 package-
+    policy, 10 release-preflight tests, 242 production license records, and deterministic builds
+  - `npm run test:webview` — pass; 74 tests
+  - `npm run test:visual` — pass; 5 deterministic baselines
+  - `npm run build:integration` — pass
+  - `npm run bench` — pass; opening p95 27.56 ms at 10 KiB, 105.56 ms at 100 KiB, and
+    517.39 ms at 1 MiB; typing proxy p95 38.41 ms
+  - `actionlint .github/workflows/*.yml` and `git diff --check` — pass
+  - `npm audit --omit=dev --audit-level=high` — pass threshold; two documented low KaTeX findings
+    remain for explicit owner acceptance or remediation
+- Artifact evidence: `artifacts/markami-0.1.0.vsix`, 282 files, 4,182,803 bytes, SHA-256
+  `6f18bd356d0415406f6d1adacafd5815c836d968f837f1398d4b59cdec5aa4c5`; strict package policy,
+  checksum, ZIP integrity, and credential-free artifact preflight passed
+- Reproducibility evidence: two consecutive clean packaging executions used
+  `SOURCE_DATE_EPOCH=315532800` and produced the identical byte size and SHA-256 above
+- Fail-closed evidence: preparation reports all six open Marketplace gates; public mode rejects the
+  development publisher/open checklist; source mode rejects the dirty working revision; tests cover
+  invalid/mismatched version, placeholder/lookalike repository hosts, checksum or release-note
+  evidence corruption, orphan listing captures, missing tag, tag not at HEAD, missing OIDC values,
+  and Marketplace semantic prereleases
+- Workflow contract: exact tag assertion, clean source, full quality/browser/benchmark/security
+  gates, stable Linux/Windows/macOS plus VS Code 1.102 integration matrix, package-once artifact,
+  protected GitHub/Marketplace environments, job-scoped permissions, OIDC trusted publishing, and
+  public gallery artifact download/revalidation
+- Host boundary: Playwright Chromium and cached VS Code 1.141.0 again stopped before tests because
+  `libnspr4.so` is unavailable; native platform, clean-profile, actual-product capture, IME, and
+  screen-reader gates remain unchecked and therefore block public delivery
+- Owner inputs still required: controlled Marketplace publisher, trusted-publishing policy,
+  protected-environment reviewers/tag restrictions, approved listing/version, actual captures,
+  native/manual evidence, low-advisory decision, release tag, and explicit push/publish authorization
+- Publication boundary: no tag was created, no push occurred, no remote workflow ran, and no GitHub
+  release or Marketplace listing is claimed
+- Initial review fixes: every third-party workflow action is pinned to a reviewed commit SHA;
+  repository parsing requires the exact `github.com` host; approved captures must be referenced by
+  listing content; release-note size/SHA are validated against the candidate; and the GitHub Release
+  job independently revalidates its downloaded VSIX, checksum, and notes
+- Final review: independent read-only re-review approved the slice with no Critical or Important
+  blockers after reproducible ZIP timestamps and visible release-note evidence validation were added
