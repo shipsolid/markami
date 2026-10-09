@@ -1,5 +1,6 @@
 import { EditorState } from '@codemirror/state';
-import { describe, expect, test } from 'vitest';
+import { markdownLanguage } from '@codemirror/lang-markdown';
+import { describe, expect, test, vi } from 'vitest';
 import { findFrontmatter } from '../../src/core/markdown/frontmatter.js';
 import { selectionCapabilities } from '../../src/core/markdown/formatting.js';
 import { buildProjectionPlan, findUnknownSyntaxRanges } from '../../src/core/markdown/syntax.js';
@@ -104,5 +105,14 @@ describe('frontmatter, HTML, and unknown syntax fidelity', () => {
   test('directive and MDX examples inside code are not source islands', () => {
     const source = '```md\n:::custom\n<Component value={1} />\n```\n\n`<Widget />`';
     expect(findUnknownSyntaxRanges(source)).toEqual([]);
+  });
+
+  test('unknown-syntax discovery parses Markdown only once per snapshot', () => {
+    const parse = vi.spyOn(markdownLanguage.parser, 'parse');
+
+    findUnknownSyntaxRanges('```md\n:::custom\n```\n\n<Component />');
+
+    expect(parse).toHaveBeenCalledTimes(1);
+    parse.mockRestore();
   });
 });

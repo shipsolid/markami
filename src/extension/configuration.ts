@@ -1,5 +1,7 @@
 import type { RemoteResourcePolicy } from './security.js';
 
+export const DEFAULT_ASSET_PASTE_DIRECTORY = 'assets/${documentBasename}';
+
 export interface ConfigurationReader {
   get(section: string): unknown;
 }
@@ -37,6 +39,20 @@ export function readWebviewConfiguration(configuration: ConfigurationReader): We
 export function readRemoteImagePolicy(configuration: ConfigurationReader): RemoteResourcePolicy {
   const policy = configuration.get('remoteImages');
   return policy === 'block' || policy === 'prompt' || policy === 'allow' ? policy : 'prompt';
+}
+
+export function readAssetPasteDirectory(configuration: ConfigurationReader): string {
+  const value = configuration.get('assets.pasteDirectory');
+  return isAssetPasteDirectoryTemplate(value) ? value : DEFAULT_ASSET_PASTE_DIRECTORY;
+}
+
+export function isAssetPasteDirectoryTemplate(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 1024 || value.trim() !== value) {
+    return false;
+  }
+  const portable = value.replaceAll('\\', '/');
+  if (portable.startsWith('/') || /^[a-z]:\//iu.test(portable)) return false;
+  return portable.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..');
 }
 
 function readBoolean(configuration: ConfigurationReader, section: string, fallback: boolean): boolean {

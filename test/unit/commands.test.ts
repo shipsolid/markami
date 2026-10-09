@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { FORWARDED_COMMANDS, REQUIRED_COMMANDS } from '../../src/extension/commands.js';
 import { createDocumentKeymap } from '../../src/webview/editor/keymap.js';
-import { readRemoteImagePolicy, readWebviewConfiguration } from '../../src/extension/configuration.js';
+import {
+  readAssetPasteDirectory,
+  readRemoteImagePolicy,
+  readWebviewConfiguration
+} from '../../src/extension/configuration.js';
 import { createFormattingActionRegistry, insertionActionId } from '../../src/webview/editor/actionRegistry.js';
 import { planCapturedEditorAction } from '../../src/webview/editor/commands.js';
 import { codeInsertionArgs } from '../../src/webview/editor/commands.js';
@@ -10,6 +14,7 @@ import { ActiveViewTracker } from '../../src/extension/ActiveViewTracker.js';
 import { isMarkamiCustomEditorInput } from '../../src/extension/commands.js';
 
 interface PackageManifest {
+  readonly engines?: { readonly node?: string; readonly vscode?: string };
   readonly contributes?: {
     readonly commands?: readonly { readonly command?: string; readonly title?: string }[];
     readonly keybindings?: readonly { readonly command?: string; readonly when?: string }[];
@@ -18,8 +23,13 @@ interface PackageManifest {
 }
 
 const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as PackageManifest;
+const ciWorkflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
 describe('command and configuration contract', () => {
+  test('manifest declares the minimum Node runtime required by production dependencies', () => {
+    expect(manifest.engines?.node).toBe('>=22.12.0');
+  });
+
   test('manifest contributes every required command exactly once', () => {
     const contributed = manifest.contributes?.commands ?? [];
     const ids = contributed.map((command) => command.command);
@@ -71,12 +81,12 @@ describe('command and configuration contract', () => {
       'markami.sourceIslands.showLabel',
       'markami.theme.useEditorFont',
       'markami.assets.pasteDirectory',
-      'markami.fidelity.strict',
       'markami.debug.showSourceRanges'
     ];
     expect(expected.filter((key) => properties[key] === undefined)).toEqual([]);
     expect(properties['markami.remoteImages']?.default).toBe('prompt');
     expect(properties['markami.openAsDefault']?.default).toBe(false);
+    expect(properties['markami.fidelity.strict']).toBeUndefined();
   });
 
   test('runtime configuration rejects invalid values and keeps safe defaults', () => {
@@ -84,7 +94,8 @@ describe('command and configuration contract', () => {
       'selectionToolbar.enabled': 'yes',
       'outline.enabled': false,
       'theme.useEditorFont': false,
-      remoteImages: 'unsafe'
+      remoteImages: 'unsafe',
+      'assets.pasteDirectory': '../outside'
     };
     const configuration = { get: (key: string, fallback?: unknown) => values[key] ?? fallback };
 
@@ -102,6 +113,22 @@ describe('command and configuration contract', () => {
       useEditorFont: false
     });
     expect(readRemoteImagePolicy(configuration)).toBe('prompt');
+    expect(readAssetPasteDirectory(configuration)).toBe('assets/${documentBasename}');
+  });
+
+  test('CI protects pull requests and main with pinned complete quality gates', () => {
+    const actionReferences = [...ciWorkflow.matchAll(/^\s*- uses: ([^\s]+)(?:\s+#.*)?$/gmu)]
+      .map((match) => match[1] ?? '');
+    const checkoutCount = actionReferences.filter((reference) => reference.startsWith('actions/checkout@')).length;
+    const credentialGuards = [...ciWorkflow.matchAll(/^\s+persist-credentials: false$/gmu)];
+
+    expect(actionReferences.length).toBeGreaterThan(0);
+    expect(actionReferences.every((reference) => /@[0-9a-f]{40}$/u.test(reference))).toBe(true);
+    expect(credentialGuards).toHaveLength(checkoutCount);
+    expect(ciWorkflow).toContain('npm run test:webview');
+    expect(ciWorkflow).toContain("if: github.event_name == 'push' && github.ref == 'refs/heads/main'");
+    expect(ciWorkflow).toContain('npm run test:visual');
+    expect(ciWorkflow).toContain('npm run bench');
   });
 
   test('deferred command refuses an insertion after the document context changes', () => {

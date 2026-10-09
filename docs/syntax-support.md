@@ -28,7 +28,7 @@ safe rendered interaction is unavailable.
   command contract says so.
 - Concurrent views converge through the canonical document. Stale or overlapping patches are rejected
   or recovered, not guessed.
-- `markami.fidelity.strict` defaults to `true`; uncertain constructs degrade to source.
+- Strict fidelity is always enforced; uncertain constructs degrade to source.
 
 ## Configuration-sensitive rendering
 
@@ -39,7 +39,6 @@ safe rendered interaction is unavailable.
 | `markami.renderSafeHtml` | `true` | Sanitized allowlisted HTML display |
 | `markami.remoteImages` | `prompt` | Block, confirm, or allow remote HTTPS images |
 | `markami.syntaxReveal` | `activeBlock` | Active-block, selection, or manual delimiter reveal |
-| `markami.fidelity.strict` | `true` | Prefer editable source over an unsafe visual transformation |
 
 ## Limits
 

@@ -16,6 +16,7 @@ import { createCoordinateMap, editorOffset, type CoordinateMap } from '../core/s
 import { createTextPatch, type TextPatch } from '../core/source/PatchSet.js';
 import type { HostMessage } from '../protocol/messages.js';
 import { isProtocolTextWithinLimit } from '../protocol/limits.js';
+import { parseHostMessage } from '../protocol/schemas.js';
 import { CompositionGate } from './bridge/compositionGate.js';
 import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { HostBridge, shouldApplyExternalChange } from './bridge/hostBridge.js';
@@ -114,6 +115,7 @@ const documentSyntaxCompartment = new Compartment();
 const resources = new ResourceClient(vscode, navigateFragment);
 const compositionGate = new CompositionGate<HostMessage>();
 let pendingPolicyReload: string | undefined;
+let invalidHostStateRecoveryRequested = false;
 registerTechnicalFeatures(featureRegistry);
 featureRegistry.register({ id: 'tables', sourceKinds: ['gfmTable'] });
 featureRegistry.register({ id: 'frontmatter', sourceKinds: ['yamlFrontmatter'] });
@@ -191,13 +193,23 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
 }, vscode);
 
 window.addEventListener('message', (event: MessageEvent<unknown>) => {
-  if (isHostMessage(event.data)) {
-    if (event.data.type === 'hydrate') compositionGate.reset();
-    if (event.data.type === 'documentChanged') {
-      compositionGate.deliverOrDefer(event.data, (message) => bridge.handle(message));
-    } else {
-      bridge.handle(event.data);
+  const parsed = parseHostMessage(event.data);
+  if (!parsed.ok) {
+    if (parsed.requestSnapshot && !invalidHostStateRecoveryRequested) {
+      invalidHostStateRecoveryRequested = true;
+      vscode.postMessage({ type: 'requestSnapshot' });
     }
+    return;
+  }
+  const message = parsed.message;
+  if (message.type === 'hydrate') {
+    invalidHostStateRecoveryRequested = false;
+    compositionGate.reset();
+  }
+  if (message.type === 'documentChanged') {
+    compositionGate.deliverOrDefer(message, (deferred) => bridge.handle(deferred));
+  } else {
+    bridge.handle(message);
   }
 });
 window.addEventListener('resize', () => {
@@ -873,13 +885,6 @@ function applyHostPatches(patches: readonly TextPatch[]): void {
   view.dispatch({ changes });
   applyingHostChange = false;
   coordinateMap = createCoordinateMap(queue.optimisticText);
-}
-
-function isHostMessage(value: unknown): value is HostMessage {
-  if (typeof value !== 'object' || value === null || !('type' in value)) {
-    return false;
-  }
-  return typeof (value as { type?: unknown }).type === 'string';
 }
 
 function acknowledgePolicyReloadWhenSynced(): void {

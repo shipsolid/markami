@@ -7,6 +7,7 @@ import { findMathRanges, renderMath, type MathRange } from './math/mathRenderer.
 import { DebouncedMermaidRenderer, LocalMermaidRenderer } from './mermaid/mermaidRenderer.js';
 import { findTaskMarkers, type TaskMarker } from './tasks/taskPlanner.js';
 import { syntaxSelection } from '../projection/syntaxReveal.js';
+import { sanitizeMermaidSvg } from '../security/sanitize.js';
 
 export interface TechnicalCodeBlock extends FencedBlock {
   readonly active: boolean;
@@ -229,7 +230,7 @@ class MermaidWidget extends WidgetType {
     this.jobs.schedule(this.source, (result) => {
       if (!root.isConnected) return;
       if (result.ok) {
-        root.innerHTML = result.svg;
+        root.innerHTML = sanitizeMermaidSvg(result.svg);
       } else {
         root.textContent = `Mermaid error: ${result.error}`;
         root.classList.add('markami-render-error');

@@ -1,6 +1,24 @@
 import { describe, expect, test } from 'vitest';
-import { patchRequestSchema, webviewMessageSchema } from '../../src/protocol/schemas.js';
+import {
+  hostMessageSchema,
+  parseHostMessage,
+  patchRequestSchema,
+  webviewMessageSchema
+} from '../../src/protocol/schemas.js';
 import { MAX_PROTOCOL_TEXT_BYTES, isProtocolTextWithinLimit } from '../../src/protocol/limits.js';
+import { PROTOCOL_VERSION } from '../../src/protocol/version.js';
+
+const viewPreferences = {
+  schemaVersion: 1,
+  rememberPerFile: true,
+  effective: {
+    appearance: 'vscode',
+    width: 'auto',
+    maxContentWidth: 960,
+    syntaxReveal: 'activeBlock',
+    outlineCollapsed: false
+  }
+};
 
 describe('protocol payload limits', () => {
   test('measures the v1 text limit in UTF-8 bytes', () => {
@@ -42,5 +60,44 @@ describe('protocol payload limits', () => {
       draftText: 'x'.repeat(MAX_PROTOCOL_TEXT_BYTES + 1)
     }).success).toBe(false);
     expect(webviewMessageSchema.safeParse({ type: 'requestSourceFallback' }).success).toBe(true);
+  });
+
+  test('rejects malformed and oversized host state before webview dispatch', () => {
+    expect(hostMessageSchema.safeParse({
+      type: 'hydrate',
+      protocolVersion: PROTOCOL_VERSION,
+      viewId: 'view',
+      generation: 1,
+      document: { text: '# Safe\n', version: 1, eol: '\n' },
+      viewPreferences
+    }).success).toBe(true);
+    expect(hostMessageSchema.safeParse({
+      type: 'hydrate',
+      protocolVersion: PROTOCOL_VERSION,
+      viewId: 'view',
+      generation: 1,
+      document: { version: 1, eol: '\n' },
+      viewPreferences
+    }).success).toBe(false);
+    expect(hostMessageSchema.safeParse({
+      type: 'hydrate',
+      protocolVersion: PROTOCOL_VERSION,
+      viewId: 'view',
+      generation: 1,
+      document: { text: 'x'.repeat(MAX_PROTOCOL_TEXT_BYTES + 1), version: 1, eol: '\n' },
+      viewPreferences
+    }).success).toBe(false);
+    expect(hostMessageSchema.safeParse({
+      type: 'documentChanged',
+      beforeVersion: 1,
+      version: 2,
+      changes: [{ from: 0, to: 0, insert: 'safe' }],
+      injected: true
+    }).success).toBe(false);
+    expect(parseHostMessage({ type: 'documentChanged', version: 2 })).toEqual({
+      ok: false,
+      requestSnapshot: true
+    });
+    expect(parseHostMessage({ type: 'unknown' })).toEqual({ ok: false, requestSnapshot: false });
   });
 });

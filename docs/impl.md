@@ -286,9 +286,9 @@ markami/
 │  └─ marketplace/
 ├─ package.json
 ├─ tsconfig.json
-├─ vite.config.ts
+├─ vite.config.mts
 ├─ esbuild.mjs
-├─ vitest.config.ts
+├─ vitest.config.mts
 ├─ eslint.config.js
 ├─ .prettierrc
 ├─ README.md
@@ -2331,7 +2331,7 @@ Keep task logs under `docs/delivery/progress.md`: task, commit, changed paths, c
 
 ### Task 1 — Reproducible repository and custom-editor shell
 
-**Files:** `package.json`, `package-lock.json`, `tsconfig.json`, `esbuild.mjs`, `vite.config.ts`, `vitest.config.ts`, `src/extension/extension.ts`, `src/extension/MarkamiProvider.ts`, `src/webview/main.ts`, `.github/workflows/ci.yml`, `AGENTS.md`, `test/integration/openEditor.test.ts`.
+**Files:** `package.json`, `package-lock.json`, `tsconfig.json`, `esbuild.mjs`, `vite.config.mts`, `vitest.config.mts`, `src/extension/extension.ts`, `src/extension/MarkamiProvider.ts`, `src/webview/main.ts`, `.github/workflows/ci.yml`, `AGENTS.md`, `test/integration/openEditor.test.ts`.
 
 **Interfaces:** export `activate(context: vscode.ExtensionContext): void`, `deactivate(): void`; provider `resolveCustomTextEditor(document, panel, token): Promise<void>`. Build extension to `dist/extension.js` and webview assets to `dist/webview/`. Register `markami.editor` with multiple-view support after the session layer exists.
 

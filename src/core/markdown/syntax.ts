@@ -66,8 +66,19 @@ export interface RawHtmlRange extends SourceRange {
 }
 
 export function findRawHtmlRanges(source: string): readonly RawHtmlRange[] {
+  return scanMarkdownRanges(source).html;
+}
+
+function scanMarkdownRanges(source: string): {
+  readonly code: readonly SourceRange[];
+  readonly html: readonly RawHtmlRange[];
+} {
+  const code: SourceRange[] = [];
   const ranges: RawHtmlRange[] = [];
   markdownLanguage.parser.parse(source).cursor().iterate((node) => {
+    if (node.name === 'FencedCode' || node.name === 'CodeBlock' || node.name === 'InlineCode') {
+      code.push({ from: node.from, to: node.to });
+    }
     const nodeType = node.name === 'HTMLBlock'
       ? 'block'
       : node.name === 'HTMLTag'
@@ -79,12 +90,13 @@ export function findRawHtmlRanges(source: string): readonly RawHtmlRange[] {
       ranges.push({ from: node.from, to: node.to, nodeType, source: source.slice(node.from, node.to) });
     }
   });
-  return ranges;
+  return { code, html: ranges };
 }
 
 export function findUnknownSyntaxRanges(source: string): readonly SourceIslandSpec[] {
   const ranges: SourceIslandSpec[] = [];
-  const protectedRanges = codeRanges(source);
+  const markdownRanges = scanMarkdownRanges(source);
+  const protectedRanges = markdownRanges.code;
   for (const match of source.matchAll(/^:::[\w-]+[^\r\n]*(?:\r\n|\r|\n)/gmu)) {
     const endPattern = /^:::\s*$/gmu;
     endPattern.lastIndex = match.index + match[0].length;
@@ -97,22 +109,12 @@ export function findUnknownSyntaxRanges(source: string): readonly SourceIslandSp
     const range = { from: match.index, to: match.index + match[0].length, reason: 'MDX' } as const;
     if (!protectedRanges.some((candidate) => overlaps(candidate, range))) ranges.push(range);
   }
-  for (const html of findRawHtmlRanges(source)) {
+  for (const html of markdownRanges.html) {
     if (/^<\/?[A-Z]/u.test(html.source.trimStart())) {
       ranges.push({ from: html.from, to: html.to, reason: 'MDX' });
     }
   }
   return mergeIslands(ranges);
-}
-
-function codeRanges(source: string): SourceRange[] {
-  const ranges: SourceRange[] = [];
-  markdownLanguage.parser.parse(source).cursor().iterate((node) => {
-    if (node.name === 'FencedCode' || node.name === 'CodeBlock' || node.name === 'InlineCode') {
-      ranges.push({ from: node.from, to: node.to });
-    }
-  });
-  return ranges;
 }
 
 function collectLines(

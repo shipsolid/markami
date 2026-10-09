@@ -14,3 +14,14 @@ export function sanitizeRawHtml(source: string): string {
     FORBID_TAGS: ['a', 'button', 'embed', 'form', 'iframe', 'input', 'link', 'math', 'meta', 'object', 'script', 'style', 'svg']
   });
 }
+
+export function sanitizeMermaidSvg(source: string): string {
+  return DOMPurify.sanitize(source, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ALLOW_ARIA_ATTR: true,
+    ALLOW_DATA_ATTR: true,
+    FORBID_TAGS: ['a', 'foreignObject', 'image', 'script'],
+    FORBID_CONTENTS: ['a', 'foreignObject', 'image', 'script'],
+    FORBID_ATTR: ['href', 'xlink:href']
+  });
+}

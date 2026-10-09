@@ -936,12 +936,11 @@ The following settings are the initial configuration contract; new controls are 
   "markami.sourceIslands.showLabel": true,
   "markami.theme.useEditorFont": true,
   "markami.assets.pasteDirectory": "assets/${documentBasename}",
-  "markami.fidelity.strict": true,
   "markami.debug.showSourceRanges": false
 }
 ```
 
-`markami.fidelity.strict = true` means unsupported transformations fall back to source rather than normalizing uncertain syntax.
+Strict fidelity is an invariant: unsupported transformations fall back to source rather than normalizing uncertain syntax.
 
 ---
 

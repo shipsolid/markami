@@ -21,6 +21,6 @@ eslint.config.mjs
 package-lock.json
 playwright.visual.config.ts
 tsconfig*.json
-vite.config.ts
-vitest.config.ts
+vite.config.mts
+vitest.config.mts
 dist/**/*.map

@@ -24,7 +24,7 @@
   ],
   "engines": {
     "vscode": "^1.102.0",
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "categories": [
     "Other",
@@ -360,12 +360,6 @@
           "default": "assets/${documentBasename}",
           "scope": "resource",
           "description": "Workspace-relative destination template reserved for explicitly accepted image copies."
-        },
-        "markami.fidelity.strict": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "description": "Fall back to editable Markdown source when a transformation cannot be proven source-safe."
         },
         "markami.debug.showSourceRanges": {
           "type": "boolean",

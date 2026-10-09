@@ -2,6 +2,10 @@ import { constants } from 'node:fs';
 import { copyFile, mkdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { classifyResourceScheme, type RemoteResourcePolicy } from './security.js';
+import {
+  DEFAULT_ASSET_PASTE_DIRECTORY,
+  isAssetPasteDirectoryTemplate
+} from './configuration.js';
 
 export type ResourceResult =
   | { readonly ok: true; readonly kind: 'fragment'; readonly fragment: string }
@@ -14,6 +18,7 @@ export interface ResourceServiceOptions {
   readonly trusted: boolean;
   readonly pickFile: () => Promise<string | undefined>;
   readonly maxImageBytes?: number;
+  readonly pasteDirectory?: string;
 }
 
 const IMAGE_EXTENSIONS = new Set(['.gif', '.jpeg', '.jpg', '.png', '.webp']);
@@ -112,8 +117,13 @@ export class ResourceService {
     if (documentRoot === undefined) {
       throw new Error('Document is outside the workspace');
     }
-    const documentName = path.basename(documentPath, path.extname(documentPath));
-    const destinationDirectory = path.join(path.dirname(documentPath), 'assets', safeSegment(documentName));
+    const template = this.options.pasteDirectory ?? DEFAULT_ASSET_PASTE_DIRECTORY;
+    if (!isAssetPasteDirectoryTemplate(template)) {
+      throw new Error('Image paste directory must be a safe workspace-relative path');
+    }
+    const documentName = safeSegment(path.basename(documentPath, path.extname(documentPath)));
+    const expanded = template.replaceAll('${documentBasename}', documentName).replaceAll('\\', '/');
+    const destinationDirectory = path.resolve(documentRoot, ...expanded.split('/'));
     if (!isWithin(documentRoot, destinationDirectory)) {
       throw new Error('Image destination is outside the workspace');
     }

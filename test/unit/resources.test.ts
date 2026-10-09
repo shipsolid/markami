@@ -77,12 +77,17 @@ describe('resource policy', () => {
 
     const externalFile = path.join(external, 'diagram.png');
     await writeFile(externalFile, 'outside');
-    const externalService = new ResourceService({ workspaceRoots: [root], trusted: true, pickFile: () => Promise.resolve(externalFile) });
+    const externalService = new ResourceService({
+      workspaceRoots: [root],
+      trusted: true,
+      pasteDirectory: 'media/${documentBasename}',
+      pickFile: () => Promise.resolve(externalFile)
+    });
     const first = await externalService.pickImage(document);
     const second = await externalService.pickImage(document);
-    expect(first).toBe('![diagram](assets/guide/diagram.png)');
-    expect(second).toBe('![diagram](assets/guide/diagram-2.png)');
-    await expect(readFile(path.join(root, 'docs', 'assets', 'guide', 'diagram.png'), 'utf8')).resolves.toBe('outside');
+    expect(first).toBe('![diagram](../media/guide/diagram.png)');
+    expect(second).toBe('![diagram](../media/guide/diagram-2.png)');
+    await expect(readFile(path.join(root, 'media', 'guide', 'diagram.png'), 'utf8')).resolves.toBe('outside');
   });
 
   test('preserves inline/reference link forms and creates deterministic duplicate slugs', () => {
@@ -149,6 +154,23 @@ describe('resource policy', () => {
 
     await expect(service.pickImage(document)).rejects.toThrow('outside the workspace');
     await expect(readFile(path.join(outside, 'guide', 'diagram.png'))).rejects.toThrow();
+  });
+
+  test('rejects paste-directory traversal even in a trusted workspace', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'markami-copy-root-'));
+    const external = await mkdtemp(path.join(tmpdir(), 'markami-copy-source-'));
+    const document = path.join(root, 'guide.md');
+    const image = path.join(external, 'diagram.png');
+    await writeFile(document, '# Guide');
+    await writeFile(image, 'image');
+    const service = new ResourceService({
+      workspaceRoots: [root],
+      trusted: true,
+      pasteDirectory: '../escape/${documentBasename}',
+      pickFile: () => Promise.resolve(image)
+    });
+
+    await expect(service.pickImage(document)).rejects.toThrow('workspace-relative');
   });
 
   test('ignores resource-looking Markdown inside code and honors collapsed references', () => {

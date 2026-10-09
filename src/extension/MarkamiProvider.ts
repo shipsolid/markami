@@ -12,7 +12,11 @@ import type { ResourceRequest, ResourceResponse } from '../protocol/resourceMess
 import type { EffectiveViewPreferences, ViewPreferencesState } from '../protocol/viewPreferences.js';
 import { resolveViewPreferences, type ViewPreferencesStore } from './ViewPreferencesStore.js';
 import type { DocumentSession } from './DocumentSession.js';
-import { readRemoteImagePolicy, readWebviewConfiguration } from './configuration.js';
+import {
+  readAssetPasteDirectory,
+  readRemoteImagePolicy,
+  readWebviewConfiguration
+} from './configuration.js';
 import { ActiveViewTracker, type ActiveViewLease } from './ActiveViewTracker.js';
 import { isProtocolTextWithinLimit, MAX_PROTOCOL_TEXT_BYTES } from '../protocol/limits.js';
 
@@ -284,6 +288,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         const service = new ResourceService({
           workspaceRoots: this.resourceRoots(document),
           trusted: vscode.workspace.isTrusted,
+          pasteDirectory: readAssetPasteDirectory(vscode.workspace.getConfiguration('markami', document.uri)),
           pickFile: async () => {
             const selected = await vscode.window.showOpenDialog({
               canSelectFiles: true,
