@@ -1,0 +1,31 @@
+
+name: Get Marketplace Identity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  get-identity:
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get Azure DevOps Profile ID
+        shell: bash
+        run: |
+          az rest \
+            --method GET \
+            --url "https://app.vssps.visualstudio.com/_apis/profile/profiles/me" \
+            --resource "499b84ac-1321-427f-aa17-267ca6975798" \
+            --output json
