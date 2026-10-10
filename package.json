@@ -2,7 +2,7 @@
   "name": "markami",
   "displayName": "markami — Rendered Markdown Editor",
   "description": "Edit Markdown directly in a rendered, source-preserving VS Code editor.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "shipsolid",
   "license": "MIT",
   "private": true,

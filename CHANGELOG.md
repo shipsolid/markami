@@ -2,7 +2,10 @@
 
 All notable changes to markami are documented here.
 
-## Unreleased
+## 0.1.1 — 2026-10-10
+
+Preview release. Document appearance becomes the default and a designed reading view; rendering defects found
+in real notes are fixed.
 
 ### Changed
 
