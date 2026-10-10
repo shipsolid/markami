@@ -31,7 +31,7 @@ export function readWebviewConfiguration(configuration: ConfigurationReader): We
     renderSafeHtml: readBoolean(configuration, 'renderSafeHtml', true),
     showSourceIslandLabels: readBoolean(configuration, 'sourceIslands.showLabel', true),
     debugShowSourceRanges: readBoolean(configuration, 'debug.showSourceRanges', false),
-    codeBlockWrap: readBoolean(configuration, 'codeBlock.wrap', false),
+    codeBlockWrap: readBoolean(configuration, 'codeBlock.wrap', true),
     useEditorFont: readBoolean(configuration, 'theme.useEditorFont', true)
   };
 }

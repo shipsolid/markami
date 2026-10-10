@@ -924,7 +924,7 @@ The following settings are the initial configuration contract; new controls are 
   "markami.renderMermaid": true,
   "markami.renderMath": true,
   "markami.renderSafeHtml": true,
-  "markami.codeBlock.wrap": false,
+  "markami.codeBlock.wrap": true,
   "markami.outline.enabled": true,
   "markami.slashCommands.enabled": true,
   "markami.selectionToolbar.enabled": true,

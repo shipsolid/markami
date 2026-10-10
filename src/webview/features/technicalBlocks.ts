@@ -34,7 +34,7 @@ export interface TechnicalBlockOptions {
   readonly codeWrap: boolean;
 }
 
-const defaultOptions: TechnicalBlockOptions = { renderMermaid: true, renderMath: true, codeWrap: false };
+const defaultOptions: TechnicalBlockOptions = { renderMermaid: true, renderMath: true, codeWrap: true };
 const technicalOptions = Facet.define<TechnicalBlockOptions, TechnicalBlockOptions>({
   combine(values) {
     return values.at(-1) ?? defaultOptions;
@@ -109,8 +109,11 @@ function decorationsFor(
     ranges.push(Decoration.replace({ widget: new TaskCheckboxWidget(task) }).range(task.from, task.to));
   }
   for (const block of plan.codeBlocks) {
-    ranges.push(Decoration.replace({ widget: new CodeHeaderWidget(block) }).range(block.opening.from, block.opening.to));
-    if (block.closing !== undefined) ranges.push(Decoration.replace({}).range(block.closing.from, block.closing.to));
+    ranges.push(Decoration.replace({ widget: new CodeHeaderWidget(block), block: true }).range(block.opening.from, block.opening.to));
+    if (block.closing !== undefined) {
+      ranges.push(Decoration.replace({}).range(block.closing.from, block.closing.to));
+      ranges.push(Decoration.line({ class: 'markami-code-fence-close' }).range(state.doc.lineAt(block.closing.from).from));
+    }
     for (let position = block.content.from; position < block.content.to;) {
       const line = state.doc.lineAt(position);
       ranges.push(Decoration.line({ class: options.codeWrap ? 'markami-code-line markami-code-wrap' : 'markami-code-line' }).range(line.from));

@@ -50,24 +50,61 @@
   display: none;
 }
 
+/* A fenced block is a card: the header widget, the code lines, and the hidden closing fence share one background and edge. */
 .markami-code-header {
   align-items: center;
   background: var(--vscode-textCodeBlock-background);
   border-bottom: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 6px 6px 0 0;
   display: flex;
   font-family: var(--vscode-editor-font-family);
   justify-content: space-between;
-  padding: 4px 8px;
+  padding: 4px 12px;
 }
 
-.cm-line.markami-code-line {
+.markami-document-shell .cm-line.markami-code-line {
   background: var(--vscode-textCodeBlock-background);
   font-family: var(--vscode-editor-font-family);
+  padding-inline: 12px;
   white-space: pre;
 }
 
-.cm-line.markami-code-line.markami-code-wrap {
+.markami-document-shell .cm-line.markami-code-line.markami-code-wrap {
+  overflow: visible;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.markami-document-shell .cm-line.markami-code-fence-close {
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 0 0 6px 6px;
+  height: 8px;
+  line-height: 8px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.markami-strong {
+  font-weight: 700;
+}
+
+.markami-emphasis {
+  font-style: italic;
+}
+
+.markami-strike {
+  text-decoration: line-through;
+}
+
+.markami-inlineCode {
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  padding: 0 0.25em;
+}
+
+.cm-line.markami-divider {
+  border-bottom: 1px solid var(--vscode-textSeparator-foreground, var(--vscode-widget-border, currentColor));
 }
 
 .markami-mermaid,

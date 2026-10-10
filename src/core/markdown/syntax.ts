@@ -141,6 +141,7 @@ function collectLines(
       styles.push({ from: offset, to: end, kind: 'list' });
     } else if (/^\s*(?:---+|___+|\*\*\*+)\s*$/u.test(line)) {
       styles.push({ from: offset, to: end, kind: 'divider' });
+      maybeHide(offset, end, offset, end, hidden, selection, islands);
     }
     offset = end + 1;
   }

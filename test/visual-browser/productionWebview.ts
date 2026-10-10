@@ -18,14 +18,33 @@ export function marketplaceFixture(name: string): string {
   return readFileSync(path.join(root, 'fixtures', 'marketplace', `${name}.md`), 'utf8');
 }
 
-function pageHtml(fixture: string, theme: WebviewTheme | undefined): string {
+/** VS Code Dark+ values for the tokens the webview reads, with a distinctive editor font so assertions can recognise it. */
+export const DARK_PLUS: WebviewTheme = {
+  bodyClass: 'vscode-dark',
+  tokens: {
+    '--vscode-editor-background': '#1e1e1e', '--vscode-editor-foreground': '#d4d4d4', '--vscode-editorGutter-background': '#1e1e1e',
+    '--vscode-editorLineNumber-foreground': '#858585', '--vscode-button-secondaryBackground': '#3a3d41',
+    '--vscode-button-secondaryForeground': '#ffffff', '--vscode-button-secondaryHoverBackground': '#45494e',
+    '--vscode-widget-border': '#303031', '--vscode-editorWidget-background': '#252526', '--vscode-editorWidget-border': '#454545',
+    '--vscode-editorWidget-foreground': '#cccccc', '--vscode-textCodeBlock-background': '#0a0a0a',
+    '--vscode-textSeparator-foreground': '#3c3c3c', '--vscode-textBlockQuote-border': '#007acc',
+    '--vscode-textLink-foreground': '#3794ff', '--vscode-descriptionForeground': '#9d9d9d', '--vscode-focusBorder': '#007fd4',
+    '--vscode-list-activeSelectionBackground': '#04395e', '--vscode-list-activeSelectionForeground': '#ffffff',
+    '--vscode-dropdown-background': '#3c3c3c', '--vscode-dropdown-foreground': '#f0f0f0', '--vscode-dropdown-border': '#3c3c3c',
+    '--vscode-editor-font-family': "'Courier New', monospace", '--vscode-font-family': 'sans-serif', '--vscode-font-size': '13px'
+  }
+};
+
+export type WebviewAppearance = 'vscode' | 'document';
+
+function pageHtml(fixture: string, theme: WebviewTheme | undefined, appearance: WebviewAppearance): string {
   const hydrate = JSON.stringify({
     type: 'hydrate', protocolVersion: 3, viewId: 'view', generation: 1,
     document: { text: fixture, version: 1, eol: '\n' },
     viewPreferences: {
       schemaVersion: 1,
       rememberPerFile: true,
-      effective: { appearance: 'document', width: 'readable', maxContentWidth: 960, syntaxReveal: 'activeBlock', outlineCollapsed: false }
+      effective: { appearance, width: 'readable', maxContentWidth: 960, syntaxReveal: 'activeBlock', outlineCollapsed: false }
     }
   });
   const tokens = Object.entries(theme?.tokens ?? {}).map(([name, value]) => `${name}: ${value};`).join(' ');
@@ -45,7 +64,7 @@ function pageHtml(fixture: string, theme: WebviewTheme | undefined): string {
 /** Serves the built webview exactly as packaged and aborts every request that leaves the local origin. */
 export async function openProductionWebview(
   page: Page,
-  options: { readonly fixture: string; readonly theme?: WebviewTheme }
+  options: { readonly fixture: string; readonly theme?: WebviewTheme; readonly appearance?: WebviewAppearance }
 ): Promise<{ readonly external: string[] }> {
   expect(existsSync(path.join(distribution, 'main.js')), 'run npm run build before the browser visual test').toBe(true);
   const external: string[] = [];
@@ -57,7 +76,7 @@ export async function openProductionWebview(
       return;
     }
     if (url.pathname === '/') {
-      await route.fulfill({ contentType: 'text/html', body: pageHtml(options.fixture, options.theme) });
+      await route.fulfill({ contentType: 'text/html', body: pageHtml(options.fixture, options.theme, options.appearance ?? 'document') });
       return;
     }
     const file = path.join(distribution, url.pathname);

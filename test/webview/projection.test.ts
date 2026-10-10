@@ -44,6 +44,16 @@ describe('Markdown projection', () => {
     expect('A **bold** word.'.slice(2, 10)).toBe('**bold**');
   });
 
+  test('divider_source_hides_until_the_caret_touches_it', () => {
+    const markdown = 'above\n\n---\n\nbelow';
+    const inactive = buildProjectionPlan(markdown);
+    const active = buildProjectionPlan(markdown, { selection: { from: 8, to: 8 } });
+
+    expect(inactive.lineStyles.map((style) => style.kind)).toContain('divider');
+    expect(inactive.hiddenTokens).toContainEqual({ from: 7, to: 10 });
+    expect(active.hiddenTokens).toHaveLength(0);
+  });
+
   test('caret_at_delimiter_reveals_syntax_for_backspace_and_delete', () => {
     for (const position of [2, 4, 8, 10]) {
       const plan = buildProjectionPlan('A **bold** word.', { selection: { from: position, to: position } });

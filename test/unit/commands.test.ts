@@ -86,6 +86,7 @@ describe('command and configuration contract', () => {
     expect(expected.filter((key) => properties[key] === undefined)).toEqual([]);
     expect(properties['markami.remoteImages']?.default).toBe('prompt');
     expect(properties['markami.openAsDefault']?.default).toBe(false);
+    expect(properties['markami.codeBlock.wrap']?.default).toBe(true);
     expect(properties['markami.fidelity.strict']).toBeUndefined();
   });
 
@@ -109,7 +110,7 @@ describe('command and configuration contract', () => {
       renderSafeHtml: true,
       showSourceIslandLabels: true,
       debugShowSourceRanges: false,
-      codeBlockWrap: false,
+      codeBlockWrap: true,
       useEditorFont: false
     });
     expect(readRemoteImagePolicy(configuration)).toBe('prompt');

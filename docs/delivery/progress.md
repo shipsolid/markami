@@ -601,3 +601,28 @@
 - Branch cleanup: remote `fix/mermaid-stylesheet-sanitizer` deleted (the audit branch was already gone); merged
   local branches and the two clean worktrees removed. The two `automation/marketplace-captures-*` remote
   branches (one merged PR, one closed superseded PR) were left
+
+## Task 28 — Rendering defects found in a real journal note (change A of the UI pass)
+
+- Status: implemented on the working tree and verified; not yet committed. Change B (design system, docked
+  outline, Document default, palette) is a separate step
+- Evidence: rendering a journal-like note in the production webview showed inline marks with no CSS at all
+  (`markami-strong`, `-emphasis`, `-strike`, `-inlineCode` computed to weight 400/normal), VS Code appearance
+  headings identical to body text (13px, 400), a code header 39.7px taller than its content (two empty line
+  boxes around an inline widget) and offset 6px from the code lines, a leftover empty line after every closing
+  fence, a per-line horizontal scroller on each long code line, and `---` shown literally
+- RED: `test/visual-browser/documentRendering.spec.ts` (11 cases across both appearances) failed on each
+  defect (weight 400, header gap 39.7px/50.4px, overflowing lines, `accent-color: auto`, divider text `---`,
+  h1 size not greater than h2); unit RED in `test/webview/projection.test.ts` (divider tokens) and
+  `test/unit/commands.test.ts` (wrap default)
+- GREEN: inline-mark rules; the code header is a block widget and the closing fence line is the card's 8px
+  bottom edge; code lines wrap by default (`markami.codeBlock.wrap` now `true` in the manifest, configuration
+  fallback, webview initial state, and the spec); the divider's source hides until the caret touches it and a
+  rule is drawn; VS Code appearance heading steps and the quote bar; checkbox `accent-color`. The harness
+  gained an `appearance` option and a shared Dark+ token set
+- Gates: `npm run verify` passes; `test:webview` 78/78; `test:visual` 5/5; all 19 browser specs pass in the
+  Playwright container, including the pre-existing technical, appearance, and themed-controls specs
+- Not done here, deliberately: list markers still show a literal `-`; indented (nested) list lines get no list
+  class; vertical gaps between blocks come from blank source lines at full height; the outline still overlays
+  the content; table and handle chrome is unchanged. These belong to change B and the later chrome step
+

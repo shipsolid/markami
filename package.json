@@ -298,7 +298,7 @@
         },
         "markami.codeBlock.wrap": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "scope": "resource",
           "description": "Wrap long lines inside fenced code blocks."
         },

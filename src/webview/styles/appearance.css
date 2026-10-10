@@ -55,10 +55,36 @@
   font-size: 1em;
 }
 
-.markami-document-shell[data-appearance='document'] .cm-line.markami-quote {
+.markami-document-shell .cm-line.markami-quote {
   border-left: 3px solid var(--vscode-textBlockQuote-border);
   color: var(--vscode-textBlockQuote-foreground, var(--vscode-editor-foreground));
   padding-left: 12px;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line[class*='markami-heading'] {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading1 {
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading2 {
+  font-size: 1.4em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading3 {
+  font-size: 1.2em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading4 {
+  font-size: 1.1em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading6 {
+  color: var(--vscode-descriptionForeground);
 }
 
 .markami-document-shell[data-appearance='document'] .markami-table,
@@ -88,6 +114,10 @@
   background: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
   font-family: var(--vscode-font-family);
+}
+
+.markami-document-shell input[type='checkbox'] {
+  accent-color: var(--vscode-focusBorder);
 }
 
 /* Every control in the webview is markami's own, so the element selector themes them all; component rules still win. */

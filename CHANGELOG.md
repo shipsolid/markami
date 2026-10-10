@@ -4,8 +4,20 @@ All notable changes to markami are documented here.
 
 ## Unreleased
 
+### Changed
+
+- Fenced code blocks wrap long lines by default (`markami.codeBlock.wrap` now defaults to `true`), so a long
+  command or token no longer gets its own horizontal scrollbar on every line.
+
 ### Fixed
 
+- Bold, italic, strikethrough, and inline code are styled; the markers were hidden but nothing replaced them,
+  so formatted text looked plain.
+- A fenced code block renders as one card: the header, code lines, and closing edge share one background and
+  edge, with no gaps above or below the header and none left by the hidden closing fence.
+- In VS Code appearance, headings step in size and weight and block quotes show their bar.
+- A `---` divider draws a rule instead of showing its dashes until the caret is on it.
+- Task checkboxes follow the theme accent colour.
 - The block-handle gutter and every button (table controls, code copy, outline, handle menu, popovers)
   follow the active VS Code theme. They previously showed CodeMirror's light grey gutter strip and
   browser-default white buttons in dark and high-contrast themes.
