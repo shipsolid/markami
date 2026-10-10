@@ -58,6 +58,9 @@ jobs:
           node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase source --require-tag
           --ref "$GITHUB_REF" --publish --publisher "$RELEASE_PUBLISHER"
           --repository "$RELEASE_REPOSITORY"
+      - name: Validate committed Marketplace captures
+        if: ${{ inputs.create_github_release || inputs.publish_marketplace }}
+        run: node scripts/marketplaceListing.mjs --validate
       - run: npm run verify
       - run: npm run test:webview
       - run: npm run test:visual

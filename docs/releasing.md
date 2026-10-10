@@ -25,12 +25,28 @@ then obtains the Azure credential with `--azure-credential`. Do not paste a PAT 
 workflow input, repository variable, log, or file. See the official
 [VS Code secure automated publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
+## Generate and approve Marketplace captures
+
+1. From the default branch, run **Actions → Marketplace captures → Run workflow**. The workflow is
+   intentionally unavailable from feature branches so unrelated commits cannot enter an asset PR.
+2. The workflow packages the current version, extracts `extension/` from that exact VSIX, launches it
+   in VS Code stable under a 1440×900 Xvfb display, and captures only the public fixtures in
+   `fixtures/marketplace/`.
+3. Download the workflow artifact and inspect all three PNGs for accuracy, clipping, legibility,
+   private content, and source-reveal correctness. Review the generated README gallery in the pull
+   request.
+4. Merge the capture PR only after visual approval. Then set `listing_approved: true` in release
+   evidence as a separate reviewed change. The capture workflow never grants its own approval.
+
+The tagged release workflow validates these committed files but never regenerates, commits, or pushes
+them. This keeps the Marketplace listing, reviewed source revision, and release tag aligned.
+
 ## Prepare and dry-run locally
 
 1. Update `package.json`, `CHANGELOG.md`, and `docs/delivery/release-notes.md` to the same explicit
    semantic version. Commit the real publisher; do not patch it only in CI.
-2. Complete the unchecked release-note gates, add actual captures under `media/marketplace/`, and
-   reference every approved capture from `README.md` so it is part of the Marketplace listing.
+2. Complete the unchecked release-note gates and merge the approved capture PR. Every capture must be
+   under `media/marketplace/` and referenced from `README.md` so it is part of the Marketplace listing.
 3. Run the credential-free gates:
 
    ```bash

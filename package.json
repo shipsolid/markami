@@ -1,12 +1,18 @@
 {
   "name": "markami",
-  "displayName": "markami",
-  "description": "Edit Markdown where you read it.",
+  "displayName": "markami — Rendered Markdown Editor",
+  "description": "Edit Markdown directly in a rendered, source-preserving VS Code editor.",
   "version": "0.1.0",
   "publisher": "shipsolid",
   "license": "MIT",
   "private": true,
   "icon": "media/icon.png",
+  "preview": true,
+  "pricing": "Free",
+  "galleryBanner": {
+    "color": "#071D49",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/shipsolid/markami.git"
@@ -17,10 +23,13 @@
   },
   "keywords": [
     "markdown",
+    "markdown-editor",
     "editor",
     "wysiwym",
+    "gfm",
     "source-preserving",
-    "mermaid"
+    "mermaid",
+    "technical-writing"
   ],
   "engines": {
     "vscode": "^1.102.0",
@@ -380,10 +389,11 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p tsconfig.bench.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p tsconfig.bench.json --noEmit && tsc -p tsconfig.marketplace-capture.json --noEmit",
     "build:extension": "node esbuild.mjs",
     "build:webview": "vite build",
     "build:integration": "tsc -p tsconfig.integration.json",
+    "build:marketplace-capture": "tsc -p tsconfig.marketplace-capture.json",
     "build": "npm run clean && npm run build:extension && npm run build:webview",
     "test:unit": "vitest run test/unit",
     "test:fidelity": "vitest run test/fidelity",
@@ -395,12 +405,14 @@
     "bench": "node scripts/bench.mjs",
     "test:package": "node scripts/checkPackage.test.mjs",
     "test:release": "node scripts/releasePreflight.test.mjs",
+    "test:marketplace": "node --test scripts/marketplaceListing.test.mjs scripts/runMarketplaceCapture.test.mjs scripts/gitRevision.test.mjs",
     "check:licenses": "node scripts/checkLicenses.mjs",
     "generate:notices": "node scripts/generateNotices.mjs",
     "package": "node scripts/package.mjs",
     "check:package": "node scripts/checkPackage.mjs",
     "release:preflight": "node scripts/releasePreflight.mjs",
-    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run test:release && npm run check:licenses && npm run build"
+    "capture:marketplace": "node scripts/runMarketplaceCapture.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run test:release && npm run test:marketplace && npm run check:licenses && npm run build"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

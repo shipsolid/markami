@@ -402,3 +402,27 @@
   workflow probe
 - Publication boundary: no commit, tag, push, workflow dispatch, GitHub release, or Marketplace
   publication occurred
+
+## Task 22 — Marketplace listing and exact-VSIX capture automation
+
+- Status: implementation and local deterministic gates complete; capture workflow not dispatched and
+  listing images not yet visually approved
+- RED: Marketplace contract tests initially failed because capture names, PNG dimensions, gallery
+  generation, packaged-extension runner, and review-PR workflow did not exist
+- Listing contract: 0.1.0 is a Preview with the approved title, searchable description, free pricing,
+  dark navy banner, categories, keywords, icon, privacy/security links, and MIT license
+- Capture contract: manual default-branch workflow packages the VSIX, extracts `extension/`, runs that
+  packaged surface in VS Code stable under a 1440×900 Xvfb display, validates three PNGs, and opens a
+  review PR that updates the README gallery
+- Artifact evidence: the updated Preview metadata package contains 282 files (4,210,861 bytes), with
+  SHA-256 `78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727`
+- Automated gates: `npm run verify`, 74 webview tests, 5 deterministic visual tests, capture/integration
+  compilation, actionlint, package policy, artifact preflight, and benchmark passed; typing proxy p95
+  was 35.87 ms
+- Host boundary: native integration and Playwright browser execution remain unavailable locally because
+  the downloaded Electron/Chromium runtimes cannot load `libnspr4.so`; GitHub-hosted release runners
+  retain both gates
+- Approval boundary: the workflow cannot set `listing_approved: true`; a human must review and merge
+  its artifact/PR before release evidence may be approved
+- Publication boundary: no local commit, push, workflow dispatch, tag, GitHub release, or Marketplace
+  publication occurred

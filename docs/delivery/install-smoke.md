@@ -7,8 +7,8 @@ Date: 2026-10-10
 | Field | Result |
 |---|---|
 | Package | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,210,587 bytes |
-| SHA-256 | `7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f` |
+| Size | 4,210,861 bytes |
+| SHA-256 | `78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | VSIX contents | 282 files; strict package policy passed |
 | Archive integrity | `unzip -t` passed for every entry |
@@ -76,6 +76,8 @@ because `libnspr4.so` is unavailable; no native or browser result is claimed fro
 ## Upgrade and capture status
 
 No prior preview VSIX exists, so upgrade/migration testing is not applicable to this first packaged
-version and remains unverified. Actual-product screenshots/GIFs could not be captured because the
-native runtime did not start. No generated mockup is presented as shipped UI; capture guidance is in
+version and remains unverified. The WSL host still cannot produce native captures because its Electron
+runtime does not start. A manually dispatched GitHub workflow now captures the exact packaged VSIX in
+VS Code stable under Xvfb and opens a review PR; that workflow has not been dispatched, so no image is
+yet claimed as approved. No generated mockup is presented as shipped UI; the capture contract is in
 `media/marketplace/README.md`.

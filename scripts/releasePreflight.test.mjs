@@ -25,6 +25,12 @@ const requiredFiles = new Set([
   'docs/syntax-support.md',
   'media/icon.png'
 ]);
+const marketplaceCaptures = [
+  'media/marketplace/rendered-editor.png',
+  'media/marketplace/source-preserving-editing.png',
+  'media/marketplace/technical-markdown.png'
+];
+const marketplaceGallery = marketplaceCaptures.map((capture) => `![Capture](${capture})`).join('\n');
 
 function releaseInput(overrides = {}) {
   return {
@@ -34,12 +40,17 @@ function releaseInput(overrides = {}) {
     repositoryInput: undefined,
     manifest: {
       name: 'markami',
-      displayName: 'markami',
+      displayName: 'markami — Rendered Markdown Editor',
       version: '0.1.0',
       publisher: 'markami-dev',
-      description: 'Edit Markdown where you read it.',
+      description: 'Edit Markdown directly in a rendered, source-preserving VS Code editor.',
       license: 'MIT',
       icon: 'media/icon.png',
+      preview: true,
+      pricing: 'Free',
+      galleryBanner: { color: '#071D49', theme: 'dark' },
+      categories: ['Other', 'Visualization'],
+      keywords: ['markdown', 'markdown-editor', 'gfm', 'source-preserving', 'mermaid'],
       repository: { url: 'https://github.com/shipsolid/markami.git' }
     },
     changelog: '# Changelog\n\n## 0.1.0 — 2026-10-09\n',
@@ -143,9 +154,9 @@ test('public publishing accepts owner-controlled metadata only after explicit ap
     publisherInput: 'amit-observability',
     repositoryInput: 'shipsolid/markami',
     manifest: { ...releaseInput().manifest, publisher: 'amit-observability' },
-    readme: `${releaseInput().readme}\n![Editor](media/marketplace/editor.png)\n`,
+    readme: `${releaseInput().readme}\n${marketplaceGallery}\n`,
     releaseNotes: approvedNotes,
-    marketplaceCaptures: ['media/marketplace/editor.png']
+    marketplaceCaptures
   });
 
   assert.deepEqual(validateReleaseSource(input).blockers, []);
@@ -162,9 +173,9 @@ test('public publishing rejects placeholder-shaped publisher identities', () => 
     publisherInput: 'example-publisher',
     repositoryInput: 'shipsolid/markami',
     manifest: { ...releaseInput().manifest, publisher: 'example-publisher' },
-    readme: `${releaseInput().readme}\n![Editor](media/marketplace/editor.png)\n`,
+    readme: `${releaseInput().readme}\n${marketplaceGallery}\n`,
     releaseNotes: approvedNotes,
-    marketplaceCaptures: ['media/marketplace/editor.png']
+    marketplaceCaptures
   });
 
   assert.throws(() => validateReleaseSource(input), /publisher.*placeholder/iu);
@@ -211,7 +222,7 @@ test('public publishing rejects captures that are absent from listing content', 
           repositoryInput: 'shipsolid/markami',
           manifest: { ...releaseInput().manifest, publisher: 'amit-observability' },
           releaseNotes: approvedNotes,
-          marketplaceCaptures: ['media/marketplace/orphan.png']
+          marketplaceCaptures
         })
       ),
     /capture.*listing content/iu
@@ -322,4 +333,35 @@ test('scopes Azure federation credentials and login to the Marketplace job', asy
   assert.match(marketplace, /AZURE_SUBSCRIPTION_ID: \$\{\{ secrets\.AZURE_SUBSCRIPTION_ID \}\}/u);
   assert.match(marketplace, /azure\/login@[a-f0-9]{40}/u);
   assert.match(marketplace, /vsce publish --azure-credential/u);
+});
+
+test('capture automation produces a review PR from the exact VSIX without mutating tagged releases', async () => {
+  const root = new URL('../', import.meta.url);
+  const [captureWorkflow, releaseWorkflow] = await Promise.all([
+    readFile(new URL('.github/workflows/marketplace-captures.yml', root), 'utf8'),
+    readFile(new URL('.github/workflows/release.yml', root), 'utf8')
+  ]);
+
+  assert.match(captureWorkflow, /^on:\n  workflow_dispatch:/mu);
+  assert.match(captureWorkflow, /^permissions:\n  contents: write\n  pull-requests: write$/mu);
+  assert.doesNotMatch(captureWorkflow, /id-token:\s*write|AZURE_(?:CLIENT|TENANT|SUBSCRIPTION)_ID/iu);
+  assert.match(captureWorkflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/u);
+  assert.match(captureWorkflow, /npm run package/u);
+  assert.match(captureWorkflow, /npm run build:marketplace-capture/u);
+  assert.match(captureWorkflow, /npm run capture:marketplace -- artifacts\/markami-\$RELEASE_VERSION\.vsix/u);
+  assert.match(captureWorkflow, /node scripts\/marketplaceListing\.mjs --apply README\.md/u);
+  assert.match(captureWorkflow, /node scripts\/marketplaceListing\.mjs --validate/u);
+  assert.match(captureWorkflow, /gh pr create/u);
+  assert.ok(
+    captureWorkflow.indexOf('node scripts/marketplaceListing.mjs --apply README.md') < captureWorkflow.indexOf('npm run package') &&
+      captureWorkflow.indexOf('npm run package') < captureWorkflow.indexOf('npm run build:marketplace-capture') &&
+      captureWorkflow.indexOf('npm run build:marketplace-capture') < captureWorkflow.indexOf('npm run capture:marketplace'),
+    'the listing must enter the exact VSIX before package cleanup, capture compilation, and VS Code launch'
+  );
+  for (const action of captureWorkflow.matchAll(/^\s*- uses: ([^\s]+)$/gmu)) {
+    assert.match(action[1], /@[a-f0-9]{40}$/u, `workflow action must be SHA-pinned: ${action[1]}`);
+  }
+
+  assert.doesNotMatch(releaseWorkflow, /capture:marketplace|marketplace-captures/u);
+  assert.match(releaseWorkflow, /node scripts\/marketplaceListing\.mjs --validate/u);
 });
