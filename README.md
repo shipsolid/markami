@@ -11,6 +11,11 @@ Rendered editing · Source-preserving · Mermaid and math · Works offline · No
 <!-- marketplace-gallery:start -->
 ## See markami in action
 
+### Edit, save, and check the diff
+
+Promote a paragraph to a heading in the rendered document, save, and Git shows the single line that changed.
+
+![Animation: a paragraph promoted to a heading in markami, saved, then shown as a one-line Git diff](media/marketplace/demo.gif)
 ### Edit in the rendered document
 
 Read and edit Markdown in one rendered surface while VS Code keeps the source document canonical.
@@ -26,6 +31,11 @@ Reveal exact syntax for the active block without switching the whole document aw
 Mermaid, math, syntax highlighting, and table editing ship locally and continue to work offline.
 
 ![markami rendering Mermaid, math, highlighted code, and a GitHub Flavored Markdown table in VS Code](media/marketplace/technical-markdown.png)
+### Keep your Git diffs small
+
+Promote a paragraph to a heading in the rendered document and the diff shows that one line. Line endings, trailing spaces, and table alignment stay as written.
+
+![markami beside a Git diff in which promoting one paragraph to a heading changed exactly one line](media/marketplace/git-diff.png)
 <!-- marketplace-gallery:end -->
 
 ## Get started
