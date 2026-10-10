@@ -767,6 +767,20 @@
   - RED then GREEN: the staging, four- and five-asset contract, GIF structure (size, frames, loop, trailer, 3 MiB), GIF
     argument, and workflow-glob tests each failed first. Dry run in the Playwright container (VS Code 1.141.0, packaged
     0.1.2 VSIX): 5 assets captured and validated, including the byte-exact one-line assertion. Not run on a GitHub runner
+- Piece 5 — retention hardening, started with the known gaps:
+  - Fixed the table-cell caret gap: clicking a cell with inline markup now puts the caret at the matching source offset
+    instead of near the end (`sourceOffsetForRenderedOffset` plus a mouse-down/up pair in `TableProjection.ts`). RED was
+    the browser spec showing the caret at `a **bold** word` instead of `a **b`, then GREEN with 4 `inlineRender`
+    mapping tests; the full browser suite (88 specs) and `npm run verify` pass
+  - Added external-edit integration tests (`externalEdits.test.ts`): a full rewrite reaches a clean document exactly and
+    is not echoed, a one-line agent edit leaves every other byte alone, and a disk change under unsaved work overwrites
+    neither side. They were green on first run because no production code changed, and they guard against echo and
+    clobbering only; the native harness cannot see what the webview renders. Native suite: 24 passing
+  - Probed the list-marker Backspace gap and left it unchanged: with the caret inside an item its marker is revealed as
+    source, so Backspace behaves as in any text editor; making it delete the whole marker (as rich editors do) is a
+    product decision, not a defect
+  - Not done: IME and screen-reader verification (issue #8) needs a person on native assistive technology; keyboard,
+    paste, and nested-list behavior have no new coverage beyond what was already in the suites
 - Evidence, RED then GREEN: `defaultEditor.test.ts` failed on the missing module, then 11 pass; the manifest contract
   tests failed on the missing commands, walkthrough, and still-present setting, then pass (16); the package
   allowlist tests failed on the unexpected `media/walkthrough/` files and the missing-file check, then 8 pass; the
