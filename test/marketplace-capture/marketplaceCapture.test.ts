@@ -31,20 +31,21 @@ suite('packaged Marketplace surface', function () {
     await vscode.commands.executeCommand('workbench.action.closePanel');
     await vscode.commands.executeCommand('workbench.action.closeAuxiliaryBar');
 
+    // The listing leads with the default VS Code style and shows the opt-in Document style once.
     await openRendered(workspace.uri, 'overview.md');
-    await setDocumentPresentation();
+    await setDocumentPresentation('vscode', 'auto');
     await capture(captureTool, outputDirectory, 'rendered-editor.png');
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await openRendered(workspace.uri, 'source-fidelity.md');
-    await setDocumentPresentation();
+    await setDocumentPresentation('document', 'readable');
     await executeWhenReady('markami.toggleSourceReveal');
     await wait(1_000);
     await capture(captureTool, outputDirectory, 'source-preserving-editing.png');
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await openRendered(workspace.uri, 'technical.md');
-    await setDocumentPresentation();
+    await setDocumentPresentation('vscode', 'auto');
     await wait(3_000);
     await capture(captureTool, outputDirectory, 'technical-markdown.png');
   });
@@ -66,9 +67,9 @@ async function executeWhenReady(command: string, ...args: readonly unknown[]): P
   assert.fail(`${command} was not accepted by a ready markami editor within 15s`);
 }
 
-async function setDocumentPresentation(): Promise<void> {
-  await executeWhenReady('markami.setDocumentAppearance', 'document');
-  await executeWhenReady('markami.setDocumentWidth', 'readable');
+async function setDocumentPresentation(appearance: 'vscode' | 'document', width: 'auto' | 'readable'): Promise<void> {
+  await executeWhenReady('markami.setDocumentAppearance', appearance);
+  await executeWhenReady('markami.setDocumentWidth', width);
   await wait(1_000);
 }
 
