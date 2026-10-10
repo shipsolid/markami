@@ -735,8 +735,9 @@
 
 ## Task 33 — Adoption pass from the 2026-10-10 audit
 
-- Status: in progress. Pieces 1–4 are committed on `main`, unpushed and unreleased; the Marketplace listing only
-  changes with the next version, because it is the README packaged in the VSIX
+- Status: pieces 1–6 are committed on `main`, unpushed and unreleased; the Marketplace listing only changes with the
+  next version, because it is the README packaged in the VSIX. Open for the owner: push, dispatch the Marketplace
+  captures workflow and review its PR, prepare 0.1.3, and run the usability study
 - Piece 1 — README opening and install path: an outcome paragraph and feature line now sit between the locked tagline
   and the generated gallery block; "Install a local build" became a "Get started" built on the 0.1.2 editor-title
   icon plus an explicit, reversible default-editor opt-in; VSIX and build instructions moved to
@@ -781,6 +782,9 @@
     product decision, not a defect
   - Not done: IME and screen-reader verification (issue #8) needs a person on native assistive technology; keyboard,
     paste, and nested-list behavior have no new coverage beyond what was already in the suites
+- Piece 6 — measurement: `docs/usability-study.md` is a moderated-study protocol (hypotheses, privacy rules, participant
+  screener, six tasks with clocks, observation sheet, S0 stop rule, decision rules, opt-in 7- and 28-day check-ins). It
+  keeps the no-telemetry promise. Its targets are the audit's hypotheses, not results, and no study has been run
 - Evidence, RED then GREEN: `defaultEditor.test.ts` failed on the missing module, then 11 pass; the manifest contract
   tests failed on the missing commands, walkthrough, and still-present setting, then pass (16); the package
   allowlist tests failed on the unexpected `media/walkthrough/` files and the missing-file check, then 8 pass; the
