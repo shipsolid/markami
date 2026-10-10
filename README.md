@@ -2,6 +2,26 @@
 
 Edit Markdown where you read it.
 
+<!-- marketplace-gallery:start -->
+## See markami in action
+
+### Edit in the rendered document
+
+Read and edit Markdown in one rendered surface while VS Code keeps the source document canonical.
+
+![markami rendered Markdown editor showing headings, tasks, a table, and document controls in VS Code](media/marketplace/rendered-editor.png)
+### Reveal source only when you need it
+
+Reveal exact syntax for the active block without switching the whole document away from rendered editing.
+
+![markami showing local Markdown source reveal and editing controls inside the rendered editor](media/marketplace/source-preserving-editing.png)
+### Keep technical content local
+
+Mermaid, math, syntax highlighting, and table editing ship locally and continue to work offline.
+
+![markami rendering Mermaid, math, highlighted code, and a GitHub Flavored Markdown table in VS Code](media/marketplace/technical-markdown.png)
+<!-- marketplace-gallery:end -->
+
 markami is a source-preserving rendered Markdown editor for VS Code. The open
 `vscode.TextDocument` remains canonical: markami applies validated local edits to the source and
 never regenerates the document from a rendered tree.
