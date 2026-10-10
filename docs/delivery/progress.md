@@ -732,3 +732,35 @@
 - Open: the pointer-position caret mapping when a table cell switches to
   source, backspace over a list marker, and the waived IME and screen-reader smoke (issue #8) remain; the outline the
   owner saw missing at about 1460px was not reproduced and is covered by the measured docking added in 0.1.2
+
+## Task 33 — Adoption pass from the 2026-10-10 audit
+
+- Status: in progress. Pieces 1–3 are in the working tree, uncommitted and unreleased; the Marketplace listing
+  only changes with the next version, because it is the README packaged in the VSIX
+- Piece 1 — README opening and install path: an outcome paragraph and feature line now sit between the locked tagline
+  and the generated gallery block; "Install a local build" became a "Get started" built on the 0.1.2 editor-title
+  icon plus an explicit, reversible default-editor opt-in; VSIX and build instructions moved to
+  `docs/contributing.md`; the stale `markami-0.1.0.vsix` example is gone. Docs only, so no failing test applies;
+  `marketplaceListing.mjs --apply` leaves the README byte-identical, so the capture workflow cannot clobber the intro
+- Piece 2 — GitHub About: description, homepage (the Marketplace listing), and seven topics set with `gh repo edit`
+  and read back with `gh repo view`
+- Piece 3 — first-run walkthrough and default-editor commands:
+  - `contributes.walkthroughs` (`markami.gettingStarted`, three steps, markdown media under `media/walkthrough/`)
+  - `markami.openSample` opens the bundled `sample.md` as an untitled document in markami, so nothing is written to
+    disk until the user saves
+  - `markami.setAsDefault` / `markami.restoreNativeDefault` confirm in a modal, then add or remove only the `*.md`
+    and `*.markdown` entries of the user-level `workbench.editorAssociations`; entries pointing at another editor
+    are never removed, and a legacy array-shaped setting is refused rather than overwritten. Pure planning lives in
+    `src/extension/defaultEditor.ts`
+  - Removed the `markami.openAsDefault` setting: nothing read it, and the two commands replace it. `docs/spec.md`
+    sections 23 and 23.2 updated
+- Evidence, RED then GREEN: `defaultEditor.test.ts` failed on the missing module, then 11 pass; the manifest contract
+  tests failed on the missing commands, walkthrough, and still-present setting, then pass (16); the package
+  allowlist tests failed on the unexpected `media/walkthrough/` files and the missing-file check, then 8 pass; the
+  native integration suite in the Playwright container went from 19 passing and 2 failing (`command
+  'markami.openSample' not found`, commands unregistered) to 21 passing on VS Code 1.141.0
+- Gates: `npm run verify` exits 0; `npm run package` passed the package policy (301 files, the four walkthrough pages
+  and the sample present in the VSIX)
+- Not verified: how the walkthrough pages render on the VS Code Welcome page, and the default-editor modal, which
+  need a person at a real window; the confirm path is covered by unit tests with an injected host. No conversion,
+  install, or activation effect is claimed; the audit's scores are heuristic
