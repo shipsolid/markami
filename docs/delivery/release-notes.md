@@ -3,25 +3,27 @@ version: 0.1.1
 public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
-listing_approved: false
-artifact_size: 4751029
-artifact_sha256: ee8a20bfa5e85de95e66b769a540007de00a585c82e7ccb93271e0c0133a69a5
+listing_approved: true
+artifact_size: 4751138
+artifact_sha256: 251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46b
 ---
 
 # markami 0.1.1 release evidence
 
-Status: **candidate**. 0.1.0 is published to the Visual Studio Marketplace as a Preview; this release carries
-Document appearance as a designed reading view and the rendering fixes found in real notes. The candidate digest
-below is provisional until the Marketplace captures are regenerated from the 0.1.1 VSIX and merged, because the
-README and the generated gallery are packaged; it is re-recorded from the final tagged revision.
+Status: **candidate, ready to tag**. 0.1.0 is published to the Visual Studio Marketplace as a Preview; this release
+carries Document appearance as a designed reading view and the rendering fixes found in real notes. The digest
+below was recorded from `main` after the Marketplace capture PR (#9) merged and after a projection performance fix
+(`1d0f3d3`) that the main CI benchmark required. The VSIX built on a GitHub runner in CI run 38053695267 is
+byte-identical to the one built on the owner's host (same size and SHA-256), and the release workflow regenerates
+both from the tag and requires them to match.
 
 ## Candidate artifact
 
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.1.vsix` |
-| Size | 4,751,029 bytes |
-| SHA-256 | `ee8a20bfa5e85de95e66b769a540007de00a585c82e7ccb93271e0c0133a69a5` |
+| Size | 4,751,138 bytes |
+| SHA-256 | `251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46b` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -47,8 +49,11 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
   0.1.0 and recorded in its publication record below. The first 0.1.0 publish run proved the identity is a
   Contributor of the `shipsolid` publisher.
 - [x] Native stable Windows, macOS, and Linux integration plus VS Code 1.102 compatibility. Evidence: CI run
-  38052448266 on `main` (`ca69c04`) passed the integration matrix on `ubuntu-latest`, `windows-latest`, and
-  `macos-latest` with VS Code stable and on `ubuntu-latest` with VS Code 1.102.0.
+  38053695267 on `main` (`1d0f3d3`) passed the integration matrix on `ubuntu-latest`, `windows-latest`, and
+  `macos-latest` with VS Code stable and on `ubuntu-latest` with VS Code 1.102.0, and its `verify` job passed the
+  benchmark gates (1 MiB open median 396 ms against a 1500 ms target; typing p95 29.56 ms against 50 ms). The
+  previous run on `23be920` failed the typing gate at 50.62 ms because of a quadratic fence lookup, fixed in
+  `1d0f3d3` (Task 29 in [`progress.md`](progress.md)).
 - [x] Packaged-VSIX install, edit, save, and uninstall smoke on Linux, Windows, and macOS. Evidence: the same CI
   run's `install-smoke` matrix installs the packaged VSIX into an isolated profile on all three systems and runs
   the integration suite against it.
@@ -59,10 +64,17 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
 - [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
   in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
   CHANGELOG. Revisit before a non-preview release.
-- [ ] Regenerate the Marketplace captures from the 0.1.1 VSIX, review all three images, merge the capture PR,
-  and set `listing_approved: true` as a separate reviewed change.
-- [ ] Re-record the final size and SHA-256 from the merged revision, create annotated tag `v0.1.1`, and pass
-  the Release workflow dry run.
+- [x] Regenerate the Marketplace captures from the 0.1.1 VSIX, review all three images, merge the capture PR.
+  Evidence: the Marketplace captures workflow (run 38052856072, from `60cf41c`) captured the exact packaged
+  VSIX; the three images were reviewed (Document appearance with the Mocha palette, docked outline, card code
+  blocks, local Mermaid and math, source reveal on the active heading; no clipping or private content) and the
+  owner merged PR #9 as `23be920`. The later performance fix changes no rendering. Known cosmetic gaps shown in
+  the images: a `[!NOTE]` alert still shows its raw marker line, and table controls and block handles are always
+  visible.
+- [x] Re-record the final size and SHA-256 from the merged revision (this file's frontmatter and candidate table).
+- [x] Create and push annotated tag `v0.1.1` only after the owner authorizes the release. The owner asked for the
+  0.1.1 publication on 2026-10-10 and merged the capture PR; the Release workflow's dry run and the
+  `vscode-marketplace` deployment, which the owner approves themself, follow from the tag.
 
 ## 0.1.0 publication record (history)
 
