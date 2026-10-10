@@ -352,3 +352,28 @@
   `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051`.
 - Review: independent read-only re-review found no remaining Critical or Important code blockers after
   protocol recovery, symlink confinement, SVG URL sanitization, and artifact-evidence fixes.
+
+## Task 20 — Marketplace Entra federation workflow
+
+- Status: workflow and local authentication contract validated; no workflow was dispatched and no
+  publication is claimed
+- RED: release-preflight coverage initially accepted GitHub OIDC inputs when `AZURE_CLIENT_ID` was
+  absent; the workflow-scope regression test then caught Azure credentials and login being attached
+  to the quality job instead of the protected Marketplace job
+- GREEN: publish preflight now requires GitHub's OIDC token-request values plus
+  `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`
+- Workflow contract: the protected `vscode-marketplace` job maps the three environment secrets,
+  authenticates through SHA-pinned `azure/login` v3.1.0, and publishes with
+  `vsce publish --azure-credential`
+- Gates: `npm run verify` (including 11 release tests), `npm run test:webview` (74 tests),
+  `npm run test:visual` (5 tests),
+  `npm run build:integration`, `npm run bench` (typing p95 22.39 ms), `npm run package`,
+  `npm run check:package`, artifact preflight, checksum verification, ZIP integrity, `actionlint`,
+  and `git diff --check` passed
+- Artifact evidence: 282 files, 4,210,591 bytes, SHA-256
+  `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051`
+- External boundary: local checks cannot prove the Entra federated credential or the managed
+  identity's Marketplace Contributor membership; the first protected workflow run is the live
+  authentication probe
+- Publication boundary: the development publisher, release approvals, actual-product captures,
+  and checklist remain fail-closed blockers; no commit, tag, push, dispatch, or publish occurred

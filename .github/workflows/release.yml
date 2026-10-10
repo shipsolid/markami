@@ -13,7 +13,7 @@ on:
         default: false
         type: boolean
       publish_marketplace:
-        description: Publish the validated VSIX through protected OIDC
+        description: Publish the validated VSIX through protected Entra workload federation
         required: true
         default: false
         type: boolean
@@ -191,6 +191,9 @@ jobs:
       contents: read
       id-token: write
     env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_PUBLISHER: ${{ inputs.marketplace_publisher }}
       RELEASE_REPOSITORY: ${{ github.repository }}
@@ -207,14 +210,21 @@ jobs:
         with:
           name: markami-${{ inputs.version }}
           path: artifacts
-      - name: Revalidate downloaded artifact and protected OIDC
+      - name: Revalidate downloaded artifact and protected Azure federation
         run: >-
           node scripts/releasePreflight.mjs --version "$RELEASE_VERSION" --phase artifact
           --artifact "artifacts/markami-$RELEASE_VERSION.vsix" --publish
-          --publisher "$RELEASE_PUBLISHER" --repository "$RELEASE_REPOSITORY" --require-oidc
+          --publisher "$RELEASE_PUBLISHER" --repository "$RELEASE_REPOSITORY"
+          --require-azure-federation
+      - name: Authenticate to Azure with GitHub OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Publish exact validated VSIX
         run: >-
-          node node_modules/@vscode/vsce/vsce publish --oidc
+          node node_modules/@vscode/vsce/vsce publish --azure-credential
           --packagePath "artifacts/markami-$RELEASE_VERSION.vsix"
       - name: Download and validate public Marketplace artifact
         run: |

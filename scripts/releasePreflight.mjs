@@ -132,9 +132,14 @@ export function validateReleaseRef(ref, version) {
   if (ref !== expected) throw new Error(`Release workflow must run from ${expected}, received ${ref}.`);
 }
 
-export function validateOidcEnvironment(environment) {
+export function validateAzureFederatedEnvironment(environment) {
   if (!environment.ACTIONS_ID_TOKEN_REQUEST_URL || !environment.ACTIONS_ID_TOKEN_REQUEST_TOKEN) {
     throw new Error('Public release blocked: GitHub Actions OIDC is unavailable in the protected environment.');
+  }
+  for (const variable of ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID']) {
+    if (!environment[variable]) {
+      throw new Error(`Public release blocked: Azure federated identity variable ${variable} is unavailable.`);
+    }
   }
 }
 
@@ -176,12 +181,12 @@ function escapeRegExp(value) {
 }
 
 function parseArguments(arguments_) {
-  const options = { phase: 'source', publish: false, requireTag: false, requireOidc: false };
+  const options = { phase: 'source', publish: false, requireTag: false, requireAzureFederation: false };
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
     if (argument === '--publish') options.publish = true;
     else if (argument === '--require-tag') options.requireTag = true;
-    else if (argument === '--require-oidc') options.requireOidc = true;
+    else if (argument === '--require-azure-federation') options.requireAzureFederation = true;
     else if (['--version', '--phase', '--publisher', '--repository', '--artifact', '--ref', '--notes'].includes(argument)) {
       const value = arguments_[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
@@ -249,7 +254,7 @@ async function main() {
     });
   }
 
-  if (options.requireOidc && options.publish) validateOidcEnvironment(process.env);
+  if (options.requireAzureFederation && options.publish) validateAzureFederatedEnvironment(process.env);
 
   if (options.publish) {
     console.log(`Public release preflight passed for ${manifest.publisher}.markami@${options.version}.`);

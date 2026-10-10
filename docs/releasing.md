@@ -9,19 +9,21 @@ Before the first public release, the owner must provide and approve:
 
 1. A controlled Visual Studio Marketplace publisher ID. Replace `markami-dev` in `package.json` in a
    reviewed commit; the workflow never rewrites publisher identity.
-2. A Marketplace trusted-publishing policy bound to repository `shipsolid/markami`, workflow
-   `.github/workflows/release.yml`, and environment `vscode-marketplace`.
+2. A user-assigned managed identity authorized as a Contributor member of the Marketplace publisher,
+   with a GitHub Actions federated credential scoped to repository `shipsolid/markami` and environment
+   `vscode-marketplace`.
 3. GitHub environments:
    - `vscode-marketplace`, with required reviewers and deployment branches/tags restricted to
-     release tags.
+     release tags, and environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
+     `AZURE_SUBSCRIPTION_ID`.
    - `github-release`, with required reviewers if GitHub Releases are enabled.
 4. The public version, listing copy, categories, icon, actual-product captures, repository target,
    privacy/security links, and established MIT license.
 
-Trusted publishing uses GitHub OIDC and a short-lived Marketplace credential. Do not paste a PAT into
-documentation, workflow input, repository variable, log, or file. See the official
-[VSCE trusted-publishing guidance](https://github.com/microsoft/vscode-vsce#trusted-publishing) and
-[VS Code publishing documentation](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
+Publishing uses GitHub OIDC to authenticate the managed identity through Microsoft Entra ID; VSCE
+then obtains the Azure credential with `--azure-credential`. Do not paste a PAT into documentation,
+workflow input, repository variable, log, or file. See the official
+[VS Code secure automated publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 ## Prepare and dry-run locally
 
@@ -59,7 +61,8 @@ documentation, workflow input, repository variable, log, or file. See the offici
 
 Preparation mode reports public blockers without needing credentials. Publish mode fails closed on a
 development publisher, version mismatch, placeholder metadata, missing capture, unchecked gate,
-repository mismatch, dirty revision, missing exact tag, invalid artifact, or unavailable OIDC.
+repository mismatch, dirty revision, missing exact tag, invalid artifact, or incomplete Azure
+federation.
 
 ## Tag and run the protected workflow
 

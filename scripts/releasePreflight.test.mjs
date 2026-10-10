@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
   validateArtifact,
+  validateAzureFederatedEnvironment,
   validateCleanRevision,
-  validateOidcEnvironment,
   validateReleaseRef,
   validateReleaseSource,
   validateReleaseTag
@@ -256,16 +257,38 @@ test('rejects a dirty revision and a release tag that is absent from HEAD', () =
   assert.throws(() => validateReleaseRef('refs/heads/main', '0.1.0'), /must run from refs\/tags\/v0\.1\.0/iu);
 });
 
-test('requires both GitHub Actions OIDC request values', () => {
-  assert.doesNotThrow(() =>
-    validateOidcEnvironment({
-      ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example',
-      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'masked-token'
-    })
-  );
+test('requires GitHub OIDC and complete Azure federated identity configuration', () => {
+  const environment = {
+    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example',
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'masked-token',
+    AZURE_CLIENT_ID: 'client-id',
+    AZURE_TENANT_ID: 'tenant-id',
+    AZURE_SUBSCRIPTION_ID: 'subscription-id'
+  };
+
+  assert.doesNotThrow(() => validateAzureFederatedEnvironment(environment));
   assert.throws(
-    () => validateOidcEnvironment({ ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example' }),
+    () => validateAzureFederatedEnvironment({ ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example' }),
     /OIDC is unavailable/iu
   );
-  assert.throws(() => validateOidcEnvironment({}), /OIDC is unavailable/iu);
+  assert.throws(() => validateAzureFederatedEnvironment({}), /OIDC is unavailable/iu);
+  for (const variable of ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID']) {
+    const incomplete = { ...environment };
+    delete incomplete[variable];
+    assert.throws(() => validateAzureFederatedEnvironment(incomplete), new RegExp(variable, 'u'));
+  }
+});
+
+test('scopes Azure federation credentials and login to the Marketplace job', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8');
+  const quality = workflow.slice(workflow.indexOf('  quality:'), workflow.indexOf('  platform:'));
+  const marketplace = workflow.slice(workflow.indexOf('  marketplace:'));
+
+  assert.doesNotMatch(quality, /AZURE_(?:CLIENT|TENANT|SUBSCRIPTION)_ID|azure\/login/u);
+  assert.match(marketplace, /environment: vscode-marketplace/u);
+  assert.match(marketplace, /AZURE_CLIENT_ID: \$\{\{ secrets\.AZURE_CLIENT_ID \}\}/u);
+  assert.match(marketplace, /AZURE_TENANT_ID: \$\{\{ secrets\.AZURE_TENANT_ID \}\}/u);
+  assert.match(marketplace, /AZURE_SUBSCRIPTION_ID: \$\{\{ secrets\.AZURE_SUBSCRIPTION_ID \}\}/u);
+  assert.match(marketplace, /azure\/login@[a-f0-9]{40}/u);
+  assert.match(marketplace, /vsce publish --azure-credential/u);
 });

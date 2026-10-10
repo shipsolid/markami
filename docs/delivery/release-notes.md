@@ -53,8 +53,8 @@ the release workflow. Local package evidence is recorded in
 
 - [ ] Replace `markami-dev` in the committed manifest with the owner's controlled Marketplace
   publisher; set the same identity in this file.
-- [ ] Configure a Marketplace trusted-publishing policy for `shipsolid/markami` and
-  `.github/workflows/release.yml`, plus required reviewers on the `vscode-marketplace` environment.
+- [ ] Authorize the Entra managed identity as a Contributor member of the Marketplace publisher and
+  protect the `vscode-marketplace` GitHub environment with release-tag restrictions and reviewers.
 - [ ] Approve the public version, copy, categories, icon, privacy/security links, and MIT license;
   then set `public_release: approved` and `listing_approved: true` above.
 - [ ] Capture actual-product Marketplace images or GIFs from the release candidate. Generated
