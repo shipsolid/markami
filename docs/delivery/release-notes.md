@@ -10,14 +10,36 @@ artifact_sha256: c78650fcc2c7053d583bfb5d91c14d8926f9ddda6e24787e5438359927aafe3
 
 # markami 0.1.0 release evidence
 
-Status: **approved for the 0.1.0 Preview; not yet published**.
+Status: **published to the Visual Studio Marketplace as a Preview on 2026-10-10**.
+Listing: <https://marketplace.visualstudio.com/items?itemName=shipsolid.markami>.
 
-This is a preparation record, not a publication claim. No GitHub release, Marketplace listing, or public
-install has been verified. The release tag is created from the commit that contains this record; the
-protected workflow regenerates the checksum and size from that tag and fails if they differ from the
-values above. On 2026-10-10 the same source produced a byte-identical VSIX on the owner's IST host, in
-a UTC container, and on a GitHub runner once packaging was pinned to UTC (ZIP entry times are stored in
-the packager's local time), so the recorded digest is expected to match.
+The sections below were written before publication and are kept as the evidence the release rested on.
+The tag `v0.1.0` was created from the commit that contains the recorded digest; the protected workflow
+regenerated the checksum and size from that tag and required them to match the values above. On
+2026-10-10 the same source produced a byte-identical VSIX on the owner's IST host, in a UTC container,
+and on a GitHub runner once packaging was pinned to UTC (ZIP entry times are stored in the packager's
+local time). No GitHub release has been created.
+
+## Publication record
+
+| Check | Result |
+|---|---|
+| Release workflow | Run [38041187851](https://github.com/shipsolid/markami/actions/runs/38041187851) from tag `v0.1.0`: quality, four platform legs, and package passed; the owner approved the `vscode-marketplace` deployment |
+| Azure federation | `azure/login` succeeded through GitHub OIDC; the managed identity is a Contributor member of `shipsolid` |
+| Provider response | `vsce publish --azure-credential --packagePath artifacts/markami-0.1.0.vsix` succeeded |
+| Gallery state | `shipsolid.markami` 0.1.0, flags `public, preview`; the version moved from unflagged to `validated` within minutes; a text search for `markami` returns it |
+| Public artifact | `.../publishers/shipsolid/vsextensions/markami/0.1.0/vspackage` is 4,211,965 bytes with SHA-256 `c78650fcc2c7053d583bfb5d91c14d8926f9ddda6e24787e5438359927aafe38`, equal to the recorded digest; the workflow's `checkPackage.mjs` accepted it |
+| Clean-profile install | VS Code 1.141.0 with empty `--extensions-dir`/`--user-data-dir`: `code --install-extension shipsolid.markami` reported `v0.1.0 was successfully installed`; `--list-extensions --show-versions` lists `shipsolid.markami@0.1.0` |
+| Installed contents | 279 of the 280 files in the public VSIX are byte-identical to the installed tree; `package.json` differs only by the `__metadata` block VS Code adds at install, and `.vsixmanifest` is written by the installer |
+| Listing assets | The gallery serves the manifest, README (Details), CHANGELOG, LICENSE, default and small icons, and the VSIX signature; links point at `shipsolid/markami` (source, issues, README); pricing Free; engine `^1.102.0`; item page returns HTTP 200 |
+
+Scope and gaps: the same bytes passed `npm run smoke:install` (installed-VSIX integration suite and
+uninstall check) on Linux before publication, and the Marketplace-installed copy is the same files. Not
+re-run against the Marketplace-installed copy: the integration suite itself. Windows and macOS
+install smoke, IME, and screen-reader behavior remain as stated in the checklist below. The first
+install from the Marketplace needed a corporate TLS proxy CA on the owner's network
+(`NODE_EXTRA_CA_CERTS`); that is local to the verification host, not a property of the listing. The
+Marketplace shows "Verifying" for a few minutes after publish and by-name queries can lag it.
 
 ## Candidate artifact
 
@@ -96,9 +118,9 @@ the release workflow. Local package evidence is recorded in
   never passes KaTeX's `trust` option, rendered diagrams are stripped of `a` and `href`, and the webview
   CSP blocks inline script. The extension's own KaTeX is 0.19.0.
 - [x] Create and push signed/annotated tag `v0.1.0` only after the owner authorizes the release.
-  The owner authorized the tag, the Release dry run, and the Marketplace publish on 2026-10-10. The
-  publish itself still pauses for the owner's approval in the `vscode-marketplace` environment.
+  The owner authorized the tag, the Release dry run, and the Marketplace publish on 2026-10-10, and
+  approved the `vscode-marketplace` deployment themself.
 
-After every item is evidenced, the protected workflow must publish the downloaded build artifact and
-verify both the provider response and the publicly downloadable VSIX before this document may name a
-Marketplace URL or say that markami is published.
+Every item above was evidenced before the protected workflow published the downloaded build artifact.
+The provider response and the publicly downloadable VSIX were then verified, as recorded in the
+Publication record.

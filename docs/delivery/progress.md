@@ -550,3 +550,23 @@
 - Not done and not claimed: real IME and screen-reader smoke on native hosts; Windows and macOS install
   smoke; any tag, Release run, or Marketplace publication
 
+
+## Task 26 — Published 0.1.0 Preview to the Visual Studio Marketplace
+
+- Status: complete; `shipsolid.markami@0.1.0` is public and installable
+- Trigger: the owner authorized the tag, Release dry run, and publish; the dry run (run 38040998182) built
+  an artifact whose digest equalled the release notes; the publish run 38041187851 from tag `v0.1.0`
+  waited at the protected `vscode-marketplace` environment until the owner approved it
+- Result: every step of the `marketplace` job succeeded: artifact and federation revalidation, Azure OIDC
+  login, `vsce publish --azure-credential`, and the public-download package check. The Contributor
+  membership that could not be read back is thereby proven
+- Verification after publish: the public `vspackage` is 4,211,965 bytes with the recorded SHA-256; a clean
+  VS Code 1.141.0 profile installs `shipsolid.markami@0.1.0` from the Marketplace; 279 of 280 files equal
+  the public VSIX (the other is `package.json` plus VS Code's `__metadata`; the installer adds
+  `.vsixmanifest`); the gallery lists the version as `validated`, public, preview, with README, changelog,
+  license, icons, and links
+- Evidence boundary: the integration suite was not re-run against the Marketplace-installed copy (the
+  bytes equal the artifact that passed `smoke:install`); the first gallery lookup failed with "not found"
+  while the version was still `Verifying`, and a TLS-intercepting proxy on the owner's network needed
+  its CA passed to the verification container
+- Recorded in `docs/delivery/release-notes.md` under Publication record; no GitHub release was created
