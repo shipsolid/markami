@@ -2,6 +2,12 @@
 
 Edit Markdown where you read it.
 
+markami is a visual Markdown editor for VS Code. Edit headings, lists, tasks, tables, and code directly
+in the rendered document. Each change is applied to your source as a small, local edit, so untouched
+parts of the file stay exactly as you wrote them and your Git diffs show only what you changed.
+
+Rendered editing · Source-preserving · Mermaid and math · Works offline · No telemetry
+
 <!-- marketplace-gallery:start -->
 ## See markami in action
 
@@ -22,9 +28,24 @@ Mermaid, math, syntax highlighting, and table editing ship locally and continue 
 ![markami rendering Mermaid, math, highlighted code, and a GitHub Flavored Markdown table in VS Code](media/marketplace/technical-markdown.png)
 <!-- marketplace-gallery:end -->
 
-markami is a source-preserving rendered Markdown editor for VS Code. The open
-`vscode.TextDocument` remains canonical: markami applies validated local edits to the source and
-never regenerates the document from a rendered tree.
+## Get started
+
+Requires VS Code 1.102 or newer on desktop, with a local-filesystem workspace.
+
+1. Install **markami** from the Extensions view, or run `code --install-extension shipsolid.markami`.
+2. Open a `.md` or `.markdown` file and click the markami icon in the editor title bar, or run
+   **markami: Open Rendered Editor**.
+3. Edit in the rendered document and save as usual. Click the title-bar icon or run
+   **markami: Open Source Editor** to return to the plain text editor at any time.
+
+markami does not replace the native Markdown editor on its own. To open every Markdown file in markami,
+use **Reopen Editor With… → Configure default editor for '*.md' → markami**; choose **Text Editor** in
+the same menu to switch back.
+
+## How it keeps your source intact
+
+The open `vscode.TextDocument` remains canonical. markami applies validated local edits to the source
+and never regenerates the document from a rendered tree.
 
 ## What ships
 
@@ -43,24 +64,6 @@ never regenerates the document from a rendered tree.
   documents larger than 4 MiB UTF-8.
 
 See [syntax support](docs/syntax-support.md) for the detailed behavior and fallback matrix.
-
-## Install a local build
-
-Requirements: VS Code 1.102 or newer and a desktop local-filesystem workspace.
-
-1. Download or build `artifacts/markami-<version>.vsix`.
-2. In VS Code, run **Extensions: Install from VSIX…** and select the file.
-3. Open a `.md` or `.markdown` file, run **Reopen Editor With…**, and select **markami**.
-
-Command-line installation:
-
-```bash
-code --install-extension artifacts/markami-0.1.0.vsix
-```
-
-The extension does not silently replace the native Markdown editor. To opt in by default, use
-**Reopen Editor With… → Configure default editor for '*.md'**. Use **markami: Open Source Editor**
-at any time to return to the native text editor.
 
 ## Editing
 
@@ -140,19 +143,10 @@ For source, support, licensing, and release history, see the
 [issue tracker](https://github.com/shipsolid/markami/issues), [MIT license](LICENSE), and
 [changelog](CHANGELOG.md).
 
-## Build and verify
+## Contributing
 
-```bash
-npm ci
-npm run verify
-npm run test:webview
-npm run test:visual
-npm run package
-```
-
-`npm run package` builds production bundles, validates the VSIX allowlist, and writes a SHA-256 file
-beside the versioned artifact. Contributor workflow and release evidence live in
-[docs/contributing.md](docs/contributing.md) and [docs/delivery](docs/delivery/).
+To build markami, install a local VSIX, or run the verification gates, see
+[docs/contributing.md](docs/contributing.md). Release evidence lives in [docs/delivery](docs/delivery/).
 
 ## License
 
