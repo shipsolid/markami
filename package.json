@@ -403,7 +403,7 @@
     "test:visual": "vitest run test/visual",
     "test:visual:browser": "playwright test --config playwright.visual.config.ts",
     "bench": "node scripts/bench.mjs",
-    "test:package": "node scripts/checkPackage.test.mjs",
+    "test:package": "node --test scripts/checkPackage.test.mjs scripts/packagingEnvironment.test.mjs",
     "test:release": "node scripts/releasePreflight.test.mjs",
     "test:marketplace": "node --test scripts/marketplaceListing.test.mjs scripts/runMarketplaceCapture.test.mjs scripts/gitRevision.test.mjs",
     "test:install-smoke": "node --test scripts/installSmoke.test.mjs",

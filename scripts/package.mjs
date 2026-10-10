@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { packagingEnvironment } from './packagingEnvironment.mjs';
+
 const manifest = JSON.parse(await readFile('package.json', 'utf8'));
 const artifactDirectory = 'artifacts';
 const artifactPath = path.join(artifactDirectory, `${manifest.name}-${manifest.version}.vsix`);
@@ -18,7 +20,7 @@ await mkdir(artifactDirectory, { recursive: true });
 execFileSync(process.execPath, ['scripts/generateNotices.mjs'], { stdio: 'inherit' });
 execFileSync(process.execPath, [npmCli, 'run', 'build'], { stdio: 'inherit' });
 execFileSync(process.execPath, [vsceCli, 'package', '--no-dependencies', '--out', artifactPath], {
-  env: { ...process.env, SOURCE_DATE_EPOCH: sourceDateEpoch },
+  env: packagingEnvironment(process.env, sourceDateEpoch),
   stdio: 'inherit'
 });
 execFileSync(process.execPath, ['scripts/checkPackage.mjs', artifactPath], { stdio: 'inherit' });
