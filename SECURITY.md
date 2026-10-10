@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-The `0.1.x` developer preview receives security fixes. No public Marketplace build is currently
-published.
+The latest `0.1.x` Preview release, published to the Visual Studio Marketplace as `shipsolid.markami`,
+receives security fixes.
 
 ## Report a vulnerability
 

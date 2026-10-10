@@ -103,6 +103,16 @@ test('repository manifest exposes the approved Marketplace metadata', async () =
   assert.equal(manifest.pricing, 'Free');
 });
 
+test('manifest keywords include the terms people search for', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+
+  for (const keyword of ['wysiwyg', 'visual-editor']) {
+    assert.ok(manifest.keywords.includes(keyword), `package.json keywords must include ${keyword}`);
+    const without = { ...manifest, keywords: manifest.keywords.filter((candidate) => candidate !== keyword) };
+    assert.throws(() => validateMarketplaceMetadata(without), new RegExp(keyword, 'u'));
+  }
+});
+
 function pngHeader(width, height) {
   const bytes = Buffer.alloc(24);
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(bytes, 0);

@@ -26,6 +26,8 @@
     "markdown-editor",
     "editor",
     "wysiwym",
+    "wysiwyg",
+    "visual-editor",
     "gfm",
     "source-preserving",
     "mermaid",
@@ -43,6 +45,13 @@
   "activationEvents": [
     "onCustomEditor:markami.editor"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In Restricted Mode markami edits and renders Markdown, but workspace settings cannot change the remote image policy and images from outside the workspace cannot be copied in.",
+      "restrictedConfigurations": ["markami.remoteImages"]
+    }
+  },
   "contributes": {
     "customEditors": [
       {
@@ -260,7 +269,7 @@
           {
             "id": "markami.edit",
             "title": "Edit, save, and check the diff",
-            "description": "Change something in the rendered document and save. In a Git repository, only the lines you changed show up.\n[Show Source Control](command:workbench.view.scm)",
+            "description": "In a Markdown file from a Git repository (the sample is not in one), change something in the rendered document and save. Source Control shows only the lines you changed.\n[Open a file](command:workbench.action.quickOpen)\n[Show Source Control](command:workbench.view.scm)",
             "media": { "markdown": "media/walkthrough/edit.md" },
             "completionEvents": ["onStepSelected"]
           },
@@ -482,7 +491,7 @@
     "test:package": "node --test scripts/checkPackage.test.mjs scripts/licensePolicy.test.mjs scripts/packagingEnvironment.test.mjs",
     "test:release": "node scripts/releasePreflight.test.mjs",
     "test:marketplace": "node --test scripts/marketplaceListing.test.mjs scripts/runMarketplaceCapture.test.mjs scripts/captureWorkspace.test.mjs scripts/gitRevision.test.mjs",
-    "test:install-smoke": "node --test scripts/installSmoke.test.mjs",
+    "test:install-smoke": "node --test scripts/installSmoke.test.mjs scripts/restrictedModeSmoke.test.mjs",
     "check:licenses": "node scripts/checkLicenses.mjs",
     "generate:notices": "node scripts/generateNotices.mjs",
     "package": "node scripts/package.mjs",
@@ -490,6 +499,7 @@
     "release:preflight": "node scripts/releasePreflight.mjs",
     "capture:marketplace": "node scripts/runMarketplaceCapture.mjs",
     "smoke:install": "npm run build:integration && node scripts/installSmoke.mjs",
+    "smoke:restricted": "npm run build:integration && node scripts/restrictedModeSmoke.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run test:release && npm run test:marketplace && npm run test:install-smoke && npm run check:licenses && npm run build"
   },
   "dependencies": {

@@ -113,6 +113,9 @@ jobs:
       - name: Install the packaged VSIX into an isolated profile on Linux and run the integration suite against it
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run smoke:install
+      - name: Open an untrusted workspace with the packaged VSIX and check Restricted Mode support
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke:restricted
       - name: Install the packaged VSIX into an isolated profile on Windows and macOS and run the integration suite against it
         if: runner.os != 'Linux'
         run: npm run smoke:install

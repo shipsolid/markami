@@ -5,7 +5,7 @@ You are editing this document in its rendered form. Click into any text and type
 ## Try it
 
 - [ ] Tick this task
-- [ ] Rewrite this line, then save with Ctrl/Cmd+S
+- [ ] Rewrite this line, then save with Ctrl/Cmd+S (save into a Git repository to see a one-line diff)
 - [ ] Run **markami: Open Source Editor** to see the plain Markdown behind this page
 
 | Try | Where |

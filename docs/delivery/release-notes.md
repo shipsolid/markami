@@ -4,25 +4,27 @@ public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
 listing_approved: true
-artifact_size: 4761599
-artifact_sha256: 8ddeaf79ba02533efc7b880bd18ccf76a7cf48f1b3a577790860683ecdfadfb6
+artifact_size: 4762865
+artifact_sha256: 7f3b0ec4e26a442181e675febf75f2638ba22b22a48e302b6a38f26e2c9b475c
 ---
 
 # markami 0.1.3 release evidence
 
 Status: **candidate**. 0.1.2 is published to the Visual Studio Marketplace as a Preview; this release adds a first-run
 walkthrough, a sample document, confirmed and reversible default-editor commands, a caret that lands where a table cell
-is clicked, and a listing that shows a real Git diff. The digest below was recorded from the commit that prepares this
-release; the only differences from the CI-verified `d26389e` are the version, changelog, runbook examples, and this file,
-and the VSIX contains the first three.
+is clicked, and a listing that shows a real Git diff. The digest below was recorded after the adoption fixes of Task 35
+were added to the preparation commit. Differences from the CI-verified `d26389e` that reach the VSIX: the version, the
+changelog, the Restricted Mode declaration, two search keywords, the walkthrough and sample wording, and the README and
+`SECURITY.md` text. Runbook examples, this file, the issue templates, the new `smoke:restricted` harness, and its CI step
+do not.
 
 ## Candidate artifact
 
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.3.vsix` |
-| Size | 4,761,599 bytes |
-| SHA-256 | `8ddeaf79ba02533efc7b880bd18ccf76a7cf48f1b3a577790860683ecdfadfb6` |
+| Size | 4,762,865 bytes |
+| SHA-256 | `7f3b0ec4e26a442181e675febf75f2638ba22b22a48e302b6a38f26e2c9b475c` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -41,6 +43,10 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
 - Clicking a table cell with inline Markdown places the caret at the matching source position.
 - The listing leads with outcomes and a three-step Get started, and the gallery gains a demo GIF and a real Git-diff
   capture. See [`CHANGELOG.md`](../../CHANGELOG.md) and Task 33 in [`progress.md`](progress.md).
+- Restricted Mode support (`capabilities.untrustedWorkspaces: limited`, `markami.remoteImages` restricted), checked by
+  opening an untrusted workspace with the packaged VSIX. Walkthrough and sample wording that no longer promises a Git
+  diff from an untitled file, a README comparison section and `Ctrl/Cmd+K` note, `wysiwyg` and `visual-editor` search
+  keywords, a corrected `SECURITY.md`, and bug-report issue templates. See Task 35 in [`progress.md`](progress.md).
 
 ## Public release gates
 
@@ -55,6 +61,11 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
   copy (21 tests; the three that need the test-only inspection command run only from source), and uninstalls
   cleanly with Markdown opening natively and its bytes unchanged (`npm run smoke:install` in the Playwright
   container, VS Code 1.141.0, Linux).
+- [x] Restricted Mode: with the packaged 0.1.3 VSIX installed, `npm run smoke:restricted` opens an untrusted
+  workspace in VS Code 1.141.0 (Linux container). markami activates and opens the file in the rendered editor, an
+  ordinary workspace setting still applies, and the workspace's `markami.remoteImages: allow` is ignored. The same
+  suite against the earlier 0.1.3 candidate, which declared nothing, fails because `shipsolid.markami` is absent in
+  Restricted Mode. Windows and macOS are not covered by this check.
 - [x] Production-webview rendering verified in a real browser under dark, light, and high-contrast themes (88
   Playwright specs), and 24 native VS Code integration tests pass from source in the same container.
 - [x] The five Marketplace assets (a demo GIF and four screenshots, including a real Git diff) were captured from the
@@ -66,7 +77,9 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
   in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
   CHANGELOG. Revisit before a non-preview release.
 - [ ] Walkthrough rendering on the Welcome page and the default-editor confirmation dialog have not been seen in a real
-  window; the confirmation path is covered by unit tests with an injected host. Look at both before tagging.
+  window; the confirmation path is covered by unit tests with an injected host. Look at both before tagging. Also
+  not observed in a real window: markami in a WSL, SSH, or dev-container window, and the `Ctrl+K` chord behavior
+  described in the README (read from VS Code's keybinding resolver, not exercised with key presses).
 - [ ] Push the preparation commit and confirm CI is green on it, then re-check the size and SHA-256 from that
   revision (the capture PR changed only images, which the VSIX excludes).
 - [ ] Create annotated tag `v0.1.3` only after the owner authorizes the release, then pass the Release workflow dry

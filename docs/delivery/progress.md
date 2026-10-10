@@ -808,3 +808,49 @@
   0.1.3 VSIX, passed 21 integration tests against it, and uninstalled cleanly
 - Open on purpose: seeing the walkthrough and the confirmation dialog in a real window, CI on the preparation commit,
   and the tag, which needs the owner's authorization
+
+## Task 35 — 0.1.3 adoption fixes from the retention audit
+
+- Status: implemented in the working tree on top of the 0.1.3 candidate (`dec1943`); not committed, not tagged, not
+  published. The VSIX digest in [`release-notes.md`](release-notes.md) was re-recorded because the changes reach it
+- Scope: the fixes from the adoption and retention audit that are small, testable, and independent of the
+  source-fidelity paths. Held back on purpose: a new "try it on a workspace file" command, a one-time "make default?"
+  prompt, a Report Issue command, image paste and drop, find and replace, and any change to `retainContextWhenHidden`
+- Piece 1 — Workspace Trust: `capabilities.untrustedWorkspaces` is `limited`, with `markami.remoteImages` restricted
+  (a repository's own `.vscode/settings.json` could otherwise set `allow`). The spec already said untrusted workspaces
+  should work (`spec.md` §38, line 1387) and `resources.ts` already refused external image copies without trust; only the
+  manifest declaration was missing
+  - RED: the manifest contract test failed on `undefined`. The native check is stronger: `scripts/restrictedModeSmoke.mjs`
+    installs a VSIX and launches VS Code 1.141.0 itself, because `@vscode/test-electron` always passes
+    `--disable-workspace-trust`. Against the earlier 0.1.3 candidate the suite failed with `markami must be installed`,
+    so VS Code leaves an extension that declares nothing out of Restricted Mode. Against the new VSIX it passes
+  - The suite includes a control (an ordinary workspace setting, `markami.codeBlock.wrap`, still applies) so a pass
+    cannot come from the settings file being ignored. A first version of the test asserted on `inspect().workspaceValue`
+    and failed because VS Code hides restricted values there entirely; that was a test defect, fixed
+  - `npm run smoke:restricted` is a new CI step on Linux only
+- Piece 2 — search terms: `wysiwyg` and `visual-editor` added to `keywords`, and required by
+  `validateMarketplaceMetadata`. RED was the package.json assertion, then the validator assertion. `displayName` and
+  `description` are unchanged: three files assert the approved strings, so rewording them is the owner's call
+- Piece 3 — first-run path: the sample is untitled and cannot show a Git diff, yet the walkthrough promised one. Step 2
+  now names a file from a Git repository and links to Go to File, and the sample's save task says to save into a
+  repository. Existing media files only, because the package allowlist rejects new ones
+- Piece 4 — README: a "How markami differs" table (including the honest trade-off that extensions acting on text editors
+  may not apply), a Restricted Mode bullet, and a `Ctrl/Cmd+K` note. Bare `Ctrl+K` is bound to Create or Edit Link while
+  a markami editor has focus; VS Code's resolver takes the highest-priority matching entry and a single-chord match wins
+  over entering chord mode (read from the resolver in the 1.141.0 bundle, not exercised with key presses). The binding
+  stays because `spec.md` lists `Ctrl/Cmd+K` for links; the README gives the remedy. `SECURITY.md` shipped in the VSIX
+  said no Marketplace build existed; corrected
+- Piece 5 — support loop: `.github/ISSUE_TEMPLATE/bug_report.yml` (asks whether the native source changed, with the
+  S0 wording from the usability study) and `config.yml` pointing security reports at private advisories. The first draft
+  was invalid YAML (colon-space in an unquoted scalar); caught by parsing it with `js-yaml` before commit
+- Gates on the final tree: `npm run verify` exits 0 (119 unit, 39 protocol, 56 fidelity; package 12, release 13,
+  marketplace 17, install-smoke 9); `test:webview` 99; `test:visual` 5; `npm run package` passed the policy (301 files,
+  4,762,865 bytes, SHA-256 `7f3b0ec4…475c`) and a second package produced the same digest; in the Playwright container on
+  VS Code 1.141.0: `smoke:install` 21 passing against the installed VSIX then clean uninstall, `smoke:restricted` passing,
+  `test:integration` 24 passing
+- Not run: the 88 browser specs and `bench` on the final tree (no webview or parser source changed); `smoke:restricted`
+  on Windows and macOS; any real-window check
+- Open for the owner: the walkthrough and default-editor dialog in a real window (unchanged gate); markami in a WSL, SSH,
+  or dev-container window, so the README can say whether Remote works; whether to keep `Ctrl/Cmd+K` as the link
+  shortcut; whether to reword `description` for search; Open VSX; IME and screen-reader smoke (issue #8). No conversion,
+  install, or activation effect is claimed

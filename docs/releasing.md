@@ -106,6 +106,7 @@ them. This keeps the Marketplace listing, reviewed source revision, and release 
    npm run package
    npm run check:package
    npm run smoke:install
+   npm run smoke:restricted
    npm run release:preflight -- --version 0.1.3 --phase artifact
    (cd artifacts && sha256sum -c markami-0.1.3.vsix.sha256)
    ```

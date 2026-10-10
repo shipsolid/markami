@@ -186,7 +186,7 @@ export function validateMarketplaceMetadata(manifest) {
       throw new Error(`Manifest categories must include ${category}.`);
     }
   }
-  for (const keyword of ['markdown', 'markdown-editor', 'gfm', 'source-preserving', 'mermaid']) {
+  for (const keyword of ['markdown', 'markdown-editor', 'gfm', 'source-preserving', 'mermaid', 'wysiwyg', 'visual-editor']) {
     if (!Array.isArray(manifest.keywords) || !manifest.keywords.includes(keyword)) {
       throw new Error(`Manifest keywords must include ${keyword}.`);
     }

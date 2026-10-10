@@ -5,7 +5,8 @@ All notable changes to markami are documented here.
 ## 0.1.3 — 2026-10-10
 
 Preview release. A first-run walkthrough, a one-step and reversible way to make markami the default Markdown
-editor, a caret that lands where you click in table cells, and a listing that shows a real Git diff.
+editor, support for Restricted Mode, a caret that lands where you click in table cells, and a listing that shows a
+real Git diff.
 
 ### Added
 
@@ -15,9 +16,19 @@ editor, a caret that lands where you click in table cells, and a listing that sh
   asks for confirmation, then adds or removes only the `*.md` and `*.markdown` entries of your user
   `workbench.editorAssociations` setting. Entries that point at another editor are never removed, and a setting in
   the legacy array form is left untouched with an explanation.
+- Restricted Mode (untrusted workspace) support. markami declared nothing about Workspace Trust, so VS Code left it
+  out of Restricted Mode entirely. It now runs there in limited mode: workspace settings cannot change
+  `markami.remoteImages`, and an image from outside the workspace cannot be copied in until the workspace is
+  trusted. CI opens an untrusted workspace with the packaged VSIX to check both.
 
 ### Changed
 
+- The walkthrough and the sample document say that the one-line Git diff needs a Markdown file from a Git
+  repository, because the sample is untitled and cannot show one. The walkthrough links to **Go to File**.
+- The README explains how markami differs from other rendered editors and from syntax-hiding extensions, and notes
+  that `Ctrl/Cmd+K` creates a link and so takes the place of VS Code's `Ctrl+K` chords while a markami editor has
+  focus. `SECURITY.md` no longer says that no Marketplace build exists.
+- Marketplace search keywords include `wysiwyg` and `visual-editor`.
 - Clicking a table cell that contains inline Markdown now places the caret at the matching position in its source.
   Before, the caret landed near the end of the cell whatever you clicked.
 - The Marketplace page opens with what markami does for you and a three-step Get started that uses the editor-title

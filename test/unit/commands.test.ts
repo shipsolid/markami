@@ -15,6 +15,13 @@ import { isMarkamiCustomEditorInput } from '../../src/extension/commands.js';
 
 interface PackageManifest {
   readonly engines?: { readonly node?: string; readonly vscode?: string };
+  readonly capabilities?: {
+    readonly untrustedWorkspaces?: {
+      readonly supported?: unknown;
+      readonly description?: string;
+      readonly restrictedConfigurations?: readonly string[];
+    };
+  };
   readonly contributes?: {
     readonly commands?: readonly { readonly command?: string; readonly title?: string; readonly icon?: string }[];
     readonly menus?: Readonly<Record<string, readonly { readonly command?: string; readonly when?: string; readonly group?: string }[]>>;
@@ -33,6 +40,9 @@ interface PackageManifest {
 }
 
 const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as PackageManifest;
+const manifestScripts = (JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+  readonly scripts: Readonly<Record<string, string>>;
+}).scripts;
 const ciWorkflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
 describe('command and configuration contract', () => {
@@ -67,7 +77,7 @@ describe('command and configuration contract', () => {
 
   test('the first-run walkthrough only links to commands that exist and ships its own media', () => {
     const contributed = new Set((manifest.contributes?.commands ?? []).map((command) => command.command));
-    const builtIn = new Set(['workbench.view.scm']);
+    const builtIn = new Set(['workbench.view.scm', 'workbench.action.quickOpen']);
     const walkthroughs = manifest.contributes?.walkthroughs ?? [];
 
     expect(walkthroughs.map((walkthrough) => walkthrough.id)).toEqual(['markami.gettingStarted']);
@@ -84,6 +94,28 @@ describe('command and configuration contract', () => {
     const defaultStep = steps.find((step) => step.id === 'markami.default');
     expect(defaultStep?.description).toContain('command:markami.setAsDefault');
     expect(defaultStep?.description).toContain('command:markami.restoreNativeDefault');
+  });
+
+  test('the edit step points at a file in the user\'s own repository because the untitled sample cannot show a Git diff', () => {
+    const steps = manifest.contributes?.walkthroughs?.[0]?.steps ?? [];
+    const edit = steps.find((step) => step.id === 'markami.edit');
+    const sample = readFileSync(new URL('../../media/walkthrough/sample.md', import.meta.url), 'utf8');
+
+    expect(edit?.description).toContain('command:workbench.action.quickOpen');
+    expect(edit?.description).toContain('Git repository');
+    expect(sample).toContain('Git repository');
+  });
+
+  test('manifest supports untrusted workspaces in limited mode and restricts the remote image policy', () => {
+    const trust = manifest.capabilities?.untrustedWorkspaces;
+    const properties = manifest.contributes?.configuration?.properties ?? {};
+
+    expect(trust?.supported).toBe('limited');
+    expect(trust?.description?.trim().length ?? 0).toBeGreaterThan(0);
+    expect(trust?.restrictedConfigurations).toEqual(['markami.remoteImages']);
+    for (const key of trust?.restrictedConfigurations ?? []) {
+      expect(properties[key], `${key} must be a contributed setting`).toBeDefined();
+    }
   });
 
   test('forwarded commands use stable unique IDs and include source find', () => {
@@ -191,6 +223,12 @@ describe('command and configuration contract', () => {
     expect(ciWorkflow).toContain("if: github.event_name == 'push' && github.ref == 'refs/heads/main'");
     expect(ciWorkflow).toContain('npm run test:visual');
     expect(ciWorkflow).toContain('npm run bench');
+  });
+
+  test('CI opens an untrusted workspace with the packaged VSIX', () => {
+    expect(ciWorkflow).toContain('npm run smoke:restricted');
+    expect(manifestScripts['smoke:restricted']).toContain('restrictedModeSmoke.mjs');
+    expect(manifestScripts['test:install-smoke']).toContain('restrictedModeSmoke.test.mjs');
   });
 
   test('deferred command refuses an insertion after the document context changes', () => {

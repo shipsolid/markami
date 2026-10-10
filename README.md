@@ -62,6 +62,17 @@ your user `workbench.editorAssociations` setting. **Reopen Editor With… → Co
 The open `vscode.TextDocument` remains canonical. markami applies validated local edits to the source
 and never regenerates the document from a rendered tree.
 
+## How markami differs
+
+| Approach | What you get | Trade-off |
+| --- | --- | --- |
+| Rendered editors that rebuild the file from their own document model | Word-processor style editing | Saving can rewrite Markdown you never touched (list markers, spacing, table alignment), so Git diffs grow |
+| Syntax hiding inside the VS Code text editor | Every text-editor feature and extension keeps working | Tables, Mermaid, and math stay as source |
+| **markami** | Rendered tables, Mermaid, math, and block tools; each edit is a small patch to the open document | It is its own editor tab, so extensions that act on text editors (spell checkers, Vim emulation, inline lint squiggles) may not apply there |
+
+When you need those text-editor features, run **markami: Open Source Editor**. The same file can also stay
+open in the text editor and in markami side by side; both views edit one document.
+
 ## What ships
 
 - Rendered editing for CommonMark and GitHub Flavored Markdown, including lists, tasks, tables,
@@ -83,7 +94,9 @@ See [syntax support](docs/syntax-support.md) for the detailed behavior and fallb
 ## Editing
 
 - Type and select text directly in rendered blocks. `Ctrl/Cmd+B`, `Ctrl/Cmd+I`, and `Ctrl/Cmd+K`
-  share the same bounded source-edit operations as the toolbar.
+  share the same bounded source-edit operations as the toolbar. While a markami editor has focus,
+  `Ctrl/Cmd+K` creates or edits a link, so VS Code's `Ctrl+K` chords (such as `Ctrl+K Ctrl+S`) do not start
+  there. To keep the chords, remove or rebind **markami: Create or Edit Link** in Keyboard Shortcuts.
 - Type `/` in an empty top-level paragraph for the insertion menu. The command
   **markami: Open Slash Commands** remains available when the automatic trigger is disabled.
 - Focus a supported top-level block to use its handle. Copy or reveal its Markdown, or move it with
@@ -115,6 +128,9 @@ Preferences never enter Markdown or frontmatter. Disable per-file persistence wi
 - Mermaid, math, code highlighting, fonts, and editor assets are packaged locally and work offline.
 - Unsafe URLs, executable schemes, unsafe HTML, and filesystem escapes fail closed while source stays
   editable.
+- In an untrusted workspace (Restricted Mode) markami still opens and edits Markdown. Workspace settings
+  cannot change `markami.remoteImages`, and an image from outside the workspace cannot be copied in until you
+  trust the workspace.
 - markami has no telemetry, account, cloud sync, or document upload. Review the
   [privacy policy](PRIVACY.md) and [security policy](SECURITY.md).
 

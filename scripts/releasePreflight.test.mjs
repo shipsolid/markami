@@ -52,7 +52,7 @@ function releaseInput(overrides = {}) {
       pricing: 'Free',
       galleryBanner: { color: '#071D49', theme: 'dark' },
       categories: ['Other', 'Visualization'],
-      keywords: ['markdown', 'markdown-editor', 'gfm', 'source-preserving', 'mermaid'],
+      keywords: ['markdown', 'markdown-editor', 'gfm', 'source-preserving', 'mermaid', 'wysiwyg', 'visual-editor'],
       repository: { url: 'https://github.com/shipsolid/markami.git' }
     },
     changelog: '# Changelog\n\n## 0.1.0 — 2026-10-09\n',
