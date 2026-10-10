@@ -10,8 +10,8 @@ artifact_sha256: 251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46
 
 # markami 0.1.1 release evidence
 
-Status: **candidate, ready to tag**. 0.1.0 is published to the Visual Studio Marketplace as a Preview; this release
-carries Document appearance as a designed reading view and the rendering fixes found in real notes. The digest
+Status: **published to the Visual Studio Marketplace as a Preview on 2026-10-10** (see the 0.1.1 publication record
+below). 0.1.0 was published earlier the same day; this release carries Document appearance as a designed reading view and the rendering fixes found in real notes. The digest
 below was recorded from `main` after the Marketplace capture PR (#9) merged and after a projection performance fix
 (`1d0f3d3`) that the main CI benchmark required. The VSIX built on a GitHub runner in CI run 38053695267 is
 byte-identical to the one built on the owner's host (same size and SHA-256), and the release workflow regenerates
@@ -31,6 +31,24 @@ both from the tag and requires them to match.
 
 The checksum, byte size, and package-policy result are regenerated from the final tagged revision by
 the release workflow. Local package evidence is recorded in [`install-smoke.md`](install-smoke.md).
+
+## 0.1.1 publication record
+
+| Check | Result |
+|---|---|
+| Release workflow | Dry run [38054078699](https://github.com/shipsolid/markami/actions/runs/38054078699) from tag `v0.1.1` (quality, four platform legs, and package passed). Publish run [38054250565](https://github.com/shipsolid/markami/actions/runs/38054250565) from the same tag passed the same gates; the owner approved the `vscode-marketplace` deployment |
+| Azure federation | `azure/login` succeeded through GitHub OIDC with the managed identity already proven by 0.1.0 |
+| Provider response | `vsce publish --azure-credential --packagePath artifacts/markami-0.1.1.vsix` reported `Published shipsolid.markami v0.1.1.`; the workflow's own step that downloads and validates the public artifact also passed |
+| Gallery state | `shipsolid.markami` 0.1.1, extension flags `validated, public, preview`; the version flag was `validated` when it first appeared in the by-name query a few minutes after the publish |
+| Public artifact | `.../publishers/shipsolid/vsextensions/markami/0.1.1/vspackage` is 4,751,138 bytes with SHA-256 `251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46b`, equal to the recorded digest |
+| Clean-profile install | VS Code 1.141.0 (Linux container) with empty `--extensions-dir`/`--user-data-dir`: `code --install-extension shipsolid.markami` reported `v0.1.1 was successfully installed`; `--list-extensions --show-versions` lists `shipsolid.markami@0.1.1` |
+| Installed contents | 294 of the 295 files under `extension/` in the public VSIX are byte-identical to the installed tree; `package.json` differs only by the `__metadata` block (`installedTimestamp`, `size`, `targetPlatform`) VS Code adds at install. The bundled Shantell Sans and JetBrains Mono files are present |
+| Listing assets | The gallery serves the manifest, README (Details), CHANGELOG, LICENSE, default and small icons, the VSIX, and its signature; the item page returns HTTP 200 |
+
+Scope and gaps: the integration suite was not re-run against the Marketplace-installed copy; the same bytes passed
+the packaged-VSIX install smoke on Linux, Windows, and macOS in CI before publication. The first install from the
+Marketplace in a container needed the host's corporate TLS CA (`NODE_EXTRA_CA_CERTS`), which is local to the
+verification host. No GitHub release has been created for 0.1.1 yet.
 
 ## Changes since 0.1.0
 
