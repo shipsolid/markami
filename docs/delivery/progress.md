@@ -854,3 +854,24 @@
   or dev-container window, so the README can say whether Remote works; whether to keep `Ctrl/Cmd+K` as the link
   shortcut; whether to reword `description` for search; Open VSX; IME and screen-reader smoke (issue #8). No conversion,
   install, or activation effect is claimed
+
+## Task 36 — Published 0.1.3 Preview to the Visual Studio Marketplace
+
+- Status: `shipsolid.markami` 0.1.3 is live as `validated, public, preview`; the provider response, public artifact
+  digest, clean-profile install, and listing assets are recorded in
+  [`release-notes.md`](release-notes.md#013-publication-record)
+- Path: Task 35 changes pushed by the owner as `109cc28` (CI run 38076187188 green), release record and authorization
+  as `3e7af3c` (CI run 38076526195 green), signed annotated tag `v0.1.3`, Release dry run 38076695903, then publish run
+  38076959848 behind the owner's `vscode-marketplace` approval
+- Evidence: the VSIX built on a GitHub runner from the pushed revision, the dry run's VSIX, the local VSIX, and the public
+  Marketplace copy are all 4,762,865 bytes with SHA-256 `7f3b0ec4…475c`. The first public download looked different
+  (4,723,550 bytes, another digest) only because the endpoint serves gzip; with decompression it is equal
+- Gallery lag: version 0.1.3 reached `validated` in the by-name query about seven minutes after the publish, and the
+  CLI could not resolve `shipsolid.markami@0.1.3` until then. Anyone running the install check immediately will see
+  "not found", which is not a failed publish
+- Process notes: the owner committed and pushed the working tree as one commit (`109cc28`) between Tasks 35 and 36, so
+  the planned split into logical commits did not happen. The release checklist gate for a real-window look at the
+  walkthrough and default-editor dialog was carried as a disclosed gap at the owner's instruction, not passed
+- Not verified: the Marketplace page in a browser; the walkthrough, default-editor dialog, Remote windows, and `Ctrl+K`
+  chords in a real window; the integration suite against the Marketplace-installed copy. No install or adoption effect
+  is claimed. At publication the listing had 2 installs and 0 ratings

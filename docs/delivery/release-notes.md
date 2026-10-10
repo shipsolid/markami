@@ -10,13 +10,13 @@ artifact_sha256: 7f3b0ec4e26a442181e675febf75f2638ba22b22a48e302b6a38f26e2c9b475
 
 # markami 0.1.3 release evidence
 
-Status: **candidate**. 0.1.2 is published to the Visual Studio Marketplace as a Preview; this release adds a first-run
-walkthrough, a sample document, confirmed and reversible default-editor commands, a caret that lands where a table cell
-is clicked, and a listing that shows a real Git diff. The digest below was recorded after the adoption fixes of Task 35
-were added to the preparation commit. Differences from the CI-verified `d26389e` that reach the VSIX: the version, the
-changelog, the Restricted Mode declaration, two search keywords, the walkthrough and sample wording, and the README and
-`SECURITY.md` text. Runbook examples, this file, the issue templates, the new `smoke:restricted` harness, and its CI step
-do not.
+Status: **published**. 0.1.3 is live on the Visual Studio Marketplace as a Preview (record below). It follows 0.1.2 with a
+first-run walkthrough, a sample document, confirmed and reversible default-editor commands, Restricted Mode support, a
+caret that lands where a table cell is clicked, and a listing that shows a real Git diff. The digest below was recorded
+after the adoption fixes of Task 35 were added to the preparation commit. Differences from the CI-verified `d26389e` that
+reach the VSIX: the version, the changelog, the Restricted Mode declaration, two search keywords, the walkthrough and
+sample wording, and the README and `SECURITY.md` text. Runbook examples, this file, the issue templates, the new
+`smoke:restricted` harness, and its CI step do not.
 
 ## Candidate artifact
 
@@ -90,6 +90,24 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
 - [x] Create and push annotated tag `v0.1.3` only after the owner authorizes the release. The owner authorized it on
   2026-10-11 ("tag and publish"); the Release workflow's dry run and the `vscode-marketplace` deployment, which the
   owner approves themself, follow from the tag.
+
+## 0.1.3 publication record
+
+| Check | Result |
+|---|---|
+| Release workflow | Dry run [38076695903](https://github.com/shipsolid/markami/actions/runs/38076695903) from tag `v0.1.3` (quality, four platform legs, and package passed; its VSIX has the recorded SHA-256). Publish run [38076959848](https://github.com/shipsolid/markami/actions/runs/38076959848) from the same tag passed the same gates; the owner approved the `vscode-marketplace` deployment |
+| Provider response | `vsce publish --azure-credential --packagePath artifacts/markami-0.1.3.vsix` reported `Published shipsolid.markami v0.1.3.`; the workflow's own step that downloads and validates the public artifact also passed |
+| Gallery state | `shipsolid.markami` flags `validated, public, preview`; version 0.1.3 appeared in the by-name query as `validated` about seven minutes after the publish, and `--install-extension shipsolid.markami@0.1.3` answered "not found" until then |
+| Public artifact | `.../publishers/shipsolid/vsextensions/markami/0.1.3/vspackage` is served gzip-encoded (4,723,550 bytes on the wire); decompressed it is 4,762,865 bytes with SHA-256 `7f3b0ec4e26a442181e675febf75f2638ba22b22a48e302b6a38f26e2c9b475c`, equal to the recorded digest. Its manifest is `shipsolid.markami` 0.1.3 with `untrustedWorkspaces: limited` |
+| Clean-profile install | VS Code 1.141.0 (Linux container) with empty `--extensions-dir`/`--user-data-dir`: `code --install-extension shipsolid.markami` reported `v0.1.3 was successfully installed`; `--list-extensions --show-versions` lists `shipsolid.markami@0.1.3` |
+| Installed contents | 298 of the 299 files under `extension/` in the public VSIX are byte-identical to the installed tree; `package.json` is equal once the `__metadata` block (`installedTimestamp`, `size`, `targetPlatform`) VS Code adds at install is dropped |
+| Listing assets | The item page returns HTTP 200; the gallery serves the README (Details, including "How markami differs") and the CHANGELOG with its `## 0.1.3` section |
+
+Scope and gaps: the integration suite was not re-run against the Marketplace-installed copy; the same bytes passed the
+packaged-VSIX install smoke and `smoke:restricted` before publication, and CI repeated them on the tagged commit
+(run 38076526195). The Marketplace page itself was not opened in a browser, so the rendering of the new walkthrough, the gallery
+images, and the README table on the listing is unseen. The gaps named in the last public release gate (walkthrough and
+default-editor dialog in a real window, Remote windows, `Ctrl+K` chords) remain open.
 
 ## 0.1.2 publication record (history)
 
