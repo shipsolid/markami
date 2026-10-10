@@ -43,10 +43,12 @@ export function sanitizeMermaidSvg(source: string): string {
   return template.innerHTML;
 }
 
+// Same-document url(#id) paint references are kept: Mermaid's own stylesheet uses them, and removing the
+// stylesheet drops its text-anchor and font rules.
 function hasExternalCssReference(source: string): boolean {
   const normalized = normalizeCss(source);
-  return normalized.includes('url(') || normalized.includes('@import') ||
-    normalized.includes('image-set(') || normalized.includes('-moz-binding');
+  return normalized.includes('@import') || normalized.includes('image-set(') ||
+    normalized.includes('-moz-binding') || hasUnsafeSvgUrlReference(source);
 }
 
 function hasUnsafeSvgUrlReference(source: string): boolean {

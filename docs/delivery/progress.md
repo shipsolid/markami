@@ -512,3 +512,24 @@
   dependency-policy, CodeQL) pass
 - Publication boundary: the changes are pushed on a branch and open as PR #2; no merge, tag, workflow
   dispatch, GitHub release, or Marketplace publication occurred
+
+## Task 24 — Mermaid sanitizer and first captures run
+
+- Status: fix complete on its own PR; the first Marketplace captures PR (#4) must be regenerated after it
+- Trigger: the first `Marketplace captures` run succeeded end to end, but the generated
+  `technical-markdown.png` showed Mermaid labels starting at their node centres and overflowing the
+  boxes, with black arrowheads; the same diagram reproduced in the container and in plain Chromium with the
+  production bundle
+- Root cause: Mermaid 12's embedded stylesheet contains same-document `url(#<id>-gradient)` references.
+  `sanitizeMermaidSvg` removed the whole `<style>` whenever it saw any `url(`, discarding the diagram's
+  `text-anchor`, font, and theme rules. Every Mermaid diagram in the extension was affected, not only the
+  listing image
+- RED: `keeps Mermaid's own stylesheet when it only references same-document paint servers` failed; the
+  guard that mixed local and external references must still be removed already passed
+- GREEN: stylesheets and inline styles are kept when every `url(` is a bare `#fragment`, and removed when
+  any is external, escaped, or paired with `@import`, `image-set(` or `-moz-binding`. In the production
+  bundle under Chromium all node labels measure 0 px off centre with `text-anchor: middle` in both
+  appearances
+- Also observed in the draft captures, left for the owner's review: the left block-handle gutter renders as
+  a bright strip in the dark theme, and the table and selection controls use default white button styling
+- Publication boundary: no tag, release, or Marketplace publication occurred

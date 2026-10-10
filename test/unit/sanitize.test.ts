@@ -29,6 +29,36 @@ describe('raw HTML sanitizer', () => {
 });
 
 describe('Mermaid SVG sanitizer', () => {
+  test('keeps Mermaid\'s own stylesheet when it only references same-document paint servers', () => {
+    // Mermaid 12 emits url(#<id>-gradient) in its stylesheet; dropping the whole <style> loses text-anchor and
+    // fonts, so labels start at the node centre and overflow their boxes.
+    const root = document.createElement('div');
+    root.innerHTML = sanitizeMermaidSvg(`
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <style>#d .node rect { fill: url(#d-gradient) } #d .label text { text-anchor: middle }</style>
+        <defs><linearGradient id="d-gradient"><stop offset="0" stop-color="red"></stop></linearGradient></defs>
+        <g class="node" style="fill: url(#d-gradient)"><rect width="10" height="10"></rect><text>Safe</text></g>
+      </svg>
+    `);
+
+    expect(root.querySelector('style')?.textContent).toContain('text-anchor: middle');
+    expect(root.querySelector('g.node')?.getAttribute('style')).toContain('url(#d-gradient)');
+  });
+
+  test('removes a stylesheet that mixes a local reference with an external one', () => {
+    const root = document.createElement('div');
+    root.innerHTML = sanitizeMermaidSvg(`
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <style>.a { fill: url(#ok) } .b { background: url(https://example.com/track.png) }</style>
+        <style>@import 'https://example.com/theme.css';</style>
+        <text>Safe</text>
+      </svg>
+    `);
+
+    expect(root.querySelector('style')).toBeNull();
+    expect(root.textContent).toContain('Safe');
+  });
+
   test('preserves diagram geometry while removing active and external content', () => {
     const sanitized = sanitizeMermaidSvg(`
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
