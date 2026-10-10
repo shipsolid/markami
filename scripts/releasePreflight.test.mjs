@@ -113,12 +113,9 @@ test('repository release metadata uses the owner-controlled publisher', async ()
     marketplaceCaptures: []
   });
 
-  assert.deepEqual(result.blockers, [
-    'public release notes are not approved',
-    'public Marketplace listing is not approved',
-    'actual Marketplace capture is missing',
-    'public release checklist still has unchecked blockers'
-  ]);
+  // Approval state changes with each release, so assert only that identity is never what blocks a release.
+  assert.equal(manifest.publisher, 'shipsolid');
+  assert.deepEqual(result.blockers.filter((blocker) => /publisher|repository/iu.test(blocker)), []);
 });
 
 test('public publishing rejects a placeholder publisher and open release gates', () => {
