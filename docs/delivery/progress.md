@@ -604,8 +604,7 @@
 
 ## Task 28 — Rendering defects found in a real journal note (change A of the UI pass)
 
-- Status: implemented on the working tree and verified; not yet committed. Change B (design system, docked
-  outline, Document default, palette) is a separate step
+- Status: committed as 0be47c4. Change B (design system, docked outline, Document default, palette) is Task 29
 - Evidence: rendering a journal-like note in the production webview showed inline marks with no CSS at all
   (`markami-strong`, `-emphasis`, `-strike`, `-inlineCode` computed to weight 400/normal), VS Code appearance
   headings identical to body text (13px, 400), a code header 39.7px taller than its content (two empty line
@@ -625,4 +624,40 @@
 - Not done here, deliberately: list markers still show a literal `-`; indented (nested) list lines get no list
   class; vertical gaps between blocks come from blank source lines at full height; the outline still overlays
   the content; table and handle chrome is unchanged. These belong to change B and the later chrome step
+
+## Task 29 — Document appearance as a designed reading view (change B of the UI pass)
+
+- Status: committed on main in eight steps (defaults, fonts, fenced-code fix, typography, outline frontmatter fix,
+  palette, outline docking); not pushed or released. Nothing here changes the published 0.1.0 artifact
+- Defaults: `markami.appearance.mode` is `document` and `markami.document.maxContentWidth` is 1200 (the 960px cap
+  would have clipped the 100ch measure). Unit and native integration expectations that encoded the old defaults
+  were changed first and failed; existing per-file overrides are untouched
+- Fonts: `@fontsource-variable/shantell-sans` and `jetbrains-mono` 5.3.0 as production dependencies, imported as
+  local woff2 (Latin, Latin Extended, Cyrillic, Vietnamese, and Greek for the mono face; Shantell italic for
+  emphasis). The VSIX grows from 4.21 MB to 4.53 MB. The SIL Open Font License was not on the license allowlist;
+  `scripts/licensePolicy.mjs` accepts it only for `@fontsource` packages (RED: module missing), the package policy
+  requires both fonts in the VSIX (RED: no exception), and `THIRD_PARTY_NOTICES.txt` carries each font's license
+  and copyright. Owner approval for the allowlist change was given with the plan
+- Found while styling, fixed separately with failing tests first: the projection styled and hid syntax inside
+  fenced code (a `# comment` became a heading with its marker hidden; present since 0.1.0), and the outline read
+  frontmatter as a Setext heading. The fence scanner moved into core
+- Typography and spacing (`document.css`): `documentDesign.spec.ts` failed first on all nine cases and now
+  asserts the type scale at 600/700/800px panes, h2/h3, lists, tables, the blank-line rhythm (24px, 16px under
+  h1/h2, 12px under h3), mono for inline code and labels, the 100ch measure with 16/24px padding, and the
+  12px-radius cards. Spacing is padding plus the source's blank lines, never margins on CodeMirror lines
+- Palette: the Catppuccin Mocha palette is a remap of the VS Code tokens on the body, applied only in Document
+  appearance under a dark (not high-contrast) theme; `documentPalette.spec.ts` asserts the colors, a 4.5:1 floor
+  for text, links, buttons, and the active outline entry, the light, high-contrast, `vscode`-setting, and VS Code
+  appearance opt-outs, and the runtime appearance switch
+- Outline: docked column at 1280px and above (260px, 300px from 1760px, 40px gap), a pill below; the narrow
+  drawer is session-only so it can no longer overwrite the per-file collapsed state
+- Gates: `npm run verify`, `test:webview` (86), `test:visual` (5), `bench`, `npm run package` (policy passed), all
+  45 browser specs in the Playwright container, and the 18 native VS Code integration tests (VS Code 1.141.0,
+  Linux, container). Windows and macOS integration run in CI only
+- Judgment calls to confirm: the h2 gets a 1px rule under its 12px bottom padding; the outline card uses 8px
+  padding rather than 24px; code blocks use JetBrains Mono rather than the editor font in Document appearance; the
+  left sidebar column of the three-column layout is not rendered because an editor has nothing to put there
+- Not done: list markers still render as a literal `-`; table, block-handle, and Copy chrome is always visible
+  (the planned hover/focus-only step needs accessibility checks); the published listing images still show the
+  0.1.0 look until a new version is released and the captures regenerated
 
