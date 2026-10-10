@@ -156,6 +156,10 @@ The publish step is successful only when all of these are true:
 Record the verified Marketplace URL and public-install evidence in the release notes only after those
 checks pass.
 
+The GitHub release's body is the release-notes file as tagged, so it describes the state before
+publication. After `github-release` completes, replace the body with `gh release edit v<version>
+--notes-file <file>` so it states the install path, the artifact digest, and the known limitations.
+
 ## Rollback
 
 - Before publication: reject the environment deployment; no external state changes.

@@ -73,7 +73,7 @@ async function reportVisibleButtons(page: Page): Promise<ButtonReport[]> {
         const back = luminance(channels(effectiveBackground(button)));
         const front = luminance(channels(style.color));
         return {
-          label: (button.getAttribute('aria-label') ?? button.textContent ?? '').trim(),
+          label: (button.getAttribute('aria-label') ?? button.textContent).trim(),
           background: style.backgroundColor,
           border: `${style.borderTopWidth} ${style.borderTopStyle} ${style.borderTopColor}`,
           contrast: (Math.max(back, front) + 0.05) / (Math.min(back, front) + 0.05)
