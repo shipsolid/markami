@@ -160,13 +160,59 @@ describe('command and configuration contract', () => {
     const first = {};
     const second = {};
     tracker.activate(first);
+    tracker.markReady(first);
     const lease = tracker.capture();
     if (lease === undefined) throw new Error('missing active-view lease');
 
     tracker.activate(second);
+    tracker.markReady(second);
 
     expect(tracker.isCurrent(lease)).toBe(false);
     expect(tracker.current).toBe(second);
+  });
+
+  test('an active view cannot receive actions until its webview completes the ready handshake', () => {
+    const tracker = new ActiveViewTracker<object>();
+    const view = {};
+    tracker.activate(view);
+
+    expect(tracker.current).toBeUndefined();
+    expect(tracker.capture()).toBeUndefined();
+
+    tracker.markReady(view);
+
+    expect(tracker.current).toBe(view);
+    expect(tracker.capture()).toBeDefined();
+  });
+
+  test('readiness of a background view never retargets actions', () => {
+    const tracker = new ActiveViewTracker<object>();
+    const active = {};
+    const background = {};
+    tracker.activate(active);
+
+    tracker.markReady(background);
+
+    expect(tracker.current).toBeUndefined();
+  });
+
+  test('a webview reload revokes readiness and outstanding leases', () => {
+    const tracker = new ActiveViewTracker<object>();
+    const view = {};
+    tracker.activate(view);
+    tracker.markReady(view);
+    const lease = tracker.capture();
+    if (lease === undefined) throw new Error('missing active-view lease');
+
+    tracker.markPending(view);
+
+    expect(tracker.isCurrent(lease)).toBe(false);
+    expect(tracker.current).toBeUndefined();
+
+    tracker.markReady(view);
+
+    expect(tracker.isCurrent(lease)).toBe(false);
+    expect(tracker.current).toBe(view);
   });
 
   test('source command accepts only the markami custom editor and code prompt cancellation is neutral', () => {
