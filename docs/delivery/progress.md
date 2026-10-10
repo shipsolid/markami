@@ -429,8 +429,8 @@
 
 ## Task 23 — CI repair and release-path audit
 
-- Status: code, tests, and workflow edits complete locally; nothing committed or pushed, so GitHub CI has
-  not yet run against these changes; GitHub environment settings are documented but not applied
+- Status: complete on PR #2 (unmerged); all 7 GitHub checks pass, including the new Windows and macOS
+  integration legs; GitHub environment settings are documented but not applied
 - Trigger: `CI` failed on all 13 runs since `c494e49` on 2026-10-08 (last green: `ac80497`); `Release` and
   `Marketplace captures` had never run; the view-preference and disk-fidelity integration tests had
   only ever been compiled, never executed (see Tasks 12–19 host boundary)
@@ -506,5 +506,9 @@
   - public release remains blocked by owner-gated items: release-note and listing approval, reviewed
     Marketplace captures, native smoke/IME/accessibility evidence, publisher Contributor membership
     for the managed identity, and tag authorization
-- Publication boundary: no commit, push, tag, workflow dispatch, GitHub release, or Marketplace
-  publication occurred
+- GitHub CI on PR #2: the new Windows leg passed all 18 tests but failed two teardown hooks with
+  `EBUSY` on `rmdir` because VS Code still held document handles; every integration teardown now removes
+  its directory through a retrying helper, after which all checks (verify, three integration legs,
+  dependency-policy, CodeQL) pass
+- Publication boundary: the changes are pushed on a branch and open as PR #2; no merge, tag, workflow
+  dispatch, GitHub release, or Marketplace publication occurred
