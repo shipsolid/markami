@@ -8,7 +8,7 @@ import {
   type GfmTable
 } from '../../../core/markdown/tables.js';
 import { syntaxSelection } from '../../projection/syntaxReveal.js';
-import { renderInlineMarkdown } from './inlineRender.js';
+import { renderInlineMarkdown, sourceOffsetForRenderedOffset } from './inlineRender.js';
 
 const CELL_POINTER_EVENTS = new Set([
   'mousedown', 'mouseup', 'click', 'dblclick', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'contextmenu'
@@ -98,6 +98,21 @@ class TableWidget extends WidgetType {
         showRendered(editor, cell?.value ?? '');
         if (cell !== undefined) {
           let committedByTab = false;
+          let pointerRenderedOffset: number | undefined;
+          // The browser places the caret on the layout it finds after the focus swap, so remember where in the rendered
+          // text the pointer went down and put the caret at the matching source offset once the click completes.
+          editor.addEventListener('mousedown', (event) => {
+            pointerRenderedOffset = editor.dataset.rendered === 'true'
+              ? renderedOffsetAt(editor, event.clientX, event.clientY)
+              : undefined;
+          });
+          editor.addEventListener('mouseup', () => {
+            const rendered = pointerRenderedOffset;
+            pointerRenderedOffset = undefined;
+            const source = editor.dataset.rawSource ?? '';
+            if (rendered === undefined || source === editor.dataset.shownText) return;
+            placeCaret(editor, sourceOffsetForRenderedOffset(source, rendered));
+          });
           // A cell shows its inline Markdown rendered and switches to the raw source while it has focus.
           editor.addEventListener('focus', () => showSource(editor));
           editor.addEventListener('blur', () => {
@@ -198,6 +213,28 @@ function showSource(editor: HTMLElement): void {
   const range = editor.ownerDocument.createRange();
   range.selectNodeContents(editor);
   range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+/** The number of rendered characters before the point, or undefined when it is not over the cell's text. */
+function renderedOffsetAt(editor: HTMLElement, x: number, y: number): number | undefined {
+  const position = editor.ownerDocument.caretPositionFromPoint(x, y);
+  if (position === null || !editor.contains(position.offsetNode)) return undefined;
+  const range = editor.ownerDocument.createRange();
+  range.selectNodeContents(editor);
+  range.setEnd(position.offsetNode, position.offset);
+  return range.toString().length;
+}
+
+/** Puts a collapsed caret at a source offset, unless the user is dragging out a range. */
+function placeCaret(editor: HTMLElement, offset: number): void {
+  const selection = editor.ownerDocument.defaultView?.getSelection();
+  const text = editor.firstChild;
+  if (selection === null || selection === undefined || text?.nodeType !== Node.TEXT_NODE || !selection.isCollapsed) return;
+  const range = editor.ownerDocument.createRange();
+  range.setStart(text, Math.min(offset, (text.nodeValue ?? '').length));
+  range.collapse(true);
   selection.removeAllRanges();
   selection.addRange(range);
 }

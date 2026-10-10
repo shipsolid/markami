@@ -4,7 +4,7 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, describe, expect, test } from 'vitest';
 import { buildInlineProjection } from '../../src/core/markdown/syntax.js';
-import { renderInlineMarkdown } from '../../src/webview/features/tables/inlineRender.js';
+import { renderInlineMarkdown, sourceOffsetForRenderedOffset } from '../../src/webview/features/tables/inlineRender.js';
 import { tableProjectionField } from '../../src/webview/features/tables/TableProjection.js';
 
 let view: EditorView | undefined;
@@ -85,5 +85,30 @@ describe('rendering inline Markdown inside a table cell', () => {
     expect(editor.state.doc.toString()).toBe(table);
     expect(cell.textContent).toBe('soft');
     expect(cell.querySelector('.markami-emphasis')).not.toBeNull();
+  });
+});
+
+describe('mapping a rendered position back to its source', () => {
+  test('plain text maps one to one', () => {
+    expect([0, 2, 3].map((offset) => sourceOffsetForRenderedOffset('abc', offset))).toEqual([0, 2, 3]);
+  });
+
+  test('a position inside styled text lands inside its markers, and a boundary lands before the next visible text', () => {
+    const source = 'a **bold** word';
+    // rendered: "a bold word"
+    expect([0, 1, 2, 3, 5, 6, 7, 11].map((offset) => sourceOffsetForRenderedOffset(source, offset)))
+      .toEqual([0, 1, 4, 5, 7, 10, 11, 15]);
+  });
+
+  test('link destinations and code backticks never count as rendered characters', () => {
+    expect(sourceOffsetForRenderedOffset('[docs](https://x.test) tail', 2)).toBe(3);
+    expect(sourceOffsetForRenderedOffset('[docs](https://x.test) tail', 4)).toBe(22);
+    expect(sourceOffsetForRenderedOffset('`ab` c', 1)).toBe(2);
+  });
+
+  test('positions outside the rendered text clamp to the source ends', () => {
+    expect(sourceOffsetForRenderedOffset('**x**', -4)).toBe(0);
+    expect(sourceOffsetForRenderedOffset('**x**', 99)).toBe(5);
+    expect(sourceOffsetForRenderedOffset('', 3)).toBe(0);
   });
 });
