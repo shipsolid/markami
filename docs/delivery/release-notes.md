@@ -1,29 +1,28 @@
 ---
-version: 0.1.1
+version: 0.1.2
 public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
-listing_approved: true
-artifact_size: 4751138
-artifact_sha256: 251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46b
+listing_approved: false
+artifact_size: 4757069
+artifact_sha256: d8ca78875c54d02e2d40bedb6e9c4e9d9eca26e2ae6cdc15c49a25441136cc76
 ---
 
-# markami 0.1.1 release evidence
+# markami 0.1.2 release evidence
 
-Status: **published to the Visual Studio Marketplace as a Preview on 2026-10-10** (see the 0.1.1 publication record
-below). 0.1.0 was published earlier the same day; this release carries Document appearance as a designed reading view and the rendering fixes found in real notes. The digest
-below was recorded from `main` after the Marketplace capture PR (#9) merged and after a projection performance fix
-(`1d0f3d3`) that the main CI benchmark required. The VSIX built on a GitHub runner in CI run 38053695267 is
-byte-identical to the one built on the owner's host (same size and SHA-256), and the release workflow regenerates
-both from the tag and requires them to match.
+Status: **candidate**. 0.1.1 is published to the Visual Studio Marketplace as a Preview; this release makes a clean
+VS Code Markdown-preview style the default, with the Document style kept as an opt-in, and carries the rendering
+work described below. The digest below is recorded from `main` before the Marketplace captures are regenerated;
+the capture pull request changes only images that the VSIX excludes, so it is expected to stay valid and is
+re-checked from the merged revision.
 
 ## Candidate artifact
 
 | Field | Value |
 |---|---|
-| VSIX | `artifacts/markami-0.1.1.vsix` |
-| Size | 4,751,138 bytes |
-| SHA-256 | `251b9b481ef9c5f31852d8dc576c5d91baa84c21ddf19fc1674289fdd8f6b46b` |
+| VSIX | `artifacts/markami-0.1.2.vsix` |
+| Size | 4,757,069 bytes |
+| SHA-256 | `d8ca78875c54d02e2d40bedb6e9c4e9d9eca26e2ae6cdc15c49a25441136cc76` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -32,7 +31,36 @@ both from the tag and requires them to match.
 The checksum, byte size, and package-policy result are regenerated from the final tagged revision by
 the release workflow. Local package evidence is recorded in [`install-smoke.md`](install-smoke.md).
 
-## 0.1.1 publication record
+## Changes since 0.1.1
+
+- The default appearance is the VS Code Markdown-preview style in your exact theme colors (UI font 14px/1.6, ruled
+  h1 and h2, compact lists, pill-style code, quote bar); the Shantell Sans and Catppuccin Mocha Document
+  appearance is opt-in. `markami.appearance.mode` defaults to `vscode` and `markami.theme.useEditorFont` to `false`.
+- The in-page settings bar is replaced by editor-title icons and the new **Toggle Document Appearance** command.
+- Table, code, and block-handle chrome appears on hover or keyboard focus; table cells render inline Markdown and
+  edit in place; code is syntax highlighted with line numbers; lists, alerts, and dimmed revealed markers are
+  rendered; the outline docks by measured room and follows the pane. See [`CHANGELOG.md`](../../CHANGELOG.md) and
+  Task 31 in [`progress.md`](progress.md).
+
+## Public release gates
+
+- [x] Publisher, Entra federation, protected environments, license, and advisory acceptance are unchanged and were
+  proven again by the 0.1.1 publish run recorded below.
+- [x] Native stable Windows, macOS, and Linux integration plus VS Code 1.102 compatibility, and the packaged-VSIX
+  install smoke on all three systems. Evidence: CI run 38060843361 on `main` (`d659925`) passed the integration
+  matrix and the `install-smoke` matrix, and its `verify` job passed the benchmark gates.
+- [x] Production-webview rendering verified in a real browser under dark, light, and high-contrast themes (88
+  Playwright specs), and the 19 native VS Code integration tests pass in a container (VS Code 1.141.0, Linux).
+- [x] A full Marketplace capture dry run in real VS Code under Dark Modern rendered the default style correctly.
+- [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
+  in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
+  CHANGELOG. Revisit before a non-preview release.
+- [ ] Regenerate the Marketplace captures from the 0.1.2 VSIX, review all three images, merge the capture PR, and
+  set `listing_approved: true` as a separate reviewed change.
+- [ ] Re-check the size and SHA-256 from the merged revision, create annotated tag `v0.1.2`, and pass the Release
+  workflow dry run.
+
+## 0.1.1 publication record (history)
 
 | Check | Result |
 |---|---|
@@ -49,50 +77,6 @@ Scope and gaps: the integration suite was not re-run against the Marketplace-ins
 the packaged-VSIX install smoke on Linux, Windows, and macOS in CI before publication. The first install from the
 Marketplace in a container needed the host's corporate TLS CA (`NODE_EXTRA_CA_CERTS`), which is local to the
 verification host. No GitHub release has been created for 0.1.1 yet.
-
-## Changes since 0.1.0
-
-- Document appearance is the default: Shantell Sans and JetBrains Mono bundled locally (SIL Open Font License,
-  +0.3 MB), 17–18px body at 1.9 line height, a 100ch measure, card-style technical blocks, and the Catppuccin
-  Mocha palette in dark themes only (`markami.document.palette`).
-- The outline docks as a column in panes of at least 1280px and is a pill below that.
-- Fixes: inline emphasis and code styling, one-card code blocks without per-line scrollbars, dividers, VS Code
-  appearance heading hierarchy, theme-colored gutter and buttons, syntax styling leaking into fenced code, and
-  frontmatter appearing in the outline. See [`CHANGELOG.md`](../../CHANGELOG.md) and Task 28–29 in
-  [`progress.md`](progress.md).
-
-## Public release gates
-
-- [x] Publisher, Entra federation, protected environments, license, and advisory acceptance are unchanged from
-  0.1.0 and recorded in its publication record below. The first 0.1.0 publish run proved the identity is a
-  Contributor of the `shipsolid` publisher.
-- [x] Native stable Windows, macOS, and Linux integration plus VS Code 1.102 compatibility. Evidence: CI run
-  38053695267 on `main` (`1d0f3d3`) passed the integration matrix on `ubuntu-latest`, `windows-latest`, and
-  `macos-latest` with VS Code stable and on `ubuntu-latest` with VS Code 1.102.0, and its `verify` job passed the
-  benchmark gates (1 MiB open median 396 ms against a 1500 ms target; typing p95 29.56 ms against 50 ms). The
-  previous run on `23be920` failed the typing gate at 50.62 ms because of a quadratic fence lookup, fixed in
-  `1d0f3d3` (Task 29 in [`progress.md`](progress.md)).
-- [x] Packaged-VSIX install, edit, save, and uninstall smoke on Linux, Windows, and macOS. Evidence: the same CI
-  run's `install-smoke` matrix installs the packaged VSIX into an isolated profile on all three systems and runs
-  the integration suite against it.
-- [x] Native VS Code integration of the Document defaults and the new outline layout: the 18 integration tests
-  also passed in a container (VS Code 1.141.0, Linux) with the changed defaults.
-- [x] Production-webview rendering verified in a real browser under dark, light, and high-contrast themes at
-  600, 700, 800, 1000, 1300, 1700, and 1800px panes (45 Playwright specs, all passing).
-- [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
-  in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
-  CHANGELOG. Revisit before a non-preview release.
-- [x] Regenerate the Marketplace captures from the 0.1.1 VSIX, review all three images, merge the capture PR.
-  Evidence: the Marketplace captures workflow (run 38052856072, from `60cf41c`) captured the exact packaged
-  VSIX; the three images were reviewed (Document appearance with the Mocha palette, docked outline, card code
-  blocks, local Mermaid and math, source reveal on the active heading; no clipping or private content) and the
-  owner merged PR #9 as `23be920`. The later performance fix changes no rendering. Known cosmetic gaps shown in
-  the images: a `[!NOTE]` alert still shows its raw marker line, and table controls and block handles are always
-  visible.
-- [x] Re-record the final size and SHA-256 from the merged revision (this file's frontmatter and candidate table).
-- [x] Create and push annotated tag `v0.1.1` only after the owner authorizes the release. The owner asked for the
-  0.1.1 publication on 2026-10-10 and merged the capture PR; the Release workflow's dry run and the
-  `vscode-marketplace` deployment, which the owner approves themself, follow from the tag.
 
 ## 0.1.0 publication record (history)
 

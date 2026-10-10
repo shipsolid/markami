@@ -2,7 +2,10 @@
 
 All notable changes to markami are documented here.
 
-## Unreleased
+## 0.1.2 — 2026-10-10
+
+Preview release. A cleaner default style that follows your VS Code theme, rendered table cells, syntax-highlighted
+code with line numbers, real lists, and an outline that follows the pane.
 
 ### Changed
 
