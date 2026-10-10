@@ -19,6 +19,16 @@ export type HiddenToken = SourceRange;
 
 export interface LineStyle extends SourceRange {
   readonly kind: Exclude<SyntaxKind, 'strong' | 'emphasis' | 'strike' | 'inlineCode'>;
+  /** List lines only: nesting depth from the indentation (two columns per level, at most 6). */
+  readonly level?: number;
+  /** List lines only: the item starts with a task checkbox. */
+  readonly task?: boolean;
+}
+
+/** The marker and spacing of a list item that is rendered as a glyph or aligned number instead of source text. */
+export interface ListMarker extends SourceRange {
+  readonly kind: 'bullet' | 'number' | 'task';
+  readonly level: number;
 }
 
 export interface WidgetSpec extends SourceRange {
@@ -33,6 +43,9 @@ export interface ProjectionPlan {
   readonly version: 1;
   readonly marks: readonly MarkDecoration[];
   readonly hiddenTokens: readonly HiddenToken[];
+  /** Tokens that would be hidden but are shown because the caret is in their block, so they can be dimmed. */
+  readonly revealedTokens: readonly HiddenToken[];
+  readonly listMarkers: readonly ListMarker[];
   readonly lineStyles: readonly LineStyle[];
   readonly widgets: readonly WidgetSpec[];
   readonly sourceIslands: readonly SourceIslandSpec[];
@@ -47,18 +60,20 @@ export interface ProjectionOptions {
 export function buildProjectionPlan(source: string, options: ProjectionOptions = {}): ProjectionPlan {
   const marks: MarkDecoration[] = [];
   const hiddenTokens: HiddenToken[] = [];
+  const revealedTokens: HiddenToken[] = [];
+  const listMarkers: ListMarker[] = [];
   const lineStyles: LineStyle[] = [];
   const sourceIslands = mergeIslands([...findUnterminatedFence(source), ...(options.sourceIslands ?? [])]);
   // Code is literal: a shell comment must not become a heading and `**` must not become bold.
   const fenced = indexRanges(findFencedBlocks(source));
 
-  collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands, fenced);
-  collectInlineMarks(source, marks, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectLines(source, { styles: lineStyles, hidden: hiddenTokens, revealed: revealedTokens, listMarkers }, options.selection, sourceIslands, fenced);
+  collectInlineMarks(source, marks, { hidden: hiddenTokens, revealed: revealedTokens }, options.selection, sourceIslands, fenced);
 
   if (options.semanticRanges !== undefined && disagrees(marks, options.semanticRanges)) {
     return emptyWithIsland(source.length, 'parser disagreement');
   }
-  return { version: 1, marks, hiddenTokens, lineStyles, widgets: [], sourceIslands };
+  return { version: 1, marks, hiddenTokens, revealedTokens, listMarkers, lineStyles, widgets: [], sourceIslands };
 }
 
 /**
@@ -68,7 +83,7 @@ export function buildProjectionPlan(source: string, options: ProjectionOptions =
 export function buildInlineProjection(source: string): { readonly marks: readonly MarkDecoration[]; readonly hiddenTokens: readonly HiddenToken[] } {
   const marks: MarkDecoration[] = [];
   const hiddenTokens: HiddenToken[] = [];
-  collectInlineMarks(source, marks, hiddenTokens, undefined, [], indexRanges([]));
+  collectInlineMarks(source, marks, { hidden: hiddenTokens, revealed: [] }, undefined, [], indexRanges([]));
   return { marks, hiddenTokens };
 }
 
@@ -129,10 +144,21 @@ export function findUnknownSyntaxRanges(source: string): readonly SourceIslandSp
   return mergeIslands(ranges);
 }
 
+interface LineOutput {
+  readonly styles: LineStyle[];
+  readonly hidden: HiddenToken[];
+  readonly revealed: HiddenToken[];
+  readonly listMarkers: ListMarker[];
+}
+
+interface TokenOutput {
+  readonly hidden: HiddenToken[];
+  readonly revealed: HiddenToken[];
+}
+
 function collectLines(
   source: string,
-  styles: LineStyle[],
-  hidden: HiddenToken[],
+  out: LineOutput,
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
   fenced: RangeIndex
@@ -146,28 +172,53 @@ function collectLines(
     }
     const heading = /^(#{1,6})\s/u.exec(line);
     const quote = /^>\s?/u.exec(line);
-    const list = /^\s*(?:[-+*]|\d+[.)])\s/u.exec(line);
+    const list = /^(\s*)([-+*]|\d+[.)])\s+/u.exec(line);
     if (heading !== null) {
       const level = heading[1]?.length ?? 1;
-      styles.push({ from: offset, to: end, kind: `heading${String(level)}` as LineStyle['kind'] });
-      maybeHide(offset, offset + heading[0].length, offset, end, hidden, selection, islands);
+      out.styles.push({ from: offset, to: end, kind: `heading${String(level)}` as LineStyle['kind'] });
+      maybeHide(offset, offset + heading[0].length, offset, end, out, selection, islands);
     } else if (quote !== null) {
-      styles.push({ from: offset, to: end, kind: 'quote' });
-      maybeHide(offset, offset + quote[0].length, offset, end, hidden, selection, islands);
+      out.styles.push({ from: offset, to: end, kind: 'quote' });
+      maybeHide(offset, offset + quote[0].length, offset, end, out, selection, islands);
     } else if (list !== null) {
-      styles.push({ from: offset, to: end, kind: 'list' });
+      collectListItem(line, list, offset, end, out, selection, islands);
     } else if (/^\s*(?:---+|___+|\*\*\*+)\s*$/u.test(line)) {
-      styles.push({ from: offset, to: end, kind: 'divider' });
-      maybeHide(offset, end, offset, end, hidden, selection, islands);
+      out.styles.push({ from: offset, to: end, kind: 'divider' });
+      maybeHide(offset, end, offset, end, out, selection, islands);
     }
     offset = end + 1;
   }
 }
 
+function collectListItem(
+  line: string,
+  match: RegExpExecArray,
+  offset: number,
+  end: number,
+  out: LineOutput,
+  selection: SourceRange | undefined,
+  islands: readonly SourceIslandSpec[]
+): void {
+  const indent = match[1] ?? '';
+  const columns = indent.replaceAll('\t', '    ').length;
+  const level = Math.min(6, Math.floor(columns / 2));
+  const markerFrom = offset + indent.length;
+  const markerTo = offset + match[0].length;
+  const task = /^\[[ xX]\](?=\s|$)/u.test(line.slice(match[0].length));
+  out.styles.push({ from: offset, to: end, kind: 'list', level, task });
+  if (islands.some((island) => overlaps({ from: offset, to: end }, island))) return;
+  if (touchesSelection({ from: offset, to: end }, selection)) {
+    out.revealed.push({ from: markerFrom, to: markerTo });
+    return;
+  }
+  if (markerFrom > offset) out.hidden.push({ from: offset, to: markerFrom });
+  out.listMarkers.push({ from: markerFrom, to: markerTo, kind: task ? 'task' : /^\d/u.test(match[2] ?? '') ? 'number' : 'bullet', level });
+}
+
 function collectInlineMarks(
   source: string,
   marks: MarkDecoration[],
-  hidden: HiddenToken[],
+  tokens: TokenOutput,
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
   fenced: RangeIndex
@@ -175,10 +226,10 @@ function collectInlineMarks(
   // Inline code is literal: delimiters inside it must not become bold, emphasis, or strikethrough.
   const code = indexRanges([...source.matchAll(/`([^`\n]+)`/gu)].map((match) => ({ from: match.index, to: match.index + match[0].length })));
   const apart = (span: SourceRange): boolean => !code.overlapsSpan(span);
-  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hidden, selection, islands, fenced, apart);
-  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, hidden, selection, islands, fenced, apart);
-  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, hidden, selection, islands, fenced, apart);
-  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, hidden, selection, islands, fenced, () => true);
+  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, tokens, selection, islands, fenced, apart);
+  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, tokens, selection, islands, fenced, apart);
+  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, tokens, selection, islands, fenced, apart);
+  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, tokens, selection, islands, fenced, () => true);
 }
 
 function collectInline(
@@ -187,7 +238,7 @@ function collectInline(
   kind: MarkDecoration['kind'],
   delimiter: number,
   marks: MarkDecoration[],
-  hidden: HiddenToken[],
+  tokens: TokenOutput,
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
   fenced: RangeIndex,
@@ -200,8 +251,10 @@ function collectInline(
       continue;
     }
     marks.push({ from: from + delimiter, to: to - delimiter, kind });
-    if (!touchesSelection({ from, to }, selection)) {
-      hidden.push({ from, to: from + delimiter }, { from: to - delimiter, to });
+    if (touchesSelection({ from, to }, selection)) {
+      tokens.revealed.push({ from, to: from + delimiter }, { from: to - delimiter, to });
+    } else {
+      tokens.hidden.push({ from, to: from + delimiter }, { from: to - delimiter, to });
     }
   }
 }
@@ -249,13 +302,13 @@ function maybeHide(
   to: number,
   blockFrom: number,
   blockTo: number,
-  hidden: HiddenToken[],
+  out: TokenOutput,
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[]
 ): void {
-  if (!touchesSelection({ from: blockFrom, to: blockTo }, selection) && !islands.some((island) => overlaps({ from, to }, island))) {
-    hidden.push({ from, to });
-  }
+  if (islands.some((island) => overlaps({ from, to }, island))) return;
+  if (touchesSelection({ from: blockFrom, to: blockTo }, selection)) out.revealed.push({ from, to });
+  else out.hidden.push({ from, to });
 }
 
 function touchesSelection(range: SourceRange, selection: SourceRange | undefined): boolean {
@@ -281,6 +334,8 @@ function emptyWithIsland(length: number, reason: string): ProjectionPlan {
     version: 1,
     marks: [],
     hiddenTokens: [],
+    revealedTokens: [],
+    listMarkers: [],
     lineStyles: [],
     widgets: [],
     sourceIslands: [{ from: 0, to: length, reason }]

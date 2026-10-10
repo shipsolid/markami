@@ -24,6 +24,11 @@ All notable changes to markami are documented here.
   high contrast uses weight and style instead of color) and show line numbers when they have more than one line
   (`markami.codeBlock.lineNumbers`, default on). The README and earlier changelog entries already claimed syntax
   highlighting, but 0.1.0 and 0.1.1 never applied a highlight style, so code was plain text.
+- Lists render as lists: bullets are real glyphs that step down with nesting (•, ◦, ▪), numbered items keep their
+  numbers aligned, task items show only their checkbox, and wrapped text hangs under the item's text. The source
+  indentation and markers are untouched and return while an item is edited.
+- Markers shown for editing (`#`, `**`, backticks, list markers) are dimmed instead of full contrast, so a block
+  looks rendered even while you edit it.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

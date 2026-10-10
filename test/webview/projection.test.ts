@@ -84,6 +84,32 @@ describe('Markdown projection', () => {
     expect(plan.hiddenTokens.filter((token) => token.from >= 1 && token.to <= 6)).toEqual([]);
   });
 
+  test('list_markers_are_planned_with_their_level_and_the_indentation_is_hidden', () => {
+    const markdown = '- a\n  1. b\n- [x] c\n';
+    const plan = buildProjectionPlan(markdown);
+
+    expect(plan.listMarkers).toEqual([
+      { from: 0, to: 2, kind: 'bullet', level: 0 },
+      { from: 6, to: 9, kind: 'number', level: 1 },
+      { from: 11, to: 13, kind: 'task', level: 0 }
+    ]);
+    expect(plan.lineStyles.filter((style) => style.kind === 'list').map((style) => [style.level, style.task])).toEqual([
+      [0, false], [1, false], [0, true]
+    ]);
+    expect(plan.hiddenTokens).toContainEqual({ from: 4, to: 6 });
+  });
+
+  test('markers_shown_for_editing_are_reported_so_they_can_be_dimmed', () => {
+    const markdown = '# T\n\nA **b** and - item\n';
+    const inHeading = buildProjectionPlan(markdown, { selection: { from: 2, to: 2 } });
+    const inParagraph = buildProjectionPlan(markdown, { selection: { from: 9, to: 9 } });
+
+    expect(inHeading.revealedTokens).toEqual([{ from: 0, to: 2 }]);
+    expect(inHeading.hiddenTokens).toEqual([{ from: 7, to: 9 }, { from: 10, to: 12 }]);
+    expect(inParagraph.revealedTokens).toEqual([{ from: 7, to: 9 }, { from: 10, to: 12 }]);
+    expect(inParagraph.hiddenTokens).toEqual([{ from: 0, to: 2 }]);
+  });
+
   test('indented_list_items_are_styled_as_list_lines', () => {
     const markdown = '- parent\n  - child\n    1. grandchild\n';
     const plan = buildProjectionPlan(markdown);

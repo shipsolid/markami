@@ -1,0 +1,60 @@
+/*
+ * List items hang their text under the first line of text, not under the marker. The marker is a glyph widget (bullet)
+ * or a right-aligned number of the same width, so wrapped lines align with where the item's text starts. Nesting adds
+ * one gutter per level; the level comes from the source indentation. While an item is edited its raw marker shows.
+ */
+.markami-document-shell {
+  --markami-list-gutter: 2em;
+}
+
+.markami-list-level-0 { --markami-list-level: 0; }
+.markami-list-level-1 { --markami-list-level: 1; }
+.markami-list-level-2 { --markami-list-level: 2; }
+.markami-list-level-3 { --markami-list-level: 3; }
+.markami-list-level-4 { --markami-list-level: 4; }
+.markami-list-level-5 { --markami-list-level: 5; }
+.markami-list-level-6 { --markami-list-level: 6; }
+
+.markami-document-shell .cm-line.markami-list {
+  padding-left: calc(6px + (var(--markami-list-level, 0) + 1) * var(--markami-list-gutter));
+  text-indent: calc(-1 * var(--markami-list-gutter));
+}
+
+.markami-document-shell .cm-line.markami-list.markami-list-task {
+  padding-left: calc(6px + var(--markami-list-level, 0) * var(--markami-list-gutter) + 1.8em);
+  text-indent: -1.8em;
+}
+
+.markami-bullet {
+  box-sizing: border-box;
+  display: inline-block;
+  padding-right: 0.55em;
+  text-align: right;
+  text-indent: 0;
+  width: var(--markami-list-gutter);
+}
+
+.markami-task-marker {
+  display: inline-block;
+  width: 0;
+}
+
+.markami-list-number {
+  box-sizing: border-box;
+  color: var(--vscode-descriptionForeground);
+  display: inline-block;
+  min-width: var(--markami-list-gutter);
+  text-align: right;
+  text-indent: 0;
+  white-space: pre;
+}
+
+.markami-document-shell .cm-line.markami-list-task input[type='checkbox'] {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+
+/* A marker shown for editing is quieter than the text it belongs to. */
+.markami-syntax-marker {
+  color: var(--vscode-descriptionForeground);
+}
