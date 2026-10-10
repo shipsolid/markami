@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { executeWhenReady } from './support.js';
 
 interface PreferenceState {
   readonly effective: {
@@ -39,8 +40,8 @@ suite('durable view preferences', function () {
 
     await vscode.commands.executeCommand('vscode.openWith', first, 'markami.editor', vscode.ViewColumn.One);
     await vscode.commands.executeCommand('vscode.openWith', first, 'markami.editor', vscode.ViewColumn.Two);
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentAppearance', 'document'), true);
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentWidth', 'readable'), true);
+    await executeWhenReady('markami.setDocumentAppearance', 'document');
+    await executeWhenReady('markami.setDocumentWidth', 'readable');
     await waitForPreferences(first, { appearance: 'document', width: 'readable' });
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -49,11 +50,11 @@ suite('durable view preferences', function () {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.commands.executeCommand('vscode.openWith', second, 'markami.editor');
     await waitForPreferences(second, { appearance: 'vscode', width: 'auto' });
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentWidth', 'full'), true);
+    await executeWhenReady('markami.setDocumentWidth', 'full');
     await waitForPreferences(second, { appearance: 'vscode', width: 'full' });
-    assert.equal(await vscode.commands.executeCommand('markami.resetFileViewPreferences'), true);
+    await executeWhenReady('markami.resetFileViewPreferences');
     await waitForPreferences(second, { appearance: 'vscode', width: 'auto' });
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentWidth', 'full'), true);
+    await executeWhenReady('markami.setDocumentWidth', 'full');
     await waitForPreferences(second, { appearance: 'vscode', width: 'full' });
 
     const renamed = vscode.Uri.file(path.join(directory, 'b', 'RENAMED.md'));
@@ -62,9 +63,9 @@ suite('durable view preferences', function () {
     assert.equal(await vscode.workspace.applyEdit(rename), true);
     await vscode.commands.executeCommand('vscode.openWith', renamed, 'markami.editor');
     await waitForPreferences(renamed, { appearance: 'vscode', width: 'full' });
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentAppearance', 'document'), true);
+    await executeWhenReady('markami.setDocumentAppearance', 'document');
     await waitForPreferences(renamed, { appearance: 'document', width: 'full' });
-    assert.equal(await vscode.commands.executeCommand('markami.resetWorkspaceViewPreferences'), true);
+    await executeWhenReady('markami.resetWorkspaceViewPreferences');
     await waitForPreferences(renamed, { appearance: 'vscode', width: 'auto' });
     await waitForPreferences(first, { appearance: 'vscode', width: 'auto' });
 
@@ -78,10 +79,11 @@ suite('durable view preferences', function () {
     const filePath = path.join(directory, 'session.md');
     await writeFile(filePath, '# Session\n');
     const uri = vscode.Uri.file(filePath);
-    const document = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+    // openTextDocument() would pin the model in the extension host for minutes, so closing every editor
+    // would never close the canonical document this test is about.
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'default', vscode.ViewColumn.One);
     await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor', vscode.ViewColumn.Two);
-    assert.equal(await vscode.commands.executeCommand('markami.setDocumentAppearance', 'document'), true);
+    await executeWhenReady('markami.setDocumentAppearance', 'document');
     await waitForPreferences(uri, { appearance: 'document', width: 'auto' });
 
     const customTab = vscode.window.tabGroups.all

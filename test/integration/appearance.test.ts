@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { executeWhenReady } from './support.js';
 
 suite('document appearance commands', function () {
   this.timeout(20_000);
@@ -26,10 +27,10 @@ suite('document appearance commands', function () {
     await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor');
 
     for (const appearance of ['vscode', 'document']) {
-      assert.equal(await vscode.commands.executeCommand('markami.setDocumentAppearance', appearance), true);
+      await executeWhenReady('markami.setDocumentAppearance', appearance);
     }
     for (const width of ['auto', 'readable', 'full']) {
-      assert.equal(await vscode.commands.executeCommand('markami.setDocumentWidth', width), true);
+      await executeWhenReady('markami.setDocumentWidth', width);
     }
 
     assert.equal(document.getText(), source);

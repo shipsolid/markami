@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import { readGitRevision } from './gitRevision.mjs';
 
-test('reads the current revision from a linked worktree', async () => {
+test('reads the current revision from a normal checkout or a linked worktree', async () => {
   const expected = await revisionFromGitMetadata();
   assert.equal(readGitRevision(process.cwd()), expected);
 });
@@ -21,10 +21,10 @@ test('rejects a directory that is not a Git checkout', async () => {
 });
 
 async function revisionFromGitMetadata() {
-  const dotGit = (await readFile('.git', 'utf8')).trim();
-  const gitDirectory = dotGit.startsWith('gitdir: ')
-    ? path.resolve(dotGit.slice('gitdir: '.length))
-    : path.resolve('.git');
+  // `.git` is a directory in a normal checkout (CI) and a `gitdir:` pointer file in a linked worktree.
+  const gitDirectory = (await stat('.git')).isDirectory()
+    ? path.resolve('.git')
+    : path.resolve((await readFile('.git', 'utf8')).trim().slice('gitdir: '.length));
   const head = (await readFile(path.join(gitDirectory, 'HEAD'), 'utf8')).trim();
   if (!head.startsWith('ref: ')) return head.slice(0, 7);
 
