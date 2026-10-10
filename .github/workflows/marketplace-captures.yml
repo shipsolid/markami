@@ -56,6 +56,7 @@ jobs:
           path: |
             README.md
             media/marketplace/*.png
+            media/marketplace/*.gif
       - name: Open capture review pull request
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,7 +65,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add -- README.md media/marketplace/*.png
+          git add -- README.md media/marketplace/*.png media/marketplace/*.gif
           if git diff --cached --quiet; then
             echo "Marketplace captures are already current."
             exit 0

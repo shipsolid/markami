@@ -37,6 +37,18 @@ export async function validateExtractedExtension(extractRoot) {
   return extensionRoot;
 }
 
+export function demoGifArguments(frames, output) {
+  if (frames.length < 2) throw new Error('The demo GIF needs at least two frames.');
+  // The last frame is the diff, which is the point of the animation, so it is held longest.
+  return [
+    ...frames.flatMap((frame, index) => ['-delay', index === frames.length - 1 ? '450' : '250', frame]),
+    '-resize', '960x600!',
+    '-layers', 'OptimizePlus',
+    '-loop', '0',
+    output
+  ];
+}
+
 export function validateCaptureOutputs(captures) {
   const expected = MARKETPLACE_CAPTURES.map((capture) => capture.path);
   for (const capture of expected) {
@@ -88,8 +100,16 @@ async function main(arguments_) {
       ]
     });
 
+    const frameRoot = path.join(stagedCaptureRoot, 'frames');
+    const frames = (await readdir(frameRoot)).filter((name) => name.toLowerCase().endsWith('.png')).sort();
+    execFileSync(
+      process.env.MARKETPLACE_CAPTURE_CONVERT ?? 'convert',
+      demoGifArguments(frames.map((name) => path.join(frameRoot, name)), path.join(stagedCaptureRoot, 'demo.gif')),
+      { stdio: 'inherit' }
+    );
+
     const produced = (await readdir(stagedCaptureRoot))
-      .filter((name) => name.toLowerCase().endsWith('.png'))
+      .filter((name) => /\.(?:png|gif)$/iu.test(name))
       .map((name) => path.posix.join('media', 'marketplace', name));
     validateCaptureOutputs(produced);
 

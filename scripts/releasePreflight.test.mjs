@@ -26,6 +26,7 @@ const requiredFiles = new Set([
   'media/icon.png'
 ]);
 const marketplaceCaptures = [
+  'media/marketplace/demo.gif',
   'media/marketplace/rendered-editor.png',
   'media/marketplace/source-preserving-editing.png',
   'media/marketplace/technical-markdown.png',
@@ -350,6 +351,8 @@ test('capture automation produces a review PR from the exact VSIX without mutati
   assert.match(captureWorkflow, /node scripts\/marketplaceListing\.mjs --apply README\.md/u);
   assert.match(captureWorkflow, /node scripts\/marketplaceListing\.mjs --validate/u);
   assert.match(captureWorkflow, /gh pr create/u);
+  assert.match(captureWorkflow, /^\s+media\/marketplace\/\*\.gif$/mu, 'the review artifact must include the demo GIF');
+  assert.match(captureWorkflow, /git add -- README\.md media\/marketplace\/\*\.png media\/marketplace\/\*\.gif/u);
   assert.ok(
     captureWorkflow.indexOf('node scripts/marketplaceListing.mjs --apply README.md') < captureWorkflow.indexOf('npm run package') &&
       captureWorkflow.indexOf('npm run package') < captureWorkflow.indexOf('npm run build:marketplace-capture') &&

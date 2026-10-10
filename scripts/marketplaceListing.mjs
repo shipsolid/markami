@@ -7,7 +7,18 @@ const HEIGHT = 900;
 const GALLERY_START = '<!-- marketplace-gallery:start -->';
 const GALLERY_END = '<!-- marketplace-gallery:end -->';
 
+const GIF_MAX_BYTES = 3 * 1024 * 1024;
+
 export const MARKETPLACE_CAPTURES = Object.freeze([
+  Object.freeze({
+    path: 'media/marketplace/demo.gif',
+    format: 'gif',
+    width: 960,
+    height: 600,
+    heading: 'Edit, save, and check the diff',
+    alt: 'Animation: a paragraph promoted to a heading in markami, saved, then shown as a one-line Git diff',
+    copy: 'Promote a paragraph to a heading in the rendered document, save, and Git shows the single line that changed.'
+  }),
   Object.freeze({
     path: 'media/marketplace/rendered-editor.png',
     width: WIDTH,
@@ -65,6 +76,11 @@ export function updateMarketplaceGallery(readme) {
 export function validateMarketplaceCapture(name, bytes) {
   const expected = MARKETPLACE_CAPTURES.find((capture) => capture.path === name);
   if (expected === undefined) throw new Error(`Unexpected Marketplace capture: ${name}`);
+  if (expected.format === 'gif') validateGif(name, expected, bytes);
+  else validatePng(name, expected, bytes);
+}
+
+function validatePng(name, expected, bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 24) throw new Error(`${name} must be a PNG image.`);
 
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -98,6 +114,58 @@ export function validateMarketplaceCapture(name, bytes) {
   }
   if (!complete) throw new Error(`${name} must be a complete PNG ending in an IEND chunk.`);
   if (!hasImageData) throw new Error(`${name} must contain PNG image data.`);
+}
+
+function validateGif(name, expected, bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 14 || bytes.toString('ascii', 0, 6) !== 'GIF89a') {
+    throw new Error(`${name} must be a GIF89a image.`);
+  }
+  if (bytes.length > GIF_MAX_BYTES) throw new Error(`${name} must stay under 3 MiB; received ${String(bytes.length)} bytes.`);
+  const width = bytes.readUInt16LE(6);
+  const height = bytes.readUInt16LE(8);
+  if (width !== expected.width || height !== expected.height) {
+    throw new Error(`${name} must be ${String(expected.width)} by ${String(expected.height)} pixels; received ${String(width)} by ${String(height)}.`);
+  }
+
+  let offset = 13;
+  if (bytes[10] & 0x80) offset += 3 * (2 ** ((bytes[10] & 0x07) + 1));
+  let frames = 0;
+  let loops = false;
+  let complete = false;
+  while (offset < bytes.length) {
+    const marker = bytes[offset];
+    if (marker === 0x3b) {
+      complete = offset === bytes.length - 1;
+      break;
+    }
+    if (marker === 0x21) {
+      const label = bytes[offset + 1];
+      if (label === 0xff && bytes.toString('ascii', offset + 3, offset + 14) === 'NETSCAPE2.0') loops = true;
+      offset = skipSubBlocks(bytes, offset + 2);
+    } else if (marker === 0x2c) {
+      const packed = bytes[offset + 9];
+      offset += 10;
+      if (packed & 0x80) offset += 3 * (2 ** ((packed & 0x07) + 1));
+      offset = skipSubBlocks(bytes, offset + 1);
+      frames += 1;
+    } else {
+      break;
+    }
+    if (offset < 0) break;
+  }
+  if (!complete) throw new Error(`${name} must be a complete GIF ending in a trailer.`);
+  if (frames < 2) throw new Error(`${name} must contain at least two frames.`);
+  if (!loops) throw new Error(`${name} must loop (NETSCAPE2.0 extension).`);
+}
+
+function skipSubBlocks(bytes, start) {
+  let offset = start;
+  while (offset < bytes.length) {
+    const size = bytes[offset];
+    offset += 1 + size;
+    if (size === 0) return offset;
+  }
+  return -1;
 }
 
 export function validateMarketplaceMetadata(manifest) {

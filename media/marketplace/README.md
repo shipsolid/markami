@@ -5,11 +5,12 @@ source-tree browser fixtures, private documents, credentials, and customer data 
 
 Run **Actions → Marketplace captures → Run workflow** from the repository's default branch. The
 workflow builds the versioned VSIX, extracts its packaged extension, launches it in VS Code stable at
-1440×900 under Xvfb, captures the public fixtures in `fixtures/marketplace/` (staged in a throwaway Git repository), validates every PNG,
+1440×900 under Xvfb, captures the public fixtures in `fixtures/marketplace/` (staged in a throwaway Git repository), validates every PNG and the GIF,
 updates the generated README gallery, and opens a review pull request.
 
 The required files are:
 
+- `demo.gif`: three real frames (before the edit, after it, the Git diff) assembled by the capture run
 - `rendered-editor.png`
 - `source-preserving-editing.png`
 - `technical-markdown.png`

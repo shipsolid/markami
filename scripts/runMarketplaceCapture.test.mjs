@@ -5,12 +5,14 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  demoGifArguments,
   validateCaptureArguments,
   validateCaptureOutputs,
   validateExtractedExtension
 } from './runMarketplaceCapture.mjs';
 
 const allCaptures = [
+  'media/marketplace/demo.gif',
   'media/marketplace/rendered-editor.png',
   'media/marketplace/source-preserving-editing.png',
   'media/marketplace/technical-markdown.png',
@@ -57,6 +59,19 @@ test('accepts only an extracted shipsolid markami package with its runtime bundl
 
 test('requires every named Marketplace capture and rejects extras', () => {
   assert.doesNotThrow(() => validateCaptureOutputs(allCaptures));
-  assert.throws(() => validateCaptureOutputs(allCaptures.slice(0, 2)), /missing.*technical-markdown/iu);
+  assert.throws(() => validateCaptureOutputs(allCaptures.slice(0, 3)), /missing.*technical-markdown/iu);
   assert.throws(() => validateCaptureOutputs([...allCaptures, 'media/marketplace/extra.png']), /unexpected.*extra/iu);
+});
+
+test('builds the demo GIF from the ordered frames, holding the final diff longest', () => {
+  assert.deepEqual(demoGifArguments(['a.png', 'b.png', 'c.png'], 'out/demo.gif'), [
+    '-delay', '250', 'a.png',
+    '-delay', '250', 'b.png',
+    '-delay', '450', 'c.png',
+    '-resize', '960x600!',
+    '-layers', 'OptimizePlus',
+    '-loop', '0',
+    'out/demo.gif'
+  ]);
+  assert.throws(() => demoGifArguments(['a.png'], 'out/demo.gif'), /at least two frames/iu);
 });

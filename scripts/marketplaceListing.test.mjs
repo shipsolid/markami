@@ -10,6 +10,7 @@ import {
 } from './marketplaceListing.mjs';
 
 const capturePaths = [
+  'media/marketplace/demo.gif',
   'media/marketplace/rendered-editor.png',
   'media/marketplace/source-preserving-editing.png',
   'media/marketplace/technical-markdown.png',
@@ -18,7 +19,10 @@ const capturePaths = [
 
 test('defines the complete ordered Marketplace capture contract', () => {
   assert.deepEqual(MARKETPLACE_CAPTURES.map(({ path }) => path), capturePaths);
-  assert.ok(MARKETPLACE_CAPTURES.every(({ width, height }) => width === 1440 && height === 900));
+  for (const capture of MARKETPLACE_CAPTURES) {
+    const expected = capture.path.endsWith('.gif') ? [960, 600] : [1440, 900];
+    assert.deepEqual([capture.width, capture.height], expected, capture.path);
+  }
 });
 
 test('generates an idempotent gallery while preserving unrelated README content', () => {
@@ -67,12 +71,25 @@ test('replaces only an existing generated gallery block', () => {
 test('accepts only the named 1440 by 900 PNG captures', () => {
   const valid = pngFile(1440, 900);
 
-  assert.doesNotThrow(() => validateMarketplaceCapture(capturePaths[0], valid));
+  assert.doesNotThrow(() => validateMarketplaceCapture(capturePaths[1], valid));
   assert.throws(() => validateMarketplaceCapture('media/marketplace/other.png', valid), /unexpected Marketplace capture/iu);
-  assert.throws(() => validateMarketplaceCapture(capturePaths[0], pngFile(1280, 720)), /1440.*900/iu);
-  assert.throws(() => validateMarketplaceCapture(capturePaths[0], pngWithoutImageData(1440, 900)), /image data/iu);
-  assert.throws(() => validateMarketplaceCapture(capturePaths[0], pngHeader(1440, 900)), /complete PNG/iu);
-  assert.throws(() => validateMarketplaceCapture(capturePaths[0], Buffer.from('not a PNG')), /PNG/iu);
+  assert.throws(() => validateMarketplaceCapture(capturePaths[1], pngFile(1280, 720)), /1440.*900/iu);
+  assert.throws(() => validateMarketplaceCapture(capturePaths[1], pngWithoutImageData(1440, 900)), /image data/iu);
+  assert.throws(() => validateMarketplaceCapture(capturePaths[1], pngHeader(1440, 900)), /complete PNG/iu);
+  assert.throws(() => validateMarketplaceCapture(capturePaths[1], Buffer.from('not a PNG')), /PNG/iu);
+});
+
+test('accepts only a looping multi-frame GIF of the declared size for the demo', () => {
+  const demo = 'media/marketplace/demo.gif';
+
+  assert.doesNotThrow(() => validateMarketplaceCapture(demo, gifFile(960, 600, 3)));
+  assert.throws(() => validateMarketplaceCapture(demo, gifFile(1440, 900, 3)), /960.*600/iu);
+  assert.throws(() => validateMarketplaceCapture(demo, gifFile(960, 600, 1)), /at least two frames/iu);
+  assert.throws(() => validateMarketplaceCapture(demo, gifFile(960, 600, 3, { loop: false })), /loop/iu);
+  assert.throws(() => validateMarketplaceCapture(demo, gifFile(960, 600, 3, { trailer: false })), /complete GIF/iu);
+  assert.throws(() => validateMarketplaceCapture(demo, gifFile(960, 600, 3, { padding: 3 * 1024 * 1024 })), /3 MiB/iu);
+  assert.throws(() => validateMarketplaceCapture(demo, pngFile(960, 600)), /GIF/iu);
+  assert.throws(() => validateMarketplaceCapture(capturePaths[1], gifFile(1440, 900, 3)), /PNG/iu);
 });
 
 test('repository manifest exposes the approved Marketplace metadata', async () => {
@@ -113,4 +130,35 @@ function pngWithoutImageData(width, height) {
   bytes.writeUInt32BE(0, 33);
   bytes.write('IEND', 37, 'ascii');
   return bytes;
+}
+
+function gifFile(width, height, frames, { loop = true, trailer = true, padding = 0 } = {}) {
+  const parts = [Buffer.from('GIF89a', 'ascii')];
+  const screen = Buffer.alloc(7);
+  screen.writeUInt16LE(width, 0);
+  screen.writeUInt16LE(height, 2);
+  parts.push(screen);
+  if (loop) {
+    parts.push(Buffer.from([0x21, 0xff, 0x0b]), Buffer.from('NETSCAPE2.0', 'ascii'), Buffer.from([0x03, 0x01, 0x00, 0x00, 0x00]));
+  }
+  for (let index = 0; index < frames; index += 1) {
+    parts.push(Buffer.from([0x21, 0xf9, 0x04, 0x00, 0x32, 0x00, 0x00, 0x00]));
+    const descriptor = Buffer.alloc(10);
+    descriptor[0] = 0x2c;
+    descriptor.writeUInt16LE(width, 5);
+    descriptor.writeUInt16LE(height, 7);
+    parts.push(descriptor, Buffer.from([0x02, 0x02, 0x44, 0x01, 0x00]));
+  }
+  if (padding > 0) parts.push(Buffer.from([0x21, 0xfe]), ...subBlocks(Buffer.alloc(padding)), Buffer.from([0x00]));
+  if (trailer) parts.push(Buffer.from([0x3b]));
+  return Buffer.concat(parts);
+}
+
+function subBlocks(bytes) {
+  const blocks = [];
+  for (let offset = 0; offset < bytes.length; offset += 255) {
+    const chunk = bytes.subarray(offset, offset + 255);
+    blocks.push(Buffer.from([chunk.length]), chunk);
+  }
+  return blocks;
 }

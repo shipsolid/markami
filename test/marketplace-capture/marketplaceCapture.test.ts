@@ -55,6 +55,10 @@ suite('packaged Marketplace surface', function () {
     const committed = await readFile(notes.fsPath, 'utf8');
     await openRendered(workspace.uri, 'release-notes.md');
     await setDocumentPresentation('vscode', 'auto');
+    // The animation's frames: before the edit, after the edit, then the diff below.
+    const frames = path.join(outputDirectory, 'frames');
+    await mkdir(frames, { recursive: true });
+    await capture(captureTool, frames, '1-before.png');
     await executeWhenReady('markami.heading1');
     const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === notes.toString());
     assert.ok(document, 'release-notes.md must be open');
@@ -66,11 +70,15 @@ suite('packaged Marketplace surface', function () {
       'promoting the paragraph must change that one line and nothing else'
     );
 
+    await wait(1_000);
+    await capture(captureTool, frames, '2-after.png');
+
     await waitForGitChange(notes);
     await vscode.commands.executeCommand('workbench.action.splitEditorRight');
     await vscode.commands.executeCommand('git.openChange', notes);
     await wait(2_000);
     await capture(captureTool, outputDirectory, 'git-diff.png');
+    await capture(captureTool, frames, '3-diff.png');
   });
 });
 
