@@ -7,13 +7,22 @@ import {
   type WebviewEndpoint
 } from '../../src/extension/DocumentSession.js';
 import { PatchQueue } from '../../src/webview/bridge/patchQueue.js';
+import { shouldShowExternalConflict } from '../../src/webview/bridge/hostBridge.js';
 import type { HostMessage, PatchRequest } from '../../src/protocol/messages.js';
 import { RecoveryStore, type RecoveryRecord, type RecoveryStorage } from '../../src/extension/RecoveryStore.js';
 import { MAX_PROTOCOL_TEXT_BYTES } from '../../src/protocol/limits.js';
+import type { ViewPreferencesState } from '../../src/protocol/viewPreferences.js';
+
+const viewPreferences: ViewPreferencesState = {
+  schemaVersion: 1,
+  rememberPerFile: true,
+  effective: { appearance: 'vscode', width: 'auto', maxContentWidth: 960, syntaxReveal: 'activeBlock', outlineCollapsed: false }
+};
 
 class MemoryDocument implements CanonicalDocument {
   public readonly uri = 'file:///doc.md';
   public version = 1;
+  public eol?: '\n' | '\r\n';
   public text: string;
   public applyCount = 0;
   public failNext = false;
@@ -333,6 +342,55 @@ describe('versioned synchronization', () => {
     expect(document.applyCount).toBe(0);
     expect(view.messages.at(-1)).toMatchObject({ type: 'patchRejected', requestId: 'race' });
     expect(view.messages).toContainEqual(expect.objectContaining({ type: 'documentChanged', version: 2 }));
+  });
+
+  test('dirty_state_events_without_content_changes_are_not_broadcast', () => {
+    const document = new MemoryDocument('abc');
+    const view = endpoint('view-a');
+    const session = new DocumentSession(document);
+    session.attach(view);
+
+    // VS Code fires onDidChangeTextDocument with no contentChanges and an unchanged version when only isDirty flips.
+    session.handleCanonicalDocumentChanged(0, 1, []);
+
+    expect(view.messages).toEqual([]);
+  });
+
+  test('multi_patch_echo_is_suppressed_when_vscode_reports_changes_in_descending_order', async () => {
+    const document = new MemoryDocument('abcdefghij');
+    const sender = endpoint('view-a');
+    const peer = endpoint('view-b');
+    const session = new DocumentSession(document);
+    session.attach(sender);
+    session.attach(peer);
+    document.beforeApply = () => {
+      session.handleCanonicalDocumentChanged(1, 2, [createTextPatch(7, 7, 'Y'), createTextPatch(2, 2, 'X')]);
+    };
+
+    await session.enqueuePatch(request('multi', sender.id, 1, [createTextPatch(2, 2, 'X'), createTextPatch(7, 7, 'Y')]));
+
+    const changes = peer.messages.filter((message) => message.type === 'documentChanged');
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ originRequestId: 'multi' });
+  });
+
+  test('hydrate_reports_the_document_eol_even_when_the_text_has_no_line_break', () => {
+    const document = new MemoryDocument('# one line');
+    document.eol = '\r\n';
+    const view = endpoint('view-a');
+    const session = new DocumentSession(document);
+    session.attach(view);
+
+    session.sendSnapshot(view.id, viewPreferences);
+
+    expect(view.messages.at(-1)).toMatchObject({ type: 'hydrate', document: { eol: '\r\n' } });
+  });
+
+  test('already_acknowledged_external_change_never_raises_the_conflict_banner', () => {
+    expect(shouldShowExternalConflict('ignored', false)).toBe(false);
+    expect(shouldShowExternalConflict('applied', false)).toBe(false);
+    expect(shouldShowExternalConflict('conflict', false)).toBe(true);
+    expect(shouldShowExternalConflict('conflict', true)).toBe(false);
   });
 
   test('thrown_apply_rejects_without_poisoning_session_queue', async () => {
