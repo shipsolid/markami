@@ -22,7 +22,8 @@ Developer-preview VSIX for local evaluation.
 
 ### Known limitations
 
-- The package uses the local-only `markami-dev` publisher and is not a Marketplace release.
+- Marketplace publication remains gated by the approvals and native/manual evidence recorded in
+  `docs/delivery/`; a local VSIX does not prove public availability.
 - Files larger than 4 MiB UTF-8 fall back to the native source editor.
 - Desktop local-filesystem workspaces are the initial supported platform; browser extension hosts are
   deferred and remote workspaces are best-effort.

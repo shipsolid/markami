@@ -79,6 +79,37 @@ test('preparation accepts complete local metadata and reports public blockers', 
   ]);
 });
 
+test('repository release metadata uses the owner-controlled publisher', async () => {
+  const root = new URL('../', import.meta.url);
+  const [manifestText, changelog, readme, releaseNotes, notices] = await Promise.all([
+    readFile(new URL('package.json', root), 'utf8'),
+    readFile(new URL('CHANGELOG.md', root), 'utf8'),
+    readFile(new URL('README.md', root), 'utf8'),
+    readFile(new URL('docs/delivery/release-notes.md', root), 'utf8'),
+    readFile(new URL('THIRD_PARTY_NOTICES.txt', root), 'utf8')
+  ]);
+  const manifest = JSON.parse(manifestText);
+
+  const result = validateReleaseSource({
+    version: manifest.version,
+    publish: false,
+    manifest,
+    changelog,
+    readme,
+    releaseNotes,
+    notices,
+    requiredFiles,
+    marketplaceCaptures: []
+  });
+
+  assert.deepEqual(result.blockers, [
+    'public release notes are not approved',
+    'public Marketplace listing is not approved',
+    'actual Marketplace capture is missing',
+    'public release checklist still has unchecked blockers'
+  ]);
+});
+
 test('public publishing rejects a placeholder publisher and open release gates', () => {
   assert.throws(
     () =>

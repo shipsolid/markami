@@ -1,15 +1,15 @@
 # VSIX package and installation smoke — 0.1.0
 
-Date: 2026-10-09
+Date: 2026-10-10
 
 ## Artifact
 
 | Field | Result |
 |---|---|
 | Package | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,210,591 bytes |
-| SHA-256 | `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051` |
-| Publisher | `markami-dev` — local testing only |
+| Size | 4,210,587 bytes |
+| SHA-256 | `7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f` |
+| Publisher | `shipsolid` — owner-controlled public publisher |
 | VSIX contents | 282 files; strict package policy passed |
 | Archive integrity | `unzip -t` passed for every entry |
 | License notices | 242 production dependency records grouped into 86 reproduced notices |
@@ -56,11 +56,15 @@ Mermaid/math/code widgets, uninstall, or native-Markdown reopen. None is recorde
 is structurally valid and complete, but a supported native host must run the checklist below before a
 public release.
 
+The 2026-10-10 publisher-migration candidate was retried with `npm run test:integration` and
+`npm run test:visual:browser`. Both cached runtimes again exited with code 127 before test execution
+because `libnspr4.so` is unavailable; no native or browser result is claimed from those attempts.
+
 ## Native-host checklist still required
 
 1. Verify the checksum and install the exact VSIX with isolated `--user-data-dir` and
    `--extensions-dir` directories.
-2. Confirm `markami-dev.markami@0.1.0` in **Extensions: Show Installed Extensions**.
+2. Confirm `shipsolid.markami@0.1.0` in **Extensions: Show Installed Extensions**.
 3. Open representative LF and CRLF fixtures through **Reopen Editor With… → markami**.
 4. Exercise direct text edit, source reveal, undo/redo, save/reopen, two views, table edit, slash menu,
    selection toolbar, block move, outline/find, local image, safe HTML, Mermaid, math, and source islands.

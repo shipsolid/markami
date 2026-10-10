@@ -6,9 +6,9 @@ markami is a source-preserving rendered Markdown editor for VS Code. The open
 `vscode.TextDocument` remains canonical: markami applies validated local edits to the source and
 never regenerates the document from a rendered tree.
 
-> **Developer preview:** this repository packages local VSIX builds with the development publisher
-> `markami-dev`. That identifier is not a claim to a Visual Studio Marketplace namespace. Replace
-> it with the owner's verified publisher before any public release.
+> **Release status:** packages use the owner-controlled `shipsolid` Marketplace publisher. A local
+> VSIX is a release candidate, not publication evidence; only the protected release workflow may
+> publish `shipsolid.markami`.
 
 ## What ships
 

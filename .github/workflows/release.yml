@@ -19,7 +19,8 @@ on:
         type: boolean
       marketplace_publisher:
         description: Owner-controlled publisher already committed in package.json
-        required: false
+        required: true
+        default: shipsolid
         type: string
 
 permissions:

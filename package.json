@@ -3,7 +3,7 @@
   "displayName": "markami",
   "description": "Edit Markdown where you read it.",
   "version": "0.1.0",
-  "publisher": "markami-dev",
+  "publisher": "shipsolid",
   "license": "MIT",
   "private": true,
   "icon": "media/icon.png",

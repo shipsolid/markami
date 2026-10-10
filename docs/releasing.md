@@ -7,8 +7,8 @@ run, tag, or package alone proves that the Visual Studio Marketplace accepted a 
 
 Before the first public release, the owner must provide and approve:
 
-1. A controlled Visual Studio Marketplace publisher ID. Replace `markami-dev` in `package.json` in a
-   reviewed commit; the workflow never rewrites publisher identity.
+1. The owner-controlled Visual Studio Marketplace publisher ID `shipsolid`. Keep `package.json`,
+   release evidence, and workflow input aligned; the workflow never rewrites publisher identity.
 2. A user-assigned managed identity authorized as a Contributor member of the Marketplace publisher,
    with a GitHub Actions federated credential scoped to repository `shipsolid/markami` and environment
    `vscode-marketplace`.

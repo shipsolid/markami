@@ -377,3 +377,28 @@
   authentication probe
 - Publication boundary: the development publisher, release approvals, actual-product captures,
   and checklist remain fail-closed blockers; no commit, tag, push, dispatch, or publish occurred
+
+## Task 21 — Owner-controlled Marketplace publisher
+
+- Status: canonical publisher migrated to `shipsolid`; package identity and local release evidence
+  validated; no Marketplace publication is claimed
+- RED: the repository-level release-preflight test reported both the `markami-dev` development
+  publisher and pending release-evidence identity
+- GREEN: `package.json`, release evidence, installation guidance, public extension ID, and the
+  protected workflow input consistently use `shipsolid`; `markami-dev` remains in the preflight
+  denylist and negative tests
+- Artifact evidence: the VSIX contains 282 files (4,210,587 bytes), with SHA-256
+  `7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f`; both embedded manifests name
+  publisher `shipsolid`; two consecutive packaging runs produced the same size and digest, and package
+  policy, checksum, ZIP integrity, and artifact preflight passed
+- Automated gates: `npm run verify` passed with 95 unit, 34 protocol, 56 fidelity, 5 package, and 12
+  release tests; webview passed 74 tests; deterministic visual passed 5 tests; integration compilation
+  passed; benchmarks passed with 34.71 ms typing p95
+- Host boundary: `npm run test:integration` and `npm run test:visual:browser` were attempted, but the
+  cached VS Code and Chromium binaries exited with code 127 before test execution because
+  `libnspr4.so` is unavailable; neither gate is claimed as passing locally
+- Remaining preflight blockers: public release/listing approval, actual Marketplace captures, and
+  unchecked manual evidence; managed-identity Marketplace membership still requires a live protected
+  workflow probe
+- Publication boundary: no commit, tag, push, workflow dispatch, GitHub release, or Marketplace
+  publication occurred

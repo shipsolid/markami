@@ -1,11 +1,11 @@
 ---
 version: 0.1.0
 public_release: blocked
-publisher: pending-owner-input
+publisher: shipsolid
 repository: shipsolid/markami
 listing_approved: false
-artifact_size: 4210591
-artifact_sha256: 5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051
+artifact_size: 4210587
+artifact_sha256: 7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f
 ---
 
 # markami 0.1.0 release evidence
@@ -20,10 +20,10 @@ listing, or public install has been verified.
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,210,591 bytes |
-| SHA-256 | `5d4d2d2e7af358503e47838e36f912d7638fcb6fb27d1a9bcc730da5bfd48051` |
-| Publisher | `markami-dev` — local development only |
-| Public extension ID | Pending the owner's verified publisher |
+| Size | 4,210,587 bytes |
+| SHA-256 | `7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f` |
+| Publisher | `shipsolid` — owner-controlled public publisher |
+| Public extension ID | `shipsolid.markami` |
 | License | MIT |
 | Repository target | `shipsolid/markami` |
 
@@ -51,8 +51,8 @@ the release workflow. Local package evidence is recorded in
 
 ## Public release blockers
 
-- [ ] Replace `markami-dev` in the committed manifest with the owner's controlled Marketplace
-  publisher; set the same identity in this file.
+- [x] Use the owner-controlled `shipsolid` Marketplace publisher consistently in the manifest and
+  release evidence.
 - [ ] Authorize the Entra managed identity as a Contributor member of the Marketplace publisher and
   protect the `vscode-marketplace` GitHub environment with release-tag restrictions and reviewers.
 - [ ] Approve the public version, copy, categories, icon, privacy/security links, and MIT license;

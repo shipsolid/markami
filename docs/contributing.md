@@ -54,8 +54,9 @@ The package command builds production bundles, creates `artifacts/markami-<versi
 strict contents allowlist, and writes a SHA-256 checksum. Inspect and install that exact artifact in a
 clean profile before release work.
 
-`markami-dev` is a local development publisher only. Do not publish it. A public release requires the
-owner's verified Marketplace publisher, explicit authorization, credentials, and the release preflight.
+The committed Marketplace publisher is `shipsolid`. Local packaging does not publish an extension.
+Public delivery requires explicit owner authorization, protected Entra federation, and the release
+preflight; do not publish outside that workflow.
 
 ## Commits and reviews
 
