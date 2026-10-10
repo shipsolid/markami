@@ -86,11 +86,12 @@ native editor with identical bytes.
 |---|---|---|
 | Container with networking disabled | Playwright Ubuntu 24.04 image on WSL2, VS Code 1.141.0 Linux x64, Xvfb | pass: 16 integration tests against the installed VSIX, clean uninstall |
 | CI `install-smoke` job | GitHub `ubuntu-latest`, VS Code stable | pass in run 38039775318 |
+| CI `install-smoke` matrix | GitHub `ubuntu-latest`, `windows-latest`, `macos-latest`, VS Code stable | pass in run 38048808722: the VSIX built once on Linux and handed to each OS through the artifact actions; checksum verified, 16 integration tests against the installed VSIX, clean uninstall, native reopen |
 
 The two view-preference integration tests are skipped because they drive a command that is registered
 only in extension test mode. Offline rendering of Mermaid, math, and code is covered separately by
-`test/visual-browser/technical.spec.ts`, which aborts every non-local request. Not covered: Windows and
-macOS installs, upgrade from a prior version (none exists), and the hand-driven interaction steps 4 and 6
+`test/visual-browser/technical.spec.ts`, which aborts every non-local request. Not covered: upgrade from a
+prior version (none exists on the Marketplace before 0.1.0) and the hand-driven interaction steps 4 and 6
 in the checklist above (slash menu, selection toolbar, block move, outline/find, table edit, and the
 overlapping-edit recovery choices by hand).
 

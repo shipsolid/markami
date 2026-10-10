@@ -90,6 +90,24 @@
   font-family: var(--vscode-font-family);
 }
 
+/* Every control in the webview is markami's own, so the element selector themes them all; component rules still win. */
+button {
+  background: var(--vscode-button-secondaryBackground);
+  border: 1px solid var(--vscode-button-border, var(--vscode-contrastBorder, transparent));
+  border-radius: 2px;
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .markami-document-controls select,
 .markami-document-controls input {
   background: var(--vscode-dropdown-background);

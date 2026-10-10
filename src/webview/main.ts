@@ -336,7 +336,13 @@ function createEditor(text: string): void {
         }),
         EditorView.theme({
           '&': { height: '100%', fontSize: 'var(--vscode-editor-font-size)' },
-          '.cm-scroller': { overflow: 'auto' }
+          '.cm-scroller': { overflow: 'auto' },
+          // CodeMirror's built-in gutter is a light grey strip regardless of the VS Code theme.
+          '.cm-gutters': {
+            backgroundColor: 'var(--vscode-editorGutter-background, var(--vscode-editor-background))',
+            border: 'none',
+            color: 'var(--vscode-editorLineNumber-foreground)'
+          }
         })
       ]
     })
