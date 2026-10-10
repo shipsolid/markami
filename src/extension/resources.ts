@@ -76,10 +76,12 @@ export async function resolveResource(
     if (!metadata.isFile()) {
       return { ok: false, reason: 'resource is not a file' };
     }
+    // Containment was proven on real paths; return the lexical path because the webview's
+    // localResourceRoots are lexical and would refuse a real path behind a symlinked workspace.
     return {
       ok: true,
       kind: 'localFile',
-      path: resolvedCandidate,
+      path: candidate,
       ...(encodedFragment === undefined ? {} : { fragment: safeDecode(encodedFragment) })
     };
   } catch (error) {
@@ -104,7 +106,7 @@ export class ResourceService {
     const imagePath = root === undefined
       ? await this.copyExternalImage(documentPath, selectedPath)
       : selectedPath;
-    const relative = markdownPath(path.relative(path.dirname(documentPath), imagePath));
+    const relative = markdownPath(path.relative(await realDirectory(documentPath), imagePath));
     const alt = path.basename(selectedPath, path.extname(selectedPath));
     return `![${escapeAlt(alt)}](${encodeMarkdownPath(relative)})`;
   }
@@ -149,6 +151,14 @@ export class ResourceService {
       }
     }
     throw new Error('Could not allocate a unique image name');
+  }
+}
+
+async function realDirectory(documentPath: string): Promise<string> {
+  try {
+    return await realpath(path.dirname(documentPath));
+  } catch {
+    return path.dirname(documentPath);
   }
 }
 
