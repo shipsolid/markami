@@ -28,7 +28,8 @@ export const DARK_PLUS: WebviewTheme = {
     '--vscode-widget-border': '#303031', '--vscode-editorWidget-background': '#252526', '--vscode-editorWidget-border': '#454545',
     '--vscode-editorWidget-foreground': '#cccccc', '--vscode-textCodeBlock-background': '#0a0a0a',
     '--vscode-textSeparator-foreground': '#3c3c3c', '--vscode-textBlockQuote-border': '#007acc',
-    '--vscode-textLink-foreground': '#3794ff', '--vscode-descriptionForeground': '#9d9d9d', '--vscode-focusBorder': '#007fd4',
+    '--vscode-textLink-foreground': '#3794ff', '--vscode-charts-blue': '#3794ff', '--vscode-charts-green': '#89d185',
+    '--vscode-charts-purple': '#b180d7', '--vscode-charts-yellow': '#cca700', '--vscode-charts-red': '#f14c4c', '--vscode-descriptionForeground': '#9d9d9d', '--vscode-focusBorder': '#007fd4',
     '--vscode-list-activeSelectionBackground': '#04395e', '--vscode-list-activeSelectionForeground': '#ffffff',
     '--vscode-dropdown-background': '#3c3c3c', '--vscode-dropdown-foreground': '#f0f0f0', '--vscode-dropdown-border': '#3c3c3c',
     '--vscode-editor-font-family': "'Courier New', monospace", '--vscode-font-family': 'sans-serif', '--vscode-font-size': '13px'

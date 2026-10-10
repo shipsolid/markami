@@ -168,6 +168,18 @@
   padding-left: 12px;
 }
 
+.cm-line.markami-alert-titled::before {
+  color: var(--markami-alert-color);
+  content: var(--markami-alert-title);
+  font-weight: 600;
+}
+
+.cm-line.markami-alert-note { --markami-alert-title: 'Note'; --markami-alert-color: var(--vscode-charts-blue, var(--vscode-textLink-foreground)); }
+.cm-line.markami-alert-tip { --markami-alert-title: 'Tip'; --markami-alert-color: var(--vscode-charts-green, var(--vscode-textLink-foreground)); }
+.cm-line.markami-alert-important { --markami-alert-title: 'Important'; --markami-alert-color: var(--vscode-charts-purple, var(--vscode-textLink-foreground)); }
+.cm-line.markami-alert-warning { --markami-alert-title: 'Warning'; --markami-alert-color: var(--vscode-charts-yellow, var(--vscode-editorWarning-foreground)); }
+.cm-line.markami-alert-caution { --markami-alert-title: 'Caution'; --markami-alert-color: var(--vscode-charts-red, var(--vscode-editorWarning-foreground)); }
+
 .cm-line.markami-alert-warning,
 .cm-line.markami-alert-caution {
   border-left-color: var(--vscode-editorWarning-foreground);

@@ -32,6 +32,8 @@ All notable changes to markami are documented here.
 - The outline docks only while a readable column (at least 880px) is left beside it and otherwise collapses to the
   pill, measured from the editor pane with a `ResizeObserver`. It follows window resizes, editor splits, sidebar
   toggles, and a tab that is hidden and shown again, instead of reading the window width once.
+- GitHub-style alerts show a typed title (Note, Tip, Important, Warning, Caution) in the theme's chart color
+  instead of the raw `[!NOTE]` marker; the marker returns, dimmed, while its line is edited.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

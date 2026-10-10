@@ -146,7 +146,18 @@ function decorationsFor(
     }
   }
   for (const alert of plan.alerts) {
-    ranges.push(Decoration.line({ class: `markami-alert markami-alert-${alert.type}` }).range(state.doc.lineAt(alert.from).from));
+    const line = state.doc.lineAt(alert.from);
+    // Like the quote prefix, the [!TYPE] marker is shown for editing while the caret is on its line, and is replaced
+    // by a typed title otherwise.
+    const editing = selectionFrom <= line.to && selectionTo >= line.from;
+    if (editing) {
+      ranges.push(Decoration.mark({ class: 'markami-syntax-marker' }).range(alert.marker.from, alert.marker.to));
+    } else {
+      ranges.push(Decoration.replace({}).range(alert.marker.from, alert.marker.to));
+    }
+    ranges.push(Decoration.line({
+      class: `markami-alert markami-alert-${alert.type}${editing ? '' : ' markami-alert-titled'}`
+    }).range(line.from));
   }
   for (const island of plan.sourceIslands) {
     ranges.push(Decoration.line({ class: 'markami-technical-source-island' }).range(state.doc.lineAt(island.from).from));
