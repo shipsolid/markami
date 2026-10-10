@@ -6,10 +6,6 @@ markami is a source-preserving rendered Markdown editor for VS Code. The open
 `vscode.TextDocument` remains canonical: markami applies validated local edits to the source and
 never regenerates the document from a rendered tree.
 
-> **Release status:** packages use the owner-controlled `shipsolid` Marketplace publisher. A local
-> VSIX is a release candidate, not publication evidence; only the protected release workflow may
-> publish `shipsolid.markami`.
-
 ## What ships
 
 - Rendered editing for CommonMark and GitHub Flavored Markdown, including lists, tasks, tables,
@@ -78,7 +74,8 @@ Preferences never enter Markdown or frontmatter. Disable per-file persistence wi
 - Mermaid, math, code highlighting, fonts, and editor assets are packaged locally and work offline.
 - Unsafe URLs, executable schemes, unsafe HTML, and filesystem escapes fail closed while source stays
   editable.
-- markami has no telemetry, account, cloud sync, or document upload. See [PRIVACY.md](PRIVACY.md).
+- markami has no telemetry, account, cloud sync, or document upload. Review the
+  [privacy policy](PRIVACY.md) and [security policy](SECURITY.md).
 
 ## Fidelity boundaries
 
@@ -110,6 +107,11 @@ Report bugs at <https://github.com/shipsolid/markami/issues> with VS Code/OS ver
 a minimal redacted reproduction, the command or keystroke used, expected/actual behavior, whether the
 native source changed, and reproduction steps from a clean profile. Never attach secrets or private
 documents.
+
+For source, support, licensing, and release history, see the
+[repository](https://github.com/shipsolid/markami),
+[issue tracker](https://github.com/shipsolid/markami/issues), [MIT license](LICENSE), and
+[changelog](CHANGELOG.md).
 
 ## Build and verify
 

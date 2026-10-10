@@ -1,12 +1,13 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { build } from 'esbuild';
+import { readGitRevision } from './gitRevision.mjs';
 
 const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'markami-bench-'));
 const output = path.join(temporaryDirectory, 'bench.mjs');
-const revision = await readRevision();
+const revision = readGitRevision(process.cwd());
 try {
   await build({
     entryPoints: [path.resolve('scripts/bench.ts')],
@@ -25,16 +26,4 @@ try {
   if (execution.status !== 0) process.exitCode = execution.status ?? 1;
 } finally {
   await rm(temporaryDirectory, { recursive: true, force: true });
-}
-
-async function readRevision() {
-  const head = (await readFile('.git/HEAD', 'utf8')).trim();
-  if (!head.startsWith('ref: ')) return head.slice(0, 7);
-  const reference = head.slice('ref: '.length);
-  try {
-    return (await readFile(path.join('.git', reference), 'utf8')).trim().slice(0, 7);
-  } catch {
-    const packed = await readFile('.git/packed-refs', 'utf8');
-    return packed.split('\n').find((line) => line.endsWith(` ${reference}`))?.slice(0, 7) ?? 'unknown';
-  }
 }

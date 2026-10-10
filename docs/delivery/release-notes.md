@@ -4,8 +4,8 @@ public_release: blocked
 publisher: shipsolid
 repository: shipsolid/markami
 listing_approved: false
-artifact_size: 4210587
-artifact_sha256: 7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f
+artifact_size: 4210861
+artifact_sha256: 78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727
 ---
 
 # markami 0.1.0 release evidence
@@ -20,8 +20,8 @@ listing, or public install has been verified.
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,210,587 bytes |
-| SHA-256 | `7216ae9dbecfded8135c0a493ceb4564bea20bedeb9d5e4270fb111fb329c69f` |
+| Size | 4,210,861 bytes |
+| SHA-256 | `78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -55,10 +55,11 @@ the release workflow. Local package evidence is recorded in
   release evidence.
 - [ ] Authorize the Entra managed identity as a Contributor member of the Marketplace publisher and
   protect the `vscode-marketplace` GitHub environment with release-tag restrictions and reviewers.
-- [ ] Approve the public version, copy, categories, icon, privacy/security links, and MIT license;
-  then set `public_release: approved` and `listing_approved: true` above.
-- [ ] Capture actual-product Marketplace images or GIFs from the release candidate. Generated
-  mockups do not satisfy this gate.
+- [x] Approve the 0.1.0 Preview title, description, categories, keywords, banner, icon,
+  privacy/security links, free pricing, and MIT license.
+- [ ] Dispatch the Marketplace capture workflow, review its exact-VSIX images, merge the generated
+  listing PR, and only then set `listing_approved: true` above. Generated mockups do not satisfy this
+  gate.
 - [ ] Complete install/edit/save/undo/offline-widget/uninstall smoke from an isolated native profile.
 - [ ] Pass native stable Windows, macOS, and Linux integration runs plus VS Code 1.102 compatibility.
 - [ ] Complete real IME and screen-reader smoke on supported native hosts.

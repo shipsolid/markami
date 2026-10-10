@@ -3,6 +3,11 @@ import { createHash } from 'node:crypto';
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  MARKETPLACE_CAPTURES,
+  validateMarketplaceCapture,
+  validateMarketplaceMetadata
+} from './marketplaceListing.mjs';
 
 const REQUIRED_FILES = [
   'CHANGELOG.md',
@@ -28,9 +33,7 @@ export function validateReleaseSource(input) {
   if (input.manifest.version !== input.version) {
     throw new Error(`Manifest version ${String(input.manifest.version)} does not match release ${input.version}.`);
   }
-  if (input.manifest.name !== 'markami' || input.manifest.displayName !== 'markami') {
-    throw new Error('Manifest product name and display name must both be markami.');
-  }
+  validateMarketplaceMetadata(input.manifest);
   if (!new RegExp(`^## ${escapeRegExp(input.version)}(?:\\s|$)`, 'mu').test(input.changelog)) {
     throw new Error(`Changelog has no heading for ${input.version}.`);
   }
@@ -74,8 +77,14 @@ export function validateReleaseSource(input) {
     blockers.push('Marketplace publisher identity is pending');
   }
   if (notes.listing_approved !== 'true') blockers.push('public Marketplace listing is not approved');
+  const expectedCaptures = MARKETPLACE_CAPTURES.map((capture) => capture.path);
   if (!input.marketplaceCaptures?.length) blockers.push('actual Marketplace capture is missing');
-  else if (input.marketplaceCaptures.some((capture) => !input.readme.includes(capture))) {
+  else if (
+    input.marketplaceCaptures.length !== expectedCaptures.length ||
+    expectedCaptures.some((capture) => !input.marketplaceCaptures.includes(capture))
+  ) {
+    blockers.push('Marketplace capture set is incomplete or unexpected');
+  } else if (input.marketplaceCaptures.some((capture) => !input.readme.includes(capture))) {
     blockers.push('Marketplace capture is not referenced by README listing content');
   }
   if (/- \[ \]/u.test(input.releaseNotes)) blockers.push('public release checklist still has unchecked blockers');
@@ -218,7 +227,9 @@ async function main() {
     readFile(releaseNotesPath, 'utf8'),
     readFile('THIRD_PARTY_NOTICES.txt', 'utf8')
   ]);
-  const marketplaceCaptures = await findMarketplaceCaptures();
+  const marketplaceCaptureFiles = await findMarketplaceCaptures();
+  for (const capture of marketplaceCaptureFiles) validateMarketplaceCapture(capture.path, capture.bytes);
+  const marketplaceCaptures = marketplaceCaptureFiles.map((capture) => capture.path);
   const result = validateReleaseSource({
     version: options.version,
     publish: options.publish,
@@ -267,9 +278,10 @@ async function main() {
 async function findMarketplaceCaptures() {
   try {
     const entries = await readdir(path.join('media', 'marketplace'), { withFileTypes: true });
-    return entries
+    const captures = entries
       .filter((entry) => entry.isFile() && /\.(?:gif|jpe?g|png|webp)$/iu.test(entry.name))
       .map((entry) => path.posix.join('media', 'marketplace', entry.name));
+    return Promise.all(captures.map(async (capture) => ({ path: capture, bytes: await readFile(capture) })));
   } catch {
     return [];
   }

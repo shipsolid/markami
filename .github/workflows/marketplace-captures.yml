@@ -1,0 +1,76 @@
+name: Marketplace captures
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: marketplace-captures
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Resolve package version
+        run: >-
+          node -e "const fs=require('node:fs');const manifest=require('./package.json');
+          fs.appendFileSync(process.env.GITHUB_ENV,'RELEASE_VERSION='+manifest.version+'\n')"
+      - run: npm run test:marketplace
+      - name: Stage Marketplace listing gallery
+        run: node scripts/marketplaceListing.mjs --apply README.md
+      - run: npm run package
+      - run: npm run build:marketplace-capture
+      - name: Install native capture tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends imagemagick openbox
+      - name: Capture exact packaged extension
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1440x900x24"
+          bash -c "openbox >/tmp/markami-openbox.log 2>&1 &
+          npm run capture:marketplace -- artifacts/markami-$RELEASE_VERSION.vsix"
+      - name: Validate Marketplace listing gallery
+        run: |
+          node scripts/marketplaceListing.mjs --validate
+          git diff --check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: markami-${{ env.RELEASE_VERSION }}-marketplace-captures
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            README.md
+            media/marketplace/*.png
+      - name: Open capture review pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="automation/marketplace-captures-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -- README.md media/marketplace/*.png
+          if git diff --cached --quiet; then
+            echo "Marketplace captures are already current."
+            exit 0
+          fi
+          git commit -m "docs: refresh Marketplace captures"
+          git push --set-upstream origin "$branch"
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$branch" \
+            --title "docs: review Marketplace captures" \
+            --body "Automated captures from the exact packaged VSIX. Review every image for product accuracy, private content, clipping, and legibility before setting listing_approved to true."
