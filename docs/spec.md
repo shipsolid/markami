@@ -400,8 +400,8 @@ Both appearance modes MUST ship. They change presentation only; the editing mode
 
 | Mode value | UI label | Behavior |
 |---|---|---|
-| `vscode` | VS Code | Compact technical-document typography, VS Code font preference, restrained spacing, theme-native controls; installation default |
-| `document` | Document | Comfortable proportional body font, more paragraph spacing, stronger heading hierarchy, document-like tables and block spacing; still follows VS Code theme tokens |
+| `vscode` | VS Code | Compact technical-document typography, VS Code font preference, restrained spacing, theme-native controls; follows the VS Code theme and editor font |
+| `document` | Document | Bundled reading fonts, generous paragraph spacing, stronger heading hierarchy, card-style technical blocks, optional Catppuccin Mocha palette in dark themes; installation default |
 
 A small document toolbar provides an Appearance control; the command palette exposes the same choice. Switching modes preserves caret, selection, scroll anchor, open source islands, dirty state, and pending edits. It MUST produce no Markdown change or document undo entry. Font/color changes MUST not trigger Mermaid source changes or whole-document serialization.
 
@@ -417,7 +417,7 @@ Width is independent of appearance. The document toolbar and `markami: Set Docum
 | `readable` | Centered prose column capped at `min(80ch, maxContentWidth)`; technical blocks scroll locally |
 | `full` | Uses all available editor content width after gutters/padding; ignores maxContentWidth |
 
-`markami.document.maxContentWidth` defaults to **960 CSS pixels**, accepts integers **480–2400**, and applies to `auto` and `readable`. Values from invalid persisted state fall back to 960. Narrow panes shrink to the available space rather than enforcing a 480-pixel layout. Reserve a block-handle gutter without covering text. At a 320-pixel pane width, controls wrap or use an overflow menu; the document shell must not require horizontal scrolling. A code/table region may scroll horizontally.
+`markami.document.maxContentWidth` defaults to **1200 CSS pixels**, accepts integers **480–2400**, and applies to `auto` and `readable`. Values from invalid persisted state fall back to 1200. Narrow panes shrink to the available space rather than enforcing a 480-pixel layout. Reserve a block-handle gutter without covering text. At a 320-pixel pane width, controls wrap or use an overflow menu; the document shell must not require horizontal scrolling. A code/table region may scroll horizontally.
 
 Changing width preserves the semantic scroll anchor and selection. Recalculate popover positions after resize/zoom/outline changes; do not treat a layout measurement as a source edit. Do not silently switch the entire document to full width because a diagram is wide; the user controls the preference.
 
@@ -929,9 +929,9 @@ The following settings are the initial configuration contract; new controls are 
   "markami.slashCommands.enabled": true,
   "markami.selectionToolbar.enabled": true,
   "markami.blockHandles.enabled": true,
-  "markami.appearance.mode": "vscode",
+  "markami.appearance.mode": "document",
   "markami.document.width": "auto",
-  "markami.document.maxContentWidth": 960,
+  "markami.document.maxContentWidth": 1200,
   "markami.viewPreferences.rememberPerFile": true,
   "markami.sourceIslands.showLabel": true,
   "markami.theme.useEditorFont": true,
@@ -951,9 +951,9 @@ Strict fidelity is an invariant: unsupported transformations fall back to source
 | `markami.slashCommands.enabled` | boolean / true | Resource; disables typed trigger only |
 | `markami.selectionToolbar.enabled` | boolean / true | Resource; shortcuts and explicit toolbar command still work |
 | `markami.blockHandles.enabled` | boolean / true | Resource; hides gutter affordance, retains keyboard move commands |
-| `markami.appearance.mode` | `vscode` or `document` / `vscode` | Resource default; file override permitted |
+| `markami.appearance.mode` | `vscode` or `document` / `document` | Resource default; file override permitted |
 | `markami.document.width` | `auto`, `readable`, `full` / `auto` | Resource default; file override permitted |
-| `markami.document.maxContentWidth` | integer 480–2400 / 960 | CSS pixels; ignored by `full` |
+| `markami.document.maxContentWidth` | integer 480–2400 / 1200 | CSS pixels; ignored by `full` |
 | `markami.viewPreferences.rememberPerFile` | boolean / true | Window; controls persistence, never edits Markdown |
 | `markami.syntaxReveal` | `activeBlock`, `selection`, `manual` / `activeBlock` | Resource; file policy override permitted |
 

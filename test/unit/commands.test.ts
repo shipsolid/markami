@@ -87,6 +87,8 @@ describe('command and configuration contract', () => {
     expect(properties['markami.remoteImages']?.default).toBe('prompt');
     expect(properties['markami.openAsDefault']?.default).toBe(false);
     expect(properties['markami.codeBlock.wrap']?.default).toBe(true);
+    expect(properties['markami.appearance.mode']?.default).toBe('document');
+    expect(properties['markami.document.maxContentWidth']?.default).toBe(1200);
     expect(properties['markami.fidelity.strict']).toBeUndefined();
   });
 

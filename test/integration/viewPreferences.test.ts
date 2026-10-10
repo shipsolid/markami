@@ -40,34 +40,34 @@ suite('durable view preferences', function () {
 
     await vscode.commands.executeCommand('vscode.openWith', first, 'markami.editor', vscode.ViewColumn.One);
     await vscode.commands.executeCommand('vscode.openWith', first, 'markami.editor', vscode.ViewColumn.Two);
-    await executeWhenReady('markami.setDocumentAppearance', 'document');
+    await executeWhenReady('markami.setDocumentAppearance', 'vscode');
     await executeWhenReady('markami.setDocumentWidth', 'readable');
-    await waitForPreferences(first, { appearance: 'document', width: 'readable' });
+    await waitForPreferences(first, { appearance: 'vscode', width: 'readable' });
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.commands.executeCommand('vscode.openWith', first, 'markami.editor');
-    await waitForPreferences(first, { appearance: 'document', width: 'readable' });
+    await waitForPreferences(first, { appearance: 'vscode', width: 'readable' });
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.commands.executeCommand('vscode.openWith', second, 'markami.editor');
-    await waitForPreferences(second, { appearance: 'vscode', width: 'auto' });
+    await waitForPreferences(second, { appearance: 'document', width: 'auto' });
     await executeWhenReady('markami.setDocumentWidth', 'full');
-    await waitForPreferences(second, { appearance: 'vscode', width: 'full' });
+    await waitForPreferences(second, { appearance: 'document', width: 'full' });
     await executeWhenReady('markami.resetFileViewPreferences');
-    await waitForPreferences(second, { appearance: 'vscode', width: 'auto' });
+    await waitForPreferences(second, { appearance: 'document', width: 'auto' });
     await executeWhenReady('markami.setDocumentWidth', 'full');
-    await waitForPreferences(second, { appearance: 'vscode', width: 'full' });
+    await waitForPreferences(second, { appearance: 'document', width: 'full' });
 
     const renamed = vscode.Uri.file(path.join(directory, 'b', 'RENAMED.md'));
     const rename = new vscode.WorkspaceEdit();
     rename.renameFile(second, renamed);
     assert.equal(await vscode.workspace.applyEdit(rename), true);
     await vscode.commands.executeCommand('vscode.openWith', renamed, 'markami.editor');
-    await waitForPreferences(renamed, { appearance: 'vscode', width: 'full' });
-    await executeWhenReady('markami.setDocumentAppearance', 'document');
     await waitForPreferences(renamed, { appearance: 'document', width: 'full' });
+    await executeWhenReady('markami.setDocumentAppearance', 'vscode');
+    await waitForPreferences(renamed, { appearance: 'vscode', width: 'full' });
     await executeWhenReady('markami.resetWorkspaceViewPreferences');
-    await waitForPreferences(renamed, { appearance: 'vscode', width: 'auto' });
-    await waitForPreferences(first, { appearance: 'vscode', width: 'auto' });
+    await waitForPreferences(renamed, { appearance: 'document', width: 'auto' });
+    await waitForPreferences(first, { appearance: 'document', width: 'auto' });
 
     assert.equal(await readFile(firstPath, 'utf8'), source);
     assert.equal(await readFile(renamed.fsPath, 'utf8'), source);
@@ -83,8 +83,8 @@ suite('durable view preferences', function () {
     // would never close the canonical document this test is about.
     await vscode.commands.executeCommand('vscode.openWith', uri, 'default', vscode.ViewColumn.One);
     await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor', vscode.ViewColumn.Two);
-    await executeWhenReady('markami.setDocumentAppearance', 'document');
-    await waitForPreferences(uri, { appearance: 'document', width: 'auto' });
+    await executeWhenReady('markami.setDocumentAppearance', 'vscode');
+    await waitForPreferences(uri, { appearance: 'vscode', width: 'auto' });
 
     const customTab = vscode.window.tabGroups.all
       .flatMap((group) => group.tabs)
@@ -92,11 +92,11 @@ suite('durable view preferences', function () {
     assert.ok(customTab);
     assert.equal(await vscode.window.tabGroups.close(customTab), true);
     await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor', vscode.ViewColumn.Two);
-    await waitForPreferences(uri, { appearance: 'document', width: 'auto' });
+    await waitForPreferences(uri, { appearance: 'vscode', width: 'auto' });
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor');
-    await waitForPreferences(uri, { appearance: 'vscode', width: 'auto' });
+    await waitForPreferences(uri, { appearance: 'document', width: 'auto' });
     assert.equal(await readFile(filePath, 'utf8'), '# Session\n');
   });
 });

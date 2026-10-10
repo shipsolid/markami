@@ -318,7 +318,7 @@
           "type": "string",
           "enum": ["vscode", "document"],
           "enumDescriptions": ["Compact, editor-oriented typography.", "Comfortable document-oriented typography."],
-          "default": "vscode",
+          "default": "document",
           "scope": "resource",
           "description": "Set the default presentation for rendered Markdown. This never changes document source."
         },
@@ -334,7 +334,7 @@
           "type": "integer",
           "minimum": 480,
           "maximum": 2400,
-          "default": 960,
+          "default": 1200,
           "scope": "resource",
           "description": "Set the maximum content width in CSS pixels for Auto and Readable width modes."
         },
@@ -356,7 +356,7 @@
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "description": "Use the configured VS Code editor font in VS Code appearance mode. Document mode always uses the UI font."
+          "description": "Use the configured VS Code editor font in VS Code appearance mode. Document mode uses its own reading and code fonts."
         },
         "markami.sourceIslands.showLabel": {
           "type": "boolean",

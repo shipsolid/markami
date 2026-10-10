@@ -47,9 +47,9 @@ describe('appearance and responsive width', () => {
     expect(resolveContentWidth({ appearance: 'document', width: 'full', maxContentWidth: 480, useEditorFont: false }, 1440))
       .toBe(resolveContentWidth({ appearance: 'document', width: 'full', maxContentWidth: 2400, useEditorFont: false }, 1440));
     expect(normalizeAppearancePreferences({ appearance: 'wrong', width: 'wide', maxContentWidth: Number.POSITIVE_INFINITY }))
-      .toEqual({ appearance: 'vscode', width: 'auto', maxContentWidth: 960, useEditorFont: true });
+      .toEqual({ appearance: 'document', width: 'auto', maxContentWidth: 1200, useEditorFont: true });
     expect(normalizeAppearancePreferences({ appearance: 'document', width: 'readable', maxContentWidth: 479, useEditorFont: false }))
-      .toEqual({ appearance: 'document', width: 'readable', maxContentWidth: 960, useEditorFont: false });
+      .toEqual({ appearance: 'document', width: 'readable', maxContentWidth: 1200, useEditorFont: false });
   });
 
   test('switching appearance preserves dirty text selection history and pending patch count', () => {

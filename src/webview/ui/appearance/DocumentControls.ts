@@ -13,9 +13,9 @@ export interface AppearancePreferences {
 export type AppearanceChange = Partial<AppearancePreferences>;
 
 export const DEFAULT_APPEARANCE: AppearancePreferences = {
-  appearance: 'vscode',
+  appearance: 'document',
   width: 'auto',
-  maxContentWidth: 960,
+  maxContentWidth: 1200,
   useEditorFont: true
 };
 
