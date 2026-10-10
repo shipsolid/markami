@@ -81,19 +81,16 @@ test('production styles satisfy the viewport, theme, and local-overflow matrix',
 
     const computed = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>('#editor');
-      const control = document.querySelector<HTMLElement>('.markami-document-controls');
-      if (shell === null || control === null) throw new Error('missing themed fixture element');
+      if (shell === null) throw new Error('missing themed fixture element');
       return {
         background: getComputedStyle(shell).backgroundColor,
         color: getComputedStyle(shell).color,
-        focusBorder: getComputedStyle(document.documentElement).getPropertyValue('--vscode-focusBorder').trim(),
-        highContrastBorder: getComputedStyle(control).borderColor
+        focusBorder: getComputedStyle(document.documentElement).getPropertyValue('--vscode-focusBorder').trim()
       };
     });
     expect(computed.background).toBe(colors.background);
     expect(computed.color).toBe(colors.foreground);
     expect(computed.focusBorder).toBe(colors.focus);
-    if (theme === 'highContrast') expect(computed.highContrastBorder).not.toBe('rgba(0, 0, 0, 0)');
   }
 });
 
@@ -114,11 +111,6 @@ function documentMarkup(): string {
   return `<!doctype html>
 <html><body>
   <main id="editor" class="markami-document-shell" data-appearance="vscode" data-width="auto" data-editor-font="true">
-    <nav class="markami-document-controls" role="toolbar">
-      <label><span>Appearance</span><select><option>VS Code</option><option>Document</option></select></label>
-      <label><span>Width</span><select><option>Auto</option><option>Readable</option><option>Full</option></select></label>
-      <label><span>Maximum</span><input type="number" value="960"></label>
-    </nav>
     <div class="cm-editor"><div class="cm-scroller"><div class="cm-content">
       <div class="cm-line markami-heading1">Heading</div>
       <div class="cm-line">Rendered prose remains inside the selected content column.</div>

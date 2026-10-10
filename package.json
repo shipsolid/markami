@@ -62,11 +62,13 @@
     "commands": [
       {
         "command": "markami.openRendered",
-        "title": "markami: Open Rendered Editor"
+        "title": "markami: Open Rendered Editor",
+        "icon": "$(open-preview)"
       },
       {
         "command": "markami.openSource",
-        "title": "markami: Open Source Editor"
+        "title": "markami: Open Source Editor",
+        "icon": "$(go-to-file)"
       },
       {
         "command": "markami.toggleSourceReveal",
@@ -149,6 +151,11 @@
         "title": "markami: Move Block To…"
       },
       {
+        "command": "markami.toggleDocumentAppearance",
+        "title": "markami: Toggle Document Appearance",
+        "icon": "$(color-mode)"
+      },
+      {
         "command": "markami.setDocumentAppearance",
         "title": "markami: Set Document Appearance"
       },
@@ -225,6 +232,25 @@
         "title": "markami: Find in Markdown Source"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "markami.toggleDocumentAppearance",
+          "when": "activeCustomEditorId == markami.editor",
+          "group": "navigation@1"
+        },
+        {
+          "command": "markami.openSource",
+          "when": "activeCustomEditorId == markami.editor",
+          "group": "navigation@2"
+        },
+        {
+          "command": "markami.openRendered",
+          "when": "resourceLangId == markdown && activeCustomEditorId != markami.editor",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "markami.bold",

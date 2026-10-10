@@ -73,6 +73,20 @@ suite('durable view preferences', function () {
     assert.equal(await readFile(renamed.fsPath, 'utf8'), source);
   });
 
+  test('the title-bar toggle flips the file between the two styles and back', async () => {
+    const filePath = path.join(directory, 'toggle.md');
+    await writeFile(filePath, '# Toggle\n');
+    const uri = vscode.Uri.file(filePath);
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'markami.editor');
+    await waitForPreferences(uri, { appearance: 'vscode', width: 'auto' });
+
+    await executeWhenReady('markami.toggleDocumentAppearance');
+    await waitForPreferences(uri, { appearance: 'document', width: 'auto' });
+    await executeWhenReady('markami.toggleDocumentAppearance');
+    await waitForPreferences(uri, { appearance: 'vscode', width: 'auto' });
+    assert.equal(await readFile(filePath, 'utf8'), '# Toggle\n');
+  });
+
   test('disabled remembrance lasts until the canonical document closes', async () => {
     await vscode.workspace.getConfiguration('markami')
       .update('viewPreferences.rememberPerFile', false, vscode.ConfigurationTarget.Global);

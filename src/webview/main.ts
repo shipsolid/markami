@@ -53,7 +53,6 @@ import { SlashPalette } from './ui/slash/SlashPalette.js';
 import { SelectionToolbar } from './ui/toolbar/SelectionToolbar.js';
 import {
   DEFAULT_APPEARANCE,
-  DocumentControls,
   applyAppearance,
   normalizeAppearancePreferences,
   type AppearanceChange,
@@ -88,7 +87,6 @@ let linkPopover: LinkPopover | undefined;
 let imagePopover: ImagePopover | undefined;
 let slashPalette: SlashPalette | undefined;
 let blockHandles: BlockHandles | undefined;
-let documentControls: DocumentControls | undefined;
 let documentFind: DocumentFind | undefined;
 let documentOutline: DocumentOutline | undefined;
 let conflictBanner: ConflictBanner | undefined;
@@ -227,7 +225,6 @@ function createEditor(text: string): void {
   conflictDraft = undefined;
   errorBanner?.destroy();
   errorBanner = undefined;
-  documentControls?.destroy();
   toolbar?.destroy();
   linkPopover?.destroy();
   imagePopover?.destroy();
@@ -350,7 +347,6 @@ function createEditor(text: string): void {
       ]
     })
   });
-  documentControls = new DocumentControls(document, editorParent, appearancePreferences, requestViewPreferenceChange);
   applyAppearance(view, appearancePreferences);
   applyPalette(document, documentPalette, appearancePreferences.appearance);
   toolbar = new SelectionToolbar(document, actions, (_actionId, _context, result) => {
@@ -484,20 +480,16 @@ function currentFormattingStates(): Readonly<Record<string, 'active' | 'mixed' |
 }
 
 function executeHostAction(actionId: string, value?: string): void {
+  if (actionId === 'markami.toggleDocumentAppearance') {
+    requestViewPreferenceChange({ appearance: appearancePreferences.appearance === 'document' ? 'vscode' : 'document' });
+    return;
+  }
   if (actionId === 'markami.setDocumentAppearance') {
-    if (value === 'vscode' || value === 'document') {
-      requestViewPreferenceChange({ appearance: value });
-    } else {
-      documentControls?.focusAppearance();
-    }
+    if (value === 'vscode' || value === 'document') requestViewPreferenceChange({ appearance: value });
     return;
   }
   if (actionId === 'markami.setDocumentWidth') {
-    if (value === 'auto' || value === 'readable' || value === 'full') {
-      requestViewPreferenceChange({ width: value });
-    } else {
-      documentControls?.focusWidth();
-    }
+    if (value === 'auto' || value === 'readable' || value === 'full') requestViewPreferenceChange({ width: value });
     return;
   }
   if (actionId === 'markami.resetFileViewPreferences') {
@@ -592,7 +584,6 @@ function updateAppearance(change: AppearanceChange): void {
   const next = normalizeAppearancePreferences({ ...appearancePreferences, ...change });
   appearancePreferences = next;
   applyPalette(document, documentPalette, next.appearance);
-  documentControls?.setPreferences(next);
   if (view === undefined) return;
   const anchor = captureScrollAnchor(view);
   applyAppearance(view, next);

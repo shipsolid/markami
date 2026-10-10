@@ -21,12 +21,6 @@
   font-family: var(--vscode-editor-font-family);
 }
 
-.markami-document-controls {
-  background: var(--vscode-editor-background);
-  color: var(--vscode-editor-foreground);
-  font-family: var(--vscode-font-family);
-}
-
 .markami-document-shell input[type='checkbox'] {
   accent-color: var(--vscode-focusBorder);
 }
@@ -49,14 +43,6 @@ button:disabled {
   opacity: 0.5;
 }
 
-.markami-document-controls select,
-.markami-document-controls input {
-  background: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border, var(--vscode-contrastBorder, transparent));
-  color: var(--vscode-dropdown-foreground);
-}
-
-.markami-document-controls :focus-visible,
 .markami-document-shell [tabindex]:not(.cm-content):focus-visible,
 .markami-document-shell button:focus-visible,
 .markami-find :focus-visible,
@@ -75,11 +61,6 @@ button:disabled {
 .markami-image-popover :focus {
   outline: 2px solid var(--vscode-focusBorder);
   outline-offset: 2px;
-}
-
-.vscode-high-contrast .markami-document-controls,
-.vscode-high-contrast-light .markami-document-controls {
-  border-color: var(--vscode-contrastBorder);
 }
 
 @media (prefers-reduced-motion: reduce) {

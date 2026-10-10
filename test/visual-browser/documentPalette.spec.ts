@@ -107,10 +107,12 @@ for (const scenario of [
 test('switching appearance at runtime swaps the palette without reloading', async ({ page }) => {
   await open(page, { theme: DARK_PLUS, palette: 'catppuccin-mocha' });
   expect((await shellColors(page)).background).toBe('rgb(30, 30, 46)');
+  const toggle = (): Promise<void> => page.evaluate(() =>
+    window.postMessage({ type: 'executeAction', actionId: 'markami.toggleDocumentAppearance' }, '*'));
 
-  await page.getByLabel('Document appearance', { exact: true }).selectOption('vscode');
+  await toggle();
   await expect.poll(async () => (await shellColors(page)).background).toBe('rgb(30, 30, 30)');
 
-  await page.getByLabel('Document appearance', { exact: true }).selectOption('document');
+  await toggle();
   await expect.poll(async () => (await shellColors(page)).background).toBe('rgb(30, 30, 46)');
 });

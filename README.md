@@ -34,9 +34,10 @@ never regenerates the document from a rendered tree.
   syntax remains editable in a source island.
 - A slash-command insertion menu, selection formatting toolbar, and source-preserving block handles.
 - Outline navigation and rendered-text/source-text find.
-- Document appearance (default) and a compact VS Code appearance, with Auto, Readable, and Full width controls.
-  Document appearance uses bundled Shantell Sans and JetBrains Mono, and the Catppuccin Mocha palette when VS Code
-  uses a dark theme; set `markami.document.palette` to `vscode` to always use your theme's colors.
+- A clean VS Code appearance (default) that follows your theme exactly, and an opt-in Document appearance with
+  bundled Shantell Sans and JetBrains Mono and, in dark themes, the Catppuccin Mocha palette
+  (`markami.document.palette`). Switch styles with the editor-title icon or **markami: Toggle Document Appearance**;
+  width is `markami.document.width` or **markami: Set Document Width**.
 - Per-file presentation preferences stored outside the Markdown source and synchronized across views.
 - Conflict-safe external edit handling, bounded local recovery drafts, and native source fallback for
   documents larger than 4 MiB UTF-8.

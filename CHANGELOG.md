@@ -11,6 +11,9 @@ All notable changes to markami are documented here.
   page padding with room to scroll past the last line. The Shantell Sans and Catppuccin Mocha Document appearance
   from 0.1.1 stays available as an opt-in style (`markami.appearance.mode`). `markami.theme.useEditorFont` now
   defaults to `false` so prose uses the UI font.
+- The in-page Appearance / Width / Maximum bar is gone. The editor title bar gets icons: **Toggle Document
+  Appearance** and **Open Source Editor** in the rendered editor, and **Open Rendered Editor** on Markdown text
+  editors. Width and maximum width remain settings and palette commands.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

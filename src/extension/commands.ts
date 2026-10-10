@@ -32,6 +32,7 @@ export const REQUIRED_COMMANDS: readonly MarkamiCommand[] = [
   command('markami.moveBlockUp', 'Move Block Up'),
   command('markami.moveBlockDown', 'Move Block Down'),
   command('markami.moveBlockTo', 'Move Block To…'),
+  command('markami.toggleDocumentAppearance', 'Toggle Document Appearance'),
   command('markami.setDocumentAppearance', 'Set Document Appearance'),
   command('markami.setDocumentWidth', 'Set Document Width'),
   command('markami.resetFileViewPreferences', 'Reset File View Preferences'),

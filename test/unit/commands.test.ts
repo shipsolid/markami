@@ -16,7 +16,8 @@ import { isMarkamiCustomEditorInput } from '../../src/extension/commands.js';
 interface PackageManifest {
   readonly engines?: { readonly node?: string; readonly vscode?: string };
   readonly contributes?: {
-    readonly commands?: readonly { readonly command?: string; readonly title?: string }[];
+    readonly commands?: readonly { readonly command?: string; readonly title?: string; readonly icon?: string }[];
+    readonly menus?: Readonly<Record<string, readonly { readonly command?: string; readonly when?: string; readonly group?: string }[]>>;
     readonly keybindings?: readonly { readonly command?: string; readonly when?: string }[];
     readonly configuration?: { readonly properties?: Readonly<Record<string, { readonly default?: unknown; readonly enum?: unknown }>> };
   };
@@ -40,12 +41,28 @@ describe('command and configuration contract', () => {
     }
   });
 
+  test('the editor title shows style, source, and rendered icons only where they apply', () => {
+    const title = manifest.contributes?.menus?.['editor/title'] ?? [];
+    const entry = (command: string): { readonly when?: string; readonly group?: string } | undefined =>
+      title.find((item) => item.command === command);
+
+    expect(entry('markami.toggleDocumentAppearance')?.when).toBe('activeCustomEditorId == markami.editor');
+    expect(entry('markami.openSource')?.when).toBe('activeCustomEditorId == markami.editor');
+    expect(entry('markami.openRendered')?.when).toBe('resourceLangId == markdown && activeCustomEditorId != markami.editor');
+    for (const item of title) {
+      expect(item.group, item.command).toMatch(/^navigation@\d+$/u);
+      const contributed = manifest.contributes?.commands?.find((command) => command.command === item.command);
+      expect(contributed?.icon, `${item.command ?? 'command'} needs an icon to appear in the title bar`).toMatch(/^\$\(.+\)$/u);
+    }
+  });
+
   test('forwarded commands use stable unique IDs and include source find', () => {
     const ids = FORWARDED_COMMANDS.map((command) => command.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain('markami.findSource');
     expect(ids).toContain('markami.toggleSourceReveal');
     expect(ids).toContain('markami.copyCurrentBlockMarkdown');
+    expect(ids).toContain('markami.toggleDocumentAppearance');
   });
 
   test('all contributed shortcuts are scoped to the active markami custom editor', () => {

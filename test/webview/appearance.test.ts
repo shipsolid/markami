@@ -5,7 +5,6 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, describe, expect, test } from 'vitest';
 import {
-  DocumentControls,
   applyAppearance,
   normalizeAppearancePreferences,
   resolveContentWidth,
@@ -88,29 +87,6 @@ describe('appearance and responsive width', () => {
     expect(shell.dataset.appearance).toBe('document');
     expect(shell.dataset.width).toBe('full');
     expect(shell.style.getPropertyValue('--markami-max-content-width')).toBe('880px');
-  });
-
-  test('toolbar controls are labelled, keyboard focusable, responsive, and emit partial changes', () => {
-    const shell = document.createElement('main');
-    Object.defineProperty(shell, 'clientWidth', { value: 320 });
-    document.body.append(shell);
-    const changes: object[] = [];
-    const controls = new DocumentControls(document, shell, {
-      appearance: 'vscode', width: 'auto', maxContentWidth: 960, useEditorFont: true
-    }, (change) => changes.push(change));
-
-    controls.focusAppearance();
-    const appearance = shell.querySelector<HTMLSelectElement>('[aria-label="Document appearance"]');
-    expect(document.activeElement).toBe(appearance);
-    if (appearance === null) throw new Error('missing appearance control');
-    appearance.value = 'document';
-    appearance.dispatchEvent(new Event('change', { bubbles: true }));
-    controls.focusWidth();
-    const width = shell.querySelector<HTMLSelectElement>('[aria-label="Document width"]');
-    expect(document.activeElement).toBe(width);
-    expect(shell.querySelector('[role="toolbar"]')).not.toBeNull();
-    expect(changes).toContainEqual({ appearance: 'document' });
-    controls.destroy();
   });
 
   test('semantic scroll anchor restores pixel displacement with zoom scaling', () => {
