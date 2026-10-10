@@ -1,5 +1,7 @@
 import { markdownLanguage } from '@codemirror/lang-markdown';
 
+import { findFencedBlocks } from './fences.js';
+
 export type SyntaxKind = 'strong' | 'emphasis' | 'strike' | 'inlineCode' |
   'heading1' | 'heading2' | 'heading3' | 'heading4' | 'heading5' | 'heading6' |
   'quote' | 'list' | 'divider';
@@ -47,12 +49,14 @@ export function buildProjectionPlan(source: string, options: ProjectionOptions =
   const hiddenTokens: HiddenToken[] = [];
   const lineStyles: LineStyle[] = [];
   const sourceIslands = mergeIslands([...findUnterminatedFence(source), ...(options.sourceIslands ?? [])]);
+  // Code is literal: a shell comment must not become a heading and `**` must not become bold.
+  const fenced = findFencedBlocks(source);
 
-  collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands);
-  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hiddenTokens, options.selection, sourceIslands);
-  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, hiddenTokens, options.selection, sourceIslands);
-  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, hiddenTokens, options.selection, sourceIslands);
-  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, hiddenTokens, options.selection, sourceIslands);
+  collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, hiddenTokens, options.selection, sourceIslands, fenced);
 
   if (options.semanticRanges !== undefined && disagrees(marks, options.semanticRanges)) {
     return emptyWithIsland(source.length, 'parser disagreement');
@@ -122,14 +126,19 @@ function collectLines(
   styles: LineStyle[],
   hidden: HiddenToken[],
   selection: SourceRange | undefined,
-  islands: readonly SourceIslandSpec[]
+  islands: readonly SourceIslandSpec[],
+  fenced: readonly SourceRange[]
 ): void {
   let offset = 0;
   for (const line of source.split('\n')) {
     const end = offset + line.length;
+    if (fenced.some((block) => offset >= block.from && offset <= block.to)) {
+      offset = end + 1;
+      continue;
+    }
     const heading = /^(#{1,6})\s/u.exec(line);
     const quote = /^>\s?/u.exec(line);
-    const list = /^(?:[-+*]|\d+[.)])\s/u.exec(line);
+    const list = /^\s*(?:[-+*]|\d+[.)])\s/u.exec(line);
     if (heading !== null) {
       const level = heading[1]?.length ?? 1;
       styles.push({ from: offset, to: end, kind: `heading${String(level)}` as LineStyle['kind'] });
@@ -155,12 +164,13 @@ function collectInline(
   marks: MarkDecoration[],
   hidden: HiddenToken[],
   selection: SourceRange | undefined,
-  islands: readonly SourceIslandSpec[]
+  islands: readonly SourceIslandSpec[],
+  fenced: readonly SourceRange[]
 ): void {
   for (const match of source.matchAll(pattern)) {
     const from = match.index;
     const to = from + match[0].length;
-    if (islands.some((island) => overlaps({ from, to }, island))) {
+    if (islands.some((island) => overlaps({ from, to }, island)) || fenced.some((block) => overlaps({ from, to }, block))) {
       continue;
     }
     marks.push({ from: from + delimiter, to: to - delimiter, kind });

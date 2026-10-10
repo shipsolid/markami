@@ -18,6 +18,9 @@ All notable changes to markami are documented here.
 - In VS Code appearance, headings step in size and weight and block quotes show their bar.
 - A `---` divider draws a rule instead of showing its dashes until the caret is on it.
 - Task checkboxes follow the theme accent colour.
+- Fenced code is literal: a `# comment` line no longer renders as a heading with its marker hidden, and `>`, `-`
+  or `**` lines inside a code block are no longer styled as quotes, lists, or bold. Nested list items are
+  recognised as list lines.
 - The block-handle gutter and every button (table controls, code copy, outline, handle menu, popovers)
   follow the active VS Code theme. They previously showed CodeMirror's light grey gutter strip and
   browser-default white buttons in dark and high-contrast themes.

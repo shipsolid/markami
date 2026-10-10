@@ -54,6 +54,23 @@ describe('Markdown projection', () => {
     expect(active.hiddenTokens).toHaveLength(0);
   });
 
+  test('fenced_code_content_is_never_styled_hidden_or_marked', () => {
+    const markdown = 'intro\n\n```sh\n# comment in code\n- dash in code\n> quote in code\n**not bold**\n```\n\n# real heading\n';
+    const plan = buildProjectionPlan(markdown);
+    const text = (range: { readonly from: number; readonly to: number }): string => markdown.slice(range.from, range.to);
+
+    expect(plan.lineStyles.map((style) => [text(style), style.kind])).toEqual([['# real heading', 'heading1']]);
+    expect(plan.marks).toEqual([]);
+    expect(plan.hiddenTokens.map(text)).toEqual(['# ']);
+  });
+
+  test('indented_list_items_are_styled_as_list_lines', () => {
+    const markdown = '- parent\n  - child\n    1. grandchild\n';
+    const plan = buildProjectionPlan(markdown);
+
+    expect(plan.lineStyles.map((style) => style.kind)).toEqual(['list', 'list', 'list']);
+  });
+
   test('caret_at_delimiter_reveals_syntax_for_backspace_and_delete', () => {
     for (const position of [2, 4, 8, 10]) {
       const plan = buildProjectionPlan('A **bold** word.', { selection: { from: position, to: position } });
