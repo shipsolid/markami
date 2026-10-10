@@ -18,7 +18,9 @@ const validEntries = [
   'extension/dist/extension.js',
   'extension/dist/webview/main.js',
   'extension/dist/webview/assets/main.css',
-  'extension/dist/webview/assets/KaTeX_Main-Regular.woff2'
+  'extension/dist/webview/assets/KaTeX_Main-Regular.woff2',
+  'extension/dist/webview/assets/shantell-sans-latin-wght-normal.woff2',
+  'extension/dist/webview/assets/jetbrains-mono-latin-wght-normal.woff2'
 ];
 
 test('accepts the minimal production package surface', () => {
@@ -31,6 +33,17 @@ test('rejects missing runtime files', () => {
   assert.throws(
     () => validatePackageEntries(validEntries.filter((entry) => entry !== 'extension/dist/extension.js')),
     /missing required package file.*dist\/extension\.js/iu
+  );
+});
+
+test('requires the bundled reading and code fonts', () => {
+  assert.throws(
+    () => validatePackageEntries(validEntries.filter((entry) => !entry.includes('shantell-sans'))),
+    /missing required package file.*Shantell Sans/iu
+  );
+  assert.throws(
+    () => validatePackageEntries(validEntries.filter((entry) => !entry.includes('jetbrains-mono'))),
+    /missing required package file.*JetBrains Mono/iu
   );
 });
 

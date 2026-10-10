@@ -45,6 +45,14 @@ export function validatePackageEntries(entries) {
   if (![...fileSet].some((entry) => /\/dist\/webview\/assets\/KaTeX_[^/]+\.woff2$/u.test(entry))) {
     throw new Error('Missing required package file: a local KaTeX WOFF2 font');
   }
+  for (const [pattern, name] of [
+    [/\/dist\/webview\/assets\/shantell-sans-latin-wght-normal(?:-[^/]+)?\.woff2$/u, 'Shantell Sans'],
+    [/\/dist\/webview\/assets\/jetbrains-mono-latin-wght-normal(?:-[^/]+)?\.woff2$/u, 'JetBrains Mono']
+  ]) {
+    if (![...fileSet].some((entry) => pattern.test(entry))) {
+      throw new Error(`Missing required package file: a local ${name} WOFF2 font`);
+    }
+  }
 
   for (const entry of files) {
     if (FORBIDDEN_PATTERNS.some((pattern) => pattern.test(entry))) {

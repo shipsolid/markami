@@ -1,4 +1,7 @@
 @import 'katex/dist/katex.min.css';
+@import '@fontsource-variable/shantell-sans/wght.css';
+@import '@fontsource-variable/shantell-sans/wght-italic.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
 @import './styles/layout.css';
 @import './styles/appearance.css';
 

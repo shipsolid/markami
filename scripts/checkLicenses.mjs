@@ -1,15 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const allowed = new Set([
-  '(MPL-2.0 OR Apache-2.0)',
-  'Apache-2.0',
-  'BSD-3-Clause',
-  'EPL-2.0',
-  'ISC',
-  'MIT',
-  'Unlicense'
-]);
+import { isLicenseAllowed } from './licensePolicy.mjs';
+
 const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
 const failures = [];
 let checked = 0;
@@ -23,7 +16,7 @@ for (const [packagePath, metadata] of Object.entries(lock.packages ?? {})) {
     license = await licenseFromFile(packagePath);
   }
   checked += 1;
-  if (!allowed.has(license)) {
+  if (!isLicenseAllowed(manifest.name ?? packagePath, license)) {
     failures.push(`${manifest.name ?? packagePath}@${manifest.version ?? 'unknown'}: ${license}`);
   }
 }
