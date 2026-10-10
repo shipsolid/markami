@@ -108,6 +108,10 @@ Files over 4 MiB UTF-8 open in the native source editor. Browser extension hosts
 initial platform is desktop VS Code with local filesystem workspaces. MDX and custom directives are
 preserved as source islands, not executed components.
 
+markami is a Preview. IME composition and screen-reader behavior are covered by automated tests but have
+not yet been verified on native assistive technology; please
+[report problems](https://github.com/shipsolid/markami/issues).
+
 ## Recovery and troubleshooting
 
 When an external edit overlaps unsynchronized local work, markami offers inspection, copy, reload,

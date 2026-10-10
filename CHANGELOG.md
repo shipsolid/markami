@@ -2,9 +2,9 @@
 
 All notable changes to markami are documented here.
 
-## 0.1.0 — 2026-10-09
+## 0.1.0 — 2026-10-10
 
-Developer-preview VSIX for local evaluation.
+Preview release.
 
 ### Added
 
@@ -22,13 +22,15 @@ Developer-preview VSIX for local evaluation.
 
 ### Known limitations
 
-- Marketplace publication remains gated by the approvals and native/manual evidence recorded in
-  `docs/delivery/`; a local VSIX does not prove public availability.
+- IME composition and screen-reader behavior are covered by automated tests but were not verified on
+  native assistive technology; the owner accepted that gap for this Preview.
 - Files larger than 4 MiB UTF-8 fall back to the native source editor.
 - Desktop local-filesystem workspaces are the initial supported platform; browser extension hosts are
   deferred and remote workspaces are best-effort.
-- Native Windows/macOS/Linux, IME, screen-reader, clean-profile GUI, and upgrade smoke evidence remains
-  pending where documented in `docs/delivery/`.
+- The integration suite passes on Windows, macOS, and Linux and on VS Code 1.102 and stable, and the
+  installed VSIX was smoke-tested on Linux. Hand-driven GUI interaction smoke and Windows/macOS installs
+  are not recorded, and no prior version exists to test an upgrade against. Details are in
+  `docs/delivery/install-smoke.md`.
 - Mermaid's bundled KaTeX dependency currently carries two documented low-severity audit findings.
   Mermaid SVG is sanitized before insertion as a compensating control; the available automated fix
   is a breaking downgrade and has not been applied silently.
