@@ -10,6 +10,9 @@ export function isMarkamiCustomEditorInput(input: unknown): input is { readonly 
 export const REQUIRED_COMMANDS: readonly MarkamiCommand[] = [
   command('markami.openRendered', 'Open Rendered Editor'),
   command('markami.openSource', 'Open Source Editor'),
+  command('markami.openSample', 'Open Sample Document'),
+  command('markami.setAsDefault', 'Make markami the Default Markdown Editor'),
+  command('markami.restoreNativeDefault', 'Use Native Markdown Editor by Default'),
   command('markami.toggleSourceReveal', 'Toggle Source Reveal for Current Block'),
   command('markami.revealCurrentBlock', 'Reveal Current Block as Markdown'),
   command('markami.bold', 'Toggle Bold'),
@@ -45,7 +48,13 @@ export const REQUIRED_COMMANDS: readonly MarkamiCommand[] = [
   command('markami.findSource', 'Find in Markdown Source')
 ];
 
-const SPECIAL_HOST_COMMANDS = new Set(['markami.openRendered', 'markami.openSource']);
+const SPECIAL_HOST_COMMANDS = new Set([
+  'markami.openRendered',
+  'markami.openSource',
+  'markami.openSample',
+  'markami.setAsDefault',
+  'markami.restoreNativeDefault'
+]);
 
 export const FORWARDED_COMMANDS: readonly MarkamiCommand[] = [
   ...REQUIRED_COMMANDS.filter((descriptor) => !SPECIAL_HOST_COMMANDS.has(descriptor.id)),

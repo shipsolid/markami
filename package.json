@@ -71,6 +71,18 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "markami.openSample",
+        "title": "markami: Open Sample Document"
+      },
+      {
+        "command": "markami.setAsDefault",
+        "title": "markami: Make markami the Default Markdown Editor"
+      },
+      {
+        "command": "markami.restoreNativeDefault",
+        "title": "markami: Use Native Markdown Editor by Default"
+      },
+      {
         "command": "markami.toggleSourceReveal",
         "title": "markami: Toggle Source Reveal for Current Block"
       },
@@ -232,6 +244,36 @@
         "title": "markami: Find in Markdown Source"
       }
     ],
+    "walkthroughs": [
+      {
+        "id": "markami.gettingStarted",
+        "title": "Get started with markami",
+        "description": "Edit Markdown in the rendered document and keep your source intact.",
+        "steps": [
+          {
+            "id": "markami.open",
+            "title": "Open a Markdown file in markami",
+            "description": "Click the markami icon in the editor title bar of any Markdown file, or start with a sample.\n[Open the sample document](command:markami.openSample)",
+            "media": { "markdown": "media/walkthrough/open.md" },
+            "completionEvents": ["onCommand:markami.openRendered", "onCommand:markami.openSample"]
+          },
+          {
+            "id": "markami.edit",
+            "title": "Edit, save, and check the diff",
+            "description": "Change something in the rendered document and save. In a Git repository, only the lines you changed show up.\n[Show Source Control](command:workbench.view.scm)",
+            "media": { "markdown": "media/walkthrough/edit.md" },
+            "completionEvents": ["onStepSelected"]
+          },
+          {
+            "id": "markami.default",
+            "title": "Choose your default editor",
+            "description": "markami is opt-in. Use it for every Markdown file, or switch back at any time.\n[Use markami for Markdown files](command:markami.setAsDefault)\n[Use the native editor by default](command:markami.restoreNativeDefault)",
+            "media": { "markdown": "media/walkthrough/default.md" },
+            "completionEvents": ["onCommand:markami.setAsDefault", "onCommand:markami.restoreNativeDefault"]
+          }
+        ]
+      }
+    ],
     "menus": {
       "editor/title": [
         {
@@ -286,12 +328,6 @@
     "configuration": {
       "title": "markami",
       "properties": {
-        "markami.openAsDefault": {
-          "type": "boolean",
-          "default": false,
-          "scope": "window",
-          "description": "Record an opt-in preference to use markami by default. Use VS Code's Reopen With or Configure Default Editor command to change associations explicitly."
-        },
         "markami.selectionToolbar.enabled": {
           "type": "boolean",
           "default": true,

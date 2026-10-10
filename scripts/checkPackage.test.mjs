@@ -15,6 +15,10 @@ const validEntries = [
   'extension/PRIVACY.md',
   'extension/THIRD_PARTY_NOTICES.txt',
   'extension/media/icon.png',
+  'extension/media/walkthrough/sample.md',
+  'extension/media/walkthrough/open.md',
+  'extension/media/walkthrough/edit.md',
+  'extension/media/walkthrough/default.md',
   'extension/dist/extension.js',
   'extension/dist/webview/main.js',
   'extension/dist/webview/assets/main.css',
@@ -34,6 +38,16 @@ test('rejects missing runtime files', () => {
     () => validatePackageEntries(validEntries.filter((entry) => entry !== 'extension/dist/extension.js')),
     /missing required package file.*dist\/extension\.js/iu
   );
+});
+
+test('requires the sample document and walkthrough pages the commands read at runtime', () => {
+  for (const name of ['sample', 'open', 'edit', 'default']) {
+    const entry = `extension/media/walkthrough/${name}.md`;
+    assert.throws(
+      () => validatePackageEntries(validEntries.filter((candidate) => candidate !== entry)),
+      new RegExp(`missing required package file.*${name}\\.md`, 'iu')
+    );
+  }
 });
 
 test('requires the bundled reading and code fonts', () => {

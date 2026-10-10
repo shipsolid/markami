@@ -10,6 +10,7 @@ import {
 } from './appearanceCommands.js';
 import { ScopedMementoViewPreferencesStorage, ViewPreferencesStore } from './ViewPreferencesStore.js';
 import { FORWARDED_COMMANDS, isMarkamiCustomEditorInput } from './commands.js';
+import { applyDefaultEditor, type DefaultEditorHost, type DefaultEditorMode } from './defaultEditor.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const recovery = new RecoveryStore(new MementoRecoveryStorage(context.workspaceState));
@@ -32,6 +33,17 @@ export function activate(context: vscode.ExtensionContext): void {
     'markami.resetFileViewPreferences',
     'markami.resetWorkspaceViewPreferences'
   ]);
+  const defaultEditorHost: DefaultEditorHost = {
+    readUserAssociations: () => vscode.workspace.getConfiguration('workbench')
+      .inspect<unknown>('editorAssociations')?.globalValue,
+    writeUserAssociations: (associations) => vscode.workspace.getConfiguration('workbench')
+      .update('editorAssociations', associations, vscode.ConfigurationTarget.Global),
+    confirm: async (message, action) =>
+      (await vscode.window.showInformationMessage(message, { modal: true }, action)) === action,
+    inform: (message) => void vscode.window.showInformationMessage(message)
+  };
+  const setDefaultEditor = (mode: DefaultEditorMode) => (): Promise<boolean> =>
+    applyDefaultEditor(mode, defaultEditorHost);
   const pickPreference = (items: readonly PreferenceChoice[]): Thenable<PreferenceChoice | undefined> =>
     vscode.window.showQuickPick(items, { placeHolder: 'Choose a document presentation setting' });
 
@@ -53,6 +65,18 @@ export function activate(context: vscode.ExtensionContext): void {
         await vscode.commands.executeCommand('vscode.openWith', active.uri, 'default');
       }
     }),
+    vscode.commands.registerCommand('markami.openSample', async () => {
+      const bytes = await vscode.workspace.fs.readFile(
+        vscode.Uri.joinPath(context.extensionUri, 'media', 'walkthrough', 'sample.md')
+      );
+      const sample = await vscode.workspace.openTextDocument({
+        language: 'markdown',
+        content: new TextDecoder().decode(bytes)
+      });
+      await vscode.commands.executeCommand('vscode.openWith', sample.uri, MarkamiProvider.viewType);
+    }),
+    vscode.commands.registerCommand('markami.setAsDefault', setDefaultEditor('markami')),
+    vscode.commands.registerCommand('markami.restoreNativeDefault', setDefaultEditor('native')),
     vscode.commands.registerCommand('markami.setDocumentAppearance', async (supplied?: unknown) => {
       const target = provider.captureActiveView();
       if (target === undefined) return false;

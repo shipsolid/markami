@@ -15,6 +15,10 @@ const REQUIRED_FILES = [
   'extension/PRIVACY.md',
   'extension/THIRD_PARTY_NOTICES.txt',
   'extension/media/icon.png',
+  'extension/media/walkthrough/sample.md',
+  'extension/media/walkthrough/open.md',
+  'extension/media/walkthrough/edit.md',
+  'extension/media/walkthrough/default.md',
   'extension/dist/extension.js',
   'extension/dist/webview/main.js',
   'extension/dist/webview/assets/main.css'

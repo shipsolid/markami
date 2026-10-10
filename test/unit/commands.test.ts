@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { FORWARDED_COMMANDS, REQUIRED_COMMANDS } from '../../src/extension/commands.js';
 import { createDocumentKeymap } from '../../src/webview/editor/keymap.js';
@@ -20,6 +20,15 @@ interface PackageManifest {
     readonly menus?: Readonly<Record<string, readonly { readonly command?: string; readonly when?: string; readonly group?: string }[]>>;
     readonly keybindings?: readonly { readonly command?: string; readonly when?: string }[];
     readonly configuration?: { readonly properties?: Readonly<Record<string, { readonly default?: unknown; readonly enum?: unknown }>> };
+    readonly walkthroughs?: readonly {
+      readonly id?: string;
+      readonly steps?: readonly {
+        readonly id?: string;
+        readonly description?: string;
+        readonly media?: { readonly markdown?: string };
+        readonly completionEvents?: readonly string[];
+      }[];
+    }[];
   };
 }
 
@@ -56,6 +65,27 @@ describe('command and configuration contract', () => {
     }
   });
 
+  test('the first-run walkthrough only links to commands that exist and ships its own media', () => {
+    const contributed = new Set((manifest.contributes?.commands ?? []).map((command) => command.command));
+    const builtIn = new Set(['workbench.view.scm']);
+    const walkthroughs = manifest.contributes?.walkthroughs ?? [];
+
+    expect(walkthroughs.map((walkthrough) => walkthrough.id)).toEqual(['markami.gettingStarted']);
+    const steps = walkthroughs[0]?.steps ?? [];
+    expect(steps.map((step) => step.id)).toEqual(['markami.open', 'markami.edit', 'markami.default']);
+    for (const step of steps) {
+      for (const [, target] of (step.description ?? '').matchAll(/\(command:([^)?]+)/gu)) {
+        expect(contributed.has(target) || builtIn.has(target ?? ''), `${step.id ?? 'step'} links ${target ?? ''}`).toBe(true);
+      }
+      const media = step.media?.markdown ?? '';
+      expect(existsSync(new URL(`../../${media}`, import.meta.url)), `${step.id ?? 'step'} media ${media}`).toBe(true);
+      expect(step.completionEvents?.length, `${step.id ?? 'step'} completion`).toBeGreaterThan(0);
+    }
+    const defaultStep = steps.find((step) => step.id === 'markami.default');
+    expect(defaultStep?.description).toContain('command:markami.setAsDefault');
+    expect(defaultStep?.description).toContain('command:markami.restoreNativeDefault');
+  });
+
   test('forwarded commands use stable unique IDs and include source find', () => {
     const ids = FORWARDED_COMMANDS.map((command) => command.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -63,6 +93,9 @@ describe('command and configuration contract', () => {
     expect(ids).toContain('markami.toggleSourceReveal');
     expect(ids).toContain('markami.copyCurrentBlockMarkdown');
     expect(ids).toContain('markami.toggleDocumentAppearance');
+    for (const hostOnly of ['markami.openSample', 'markami.setAsDefault', 'markami.restoreNativeDefault']) {
+      expect(ids, hostOnly).not.toContain(hostOnly);
+    }
   });
 
   test('all contributed shortcuts are scoped to the active markami custom editor', () => {
@@ -80,7 +113,6 @@ describe('command and configuration contract', () => {
   test('manifest exposes the complete settings contract with privacy-safe defaults', () => {
     const properties = manifest.contributes?.configuration?.properties ?? {};
     const expected = [
-      'markami.openAsDefault',
       'markami.syntaxReveal',
       'markami.remoteImages',
       'markami.renderMermaid',
@@ -104,7 +136,7 @@ describe('command and configuration contract', () => {
     ];
     expect(expected.filter((key) => properties[key] === undefined)).toEqual([]);
     expect(properties['markami.remoteImages']?.default).toBe('prompt');
-    expect(properties['markami.openAsDefault']?.default).toBe(false);
+    expect(properties['markami.openAsDefault']).toBeUndefined();
     expect(properties['markami.codeBlock.wrap']?.default).toBe(true);
     expect(properties['markami.codeBlock.lineNumbers']?.default).toBe(true);
     expect(properties['markami.appearance.mode']?.default).toBe('vscode');

@@ -918,7 +918,6 @@ The following settings are the initial configuration contract; new controls are 
 
 ```jsonc
 {
-  "markami.openAsDefault": false,
   "markami.syntaxReveal": "activeBlock",
   "markami.remoteImages": "prompt",
   "markami.renderMermaid": true,
@@ -964,7 +963,7 @@ Validate configuration in the host and webview. Invalid enums, unknown preferenc
 
 ### 23.2 Default editor association
 
-Use VS Code's Reopen With / Configure Default Editor flow. Installing markami MUST keep custom editor priority `option`. The `openAsDefault` preference is an explicit opt-in intent; it is not permission to replace the entire `workbench.editorAssociations` map. Codex must prefer VS Code's built-in default-editor UI, or merge only the selected Markdown patterns after an explicit user action. No startup write to editor associations. Explain how to return to the native editor in onboarding and README.
+Use VS Code's Reopen With / Configure Default Editor flow. Installing markami MUST keep custom editor priority `option`. There is no `openAsDefault` setting: the explicit opt-in is the `markami.setAsDefault` command, and `markami.restoreNativeDefault` reverses it. Each asks for modal confirmation, touches only the `*.md` and `*.markdown` entries of the user-level `workbench.editorAssociations` map (entries that do not point at markami are never removed), and refuses to rewrite a map that is not a pattern-to-editor object. No startup write to editor associations. The Getting Started walkthrough and the README explain how to return to the native editor.
 
 ---
 

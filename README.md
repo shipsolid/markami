@@ -38,9 +38,14 @@ Requires VS Code 1.102 or newer on desktop, with a local-filesystem workspace.
 3. Edit in the rendered document and save as usual. Click the title-bar icon or run
    **markami: Open Source Editor** to return to the plain text editor at any time.
 
+New to markami? Run **markami: Open Sample Document**, or follow the **Get started with markami**
+walkthrough (Help → Welcome → Walkthroughs).
+
 markami does not replace the native Markdown editor on its own. To open every Markdown file in markami,
-use **Reopen Editor With… → Configure default editor for '*.md' → markami**; choose **Text Editor** in
-the same menu to switch back.
+run **markami: Make markami the Default Markdown Editor**; run **markami: Use Native Markdown Editor by
+Default** to undo it. Both ask for confirmation and change only the `*.md` and `*.markdown` entries of
+your user `workbench.editorAssociations` setting. **Reopen Editor With… → Configure default editor for
+'*.md'** does the same through VS Code's own menu.
 
 ## How it keeps your source intact
 
