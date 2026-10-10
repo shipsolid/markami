@@ -1,0 +1,126 @@
+/*
+ * Fenced code: syntax colors and line numbers.
+ *
+ * VS Code does not expose a theme's token colors to webviews, so each theme kind gets a fixed set of variables here
+ * (dark and light follow the Dark+ and Light+ defaults; Catppuccin Mocha is set in palette.css). High-contrast themes
+ * use the foreground color for every token and distinguish them by weight and style, which keeps the 7:1 ratio.
+ */
+
+body {
+  --markami-tok-keyword: #569cd6;
+  --markami-tok-atom: #569cd6;
+  --markami-tok-string: #ce9178;
+  --markami-tok-regexp: #d16969;
+  --markami-tok-number: #b5cea8;
+  --markami-tok-comment: #6a9955;
+  --markami-tok-function: #dcdcaa;
+  --markami-tok-type: #4ec9b0;
+  --markami-tok-tag: #569cd6;
+  --markami-tok-property: #9cdcfe;
+  --markami-tok-variable: #9cdcfe;
+  --markami-tok-operator: #d4d4d4;
+  --markami-tok-meta: #c586c0;
+  --markami-tok-punctuation: #b0b0b0;
+  --markami-tok-link: #3794ff;
+  --markami-tok-inserted: #b5cea8;
+  --markami-tok-deleted: #f48771;
+  --markami-tok-invalid: #f48771;
+}
+
+body.vscode-light {
+  --markami-tok-keyword: #0000ff;
+  --markami-tok-atom: #0451a5;
+  --markami-tok-string: #a31515;
+  --markami-tok-regexp: #811f3f;
+  --markami-tok-number: #08704a;
+  --markami-tok-comment: #007a00;
+  --markami-tok-function: #795e26;
+  --markami-tok-type: #1f6f86;
+  --markami-tok-tag: #800000;
+  --markami-tok-property: #001080;
+  --markami-tok-variable: #001080;
+  --markami-tok-operator: #1f1f1f;
+  --markami-tok-meta: #af00db;
+  --markami-tok-punctuation: #595959;
+  --markami-tok-link: #0b5cad;
+  --markami-tok-inserted: #08704a;
+  --markami-tok-deleted: #a31515;
+  --markami-tok-invalid: #a31515;
+}
+
+body.vscode-high-contrast,
+body.vscode-high-contrast-light {
+  --markami-tok-keyword: var(--vscode-editor-foreground);
+  --markami-tok-atom: var(--vscode-editor-foreground);
+  --markami-tok-string: var(--vscode-editor-foreground);
+  --markami-tok-regexp: var(--vscode-editor-foreground);
+  --markami-tok-number: var(--vscode-editor-foreground);
+  --markami-tok-comment: var(--vscode-editor-foreground);
+  --markami-tok-function: var(--vscode-editor-foreground);
+  --markami-tok-type: var(--vscode-editor-foreground);
+  --markami-tok-tag: var(--vscode-editor-foreground);
+  --markami-tok-property: var(--vscode-editor-foreground);
+  --markami-tok-variable: var(--vscode-editor-foreground);
+  --markami-tok-operator: var(--vscode-editor-foreground);
+  --markami-tok-meta: var(--vscode-editor-foreground);
+  --markami-tok-punctuation: var(--vscode-editor-foreground);
+  --markami-tok-link: var(--vscode-editor-foreground);
+  --markami-tok-inserted: var(--vscode-editor-foreground);
+  --markami-tok-deleted: var(--vscode-editor-foreground);
+  --markami-tok-invalid: var(--vscode-editor-foreground);
+}
+
+.markami-tok-keyword { color: var(--markami-tok-keyword); }
+.markami-tok-atom { color: var(--markami-tok-atom); }
+.markami-tok-string { color: var(--markami-tok-string); }
+.markami-tok-regexp { color: var(--markami-tok-regexp); }
+.markami-tok-number { color: var(--markami-tok-number); }
+.markami-tok-comment { color: var(--markami-tok-comment); font-style: italic; }
+.markami-tok-function { color: var(--markami-tok-function); }
+.markami-tok-type { color: var(--markami-tok-type); }
+.markami-tok-tag { color: var(--markami-tok-tag); }
+.markami-tok-property { color: var(--markami-tok-property); }
+.markami-tok-variable { color: var(--markami-tok-variable); }
+.markami-tok-operator { color: var(--markami-tok-operator); }
+.markami-tok-meta { color: var(--markami-tok-meta); }
+.markami-tok-punctuation { color: var(--markami-tok-punctuation); }
+.markami-tok-link { color: var(--markami-tok-link); text-decoration: underline; }
+.markami-tok-inserted { color: var(--markami-tok-inserted); }
+.markami-tok-deleted { color: var(--markami-tok-deleted); }
+.markami-tok-invalid { color: var(--markami-tok-invalid); }
+
+.vscode-high-contrast .markami-tok-keyword,
+.vscode-high-contrast-light .markami-tok-keyword,
+.vscode-high-contrast .markami-tok-meta,
+.vscode-high-contrast-light .markami-tok-meta {
+  font-weight: 700;
+}
+
+/* Line numbers: a CSS counter over the block's lines, so the document and the selection are untouched. */
+.markami-document-shell {
+  --markami-code-pad: 12px;
+  --markami-code-gutter: 3.5em;
+}
+
+.markami-document-shell .cm-line.markami-code-first {
+  counter-reset: markami-code-line;
+}
+
+.markami-document-shell .cm-line.markami-code-line.markami-code-numbered {
+  counter-increment: markami-code-line;
+  padding-left: calc(var(--markami-code-pad) + var(--markami-code-gutter));
+  text-indent: calc(-1 * var(--markami-code-gutter));
+}
+
+.markami-document-shell .cm-line.markami-code-line.markami-code-numbered::before {
+  box-sizing: border-box;
+  color: var(--vscode-editorLineNumber-foreground);
+  content: counter(markami-code-line);
+  display: inline-block;
+  font-style: normal;
+  padding-right: 1.25em;
+  text-align: right;
+  text-indent: 0;
+  user-select: none;
+  width: var(--markami-code-gutter);
+}

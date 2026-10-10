@@ -32,9 +32,10 @@ export interface TechnicalBlockOptions {
   readonly renderMermaid: boolean;
   readonly renderMath: boolean;
   readonly codeWrap: boolean;
+  readonly lineNumbers: boolean;
 }
 
-const defaultOptions: TechnicalBlockOptions = { renderMermaid: true, renderMath: true, codeWrap: true };
+const defaultOptions: TechnicalBlockOptions = { renderMermaid: true, renderMath: true, codeWrap: true, lineNumbers: true };
 const technicalOptions = Facet.define<TechnicalBlockOptions, TechnicalBlockOptions>({
   combine(values) {
     return values.at(-1) ?? defaultOptions;
@@ -123,6 +124,7 @@ function decorationsFor(
     codeLines.forEach((lineFrom, index) => {
       const classes = ['markami-code-line'];
       if (options.codeWrap) classes.push('markami-code-wrap');
+      if (options.lineNumbers && codeLines.length > 1) classes.push('markami-code-numbered');
       if (index === 0) classes.push('markami-code-first');
       if (index === codeLines.length - 1) classes.push('markami-code-last');
       ranges.push(Decoration.line({ class: classes.join(' ') }).range(lineFrom));

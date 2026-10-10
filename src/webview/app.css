@@ -5,6 +5,7 @@
 @import './styles/layout.css';
 @import './styles/appearance.css';
 @import './styles/vscode.css';
+@import './styles/code.css';
 @import './styles/document.css';
 @import './styles/palette.css';
 
@@ -106,7 +107,7 @@
 .markami-document-shell .cm-line.markami-code-line {
   background: var(--vscode-textCodeBlock-background);
   font-family: var(--vscode-editor-font-family);
-  padding-inline: 12px;
+  padding-inline: var(--markami-code-pad, 12px);
   white-space: pre;
 }
 

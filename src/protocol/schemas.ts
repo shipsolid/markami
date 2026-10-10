@@ -169,6 +169,7 @@ const hostCoreMessageSchema = z.discriminatedUnion('type', [
     showSourceIslandLabels: z.boolean(),
     debugShowSourceRanges: z.boolean(),
     codeBlockWrap: z.boolean(),
+    codeBlockLineNumbers: z.boolean(),
     useEditorFont: z.boolean(),
     documentPalette: z.enum(['catppuccin-mocha', 'vscode'])
   }).strict(),

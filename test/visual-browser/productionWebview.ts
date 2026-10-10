@@ -50,7 +50,7 @@ function pageHtml(
   const configuration = JSON.stringify({
     type: 'configuration', selectionToolbarEnabled: true, slashCommandsEnabled: true, mathEnabled: true,
     blockHandlesEnabled: true, outlineEnabled: true, renderMermaid: true, renderSafeHtml: true,
-    showSourceIslandLabels: true, debugShowSourceRanges: false, codeBlockWrap: true, useEditorFont: false,
+    showSourceIslandLabels: true, debugShowSourceRanges: false, codeBlockWrap: true, codeBlockLineNumbers: true, useEditorFont: false,
     documentPalette: palette
   });
   const hydrate = JSON.stringify({

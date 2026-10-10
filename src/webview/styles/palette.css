@@ -38,4 +38,23 @@ html[data-markami-palette='catppuccin-mocha'] body.vscode-dark:not(.vscode-high-
   --vscode-inputValidation-errorBorder: #f38ba8;
   --vscode-editor-findMatchBackground: rgba(249, 226, 175, 0.35);
   --vscode-editor-findMatchHighlightBackground: rgba(249, 226, 175, 0.18);
+
+  --markami-tok-keyword: #cba6f7;
+  --markami-tok-atom: #fab387;
+  --markami-tok-string: #a6e3a1;
+  --markami-tok-regexp: #f5c2e7;
+  --markami-tok-number: #fab387;
+  --markami-tok-comment: #7f849c;
+  --markami-tok-function: #89b4fa;
+  --markami-tok-type: #f9e2af;
+  --markami-tok-tag: #f38ba8;
+  --markami-tok-property: #89dceb;
+  --markami-tok-variable: #cdd6f4;
+  --markami-tok-operator: #94e2d5;
+  --markami-tok-meta: #f5c2e7;
+  --markami-tok-punctuation: #9399b2;
+  --markami-tok-link: #89b4fa;
+  --markami-tok-inserted: #a6e3a1;
+  --markami-tok-deleted: #f38ba8;
+  --markami-tok-invalid: #f38ba8;
 }

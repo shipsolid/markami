@@ -129,6 +129,7 @@ describe('configuration message', () => {
     showSourceIslandLabels: true,
     debugShowSourceRanges: false,
     codeBlockWrap: true,
+    codeBlockLineNumbers: true,
     useEditorFont: true
   };
 

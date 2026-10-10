@@ -59,6 +59,7 @@ export type HostMessage =
       readonly showSourceIslandLabels: boolean;
       readonly debugShowSourceRanges: boolean;
       readonly codeBlockWrap: boolean;
+      readonly codeBlockLineNumbers: boolean;
       readonly useEditorFont: boolean;
       readonly documentPalette: 'catppuccin-mocha' | 'vscode';
     }

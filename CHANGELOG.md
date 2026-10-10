@@ -20,6 +20,10 @@ All notable changes to markami are documented here.
   the editor. All of them stay keyboard-reachable and take no layout space.
 - Table cells render their inline Markdown (bold, emphasis, strikethrough, code, links) and switch to raw source
   only while focused. Clicking a cell edits it in place instead of revealing the whole table's source.
+- Fenced code blocks are syntax highlighted (theme-aware colors for dark, light, high-contrast, and Catppuccin Mocha;
+  high contrast uses weight and style instead of color) and show line numbers when they have more than one line
+  (`markami.codeBlock.lineNumbers`, default on). The README and earlier changelog entries already claimed syntax
+  highlighting, but 0.1.0 and 0.1.1 never applied a highlight style, so code was plain text.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

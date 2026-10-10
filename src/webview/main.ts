@@ -1,6 +1,7 @@
 import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
+import { codeHighlighting } from './features/codeBlocks/codeHighlight.js';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, type KeyBinding } from '@codemirror/view';
 import './app.css';
@@ -102,6 +103,7 @@ let renderSafeHtml = true;
 let showSourceIslandLabels = true;
 let debugShowSourceRanges = false;
 let codeBlockWrap = true;
+let codeBlockLineNumbers = true;
 let documentPalette: DocumentPalette = 'catppuccin-mocha';
 let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
 let syntaxReveal: SyntaxRevealPolicy = 'activeBlock';
@@ -164,6 +166,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
     showSourceIslandLabels = message.showSourceIslandLabels;
     debugShowSourceRanges = message.debugShowSourceRanges;
     codeBlockWrap = message.codeBlockWrap;
+    codeBlockLineNumbers = message.codeBlockLineNumbers;
     documentPalette = message.documentPalette;
     updateAppearance({
       useEditorFont: message.useEditorFont
@@ -176,7 +179,8 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
         technicalCompartment.reconfigure(technicalBlocks({
           renderMermaid,
           renderMath: mathEnabled,
-          codeWrap: codeBlockWrap
+          codeWrap: codeBlockWrap,
+          lineNumbers: codeBlockLineNumbers
         })),
         documentSyntaxCompartment.reconfigure(documentSyntax({
           renderSafeHtml,
@@ -240,6 +244,7 @@ function createEditor(text: string): void {
       doc: text,
       extensions: [
         markdown({ codeLanguages: languages }),
+        codeHighlighting,
         EditorState.changeFilter.of((transaction) => {
           if (!transaction.docChanged) return true;
           const nextSource = transaction.newDoc.toString().replaceAll('\n', eol);
@@ -262,7 +267,7 @@ function createEditor(text: string): void {
           (rawPath) => resources.resolveImage(rawPath),
           (image) => imagePopover?.show(currentActionContext(), image)
         ),
-        technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap })),
+        technicalCompartment.of(technicalBlocks({ renderMermaid, renderMath: mathEnabled, codeWrap: codeBlockWrap, lineNumbers: codeBlockLineNumbers })),
         tableProjectionField,
         findHighlights,
         blockHandleGutter(() => blockHandlesEnabled ? currentBlocks() : [], () => blockHandles),

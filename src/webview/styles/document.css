@@ -14,6 +14,7 @@
   --markami-page-padding: 16px;
   --markami-card-padding: 24px;
   --markami-card-radius: 12px;
+  --markami-code-pad: var(--markami-card-padding);
 }
 
 @media (min-width: 640px) {
