@@ -660,4 +660,11 @@
 - Not done: list markers still render as a literal `-`; table, block-handle, and Copy chrome is always visible
   (the planned hover/focus-only step needs accessibility checks); the published listing images still show the
   0.1.0 look until a new version is released and the captures regenerated
+- Regression caught by the main CI bench (run 38053278923: typing p95 50.62 ms against the 50 ms target; the same
+  code had passed at 39.93 ms and 49.43 ms on two other runs): the fenced-code skip added in the fence fix scanned
+  every fence for every line and every inline match, so projection was quadratic in the number of fences. Locally,
+  before the fix: 1 MiB open median 346 to 355 ms on the previous commit and 887 to 1155 ms on the regression,
+  typing median 18.5 ms against 23.5 ms. The fence ranges are sorted and disjoint, so they are now looked up by
+  binary search: 1 MiB median 352 to 373 ms, typing median 19.2 to 20.0 ms. The projection tests that pin fence
+  boundaries (`lines_touching_a_fence...`) were added before the refactor and stayed green
 

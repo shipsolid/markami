@@ -64,6 +64,14 @@ describe('Markdown projection', () => {
     expect(plan.hiddenTokens.map(text)).toEqual(['# ']);
   });
 
+  test('lines_touching_a_fence_are_styled_until_the_fence_begins_and_after_it_ends', () => {
+    const markdown = '# before\n```sh\n# inside\n```\n# after\n**bold** `code`\n';
+    const plan = buildProjectionPlan(markdown);
+
+    expect(plan.lineStyles.map((style) => markdown.slice(style.from, style.to))).toEqual(['# before', '# after']);
+    expect(plan.marks.map((mark) => mark.kind)).toEqual(['strong', 'inlineCode']);
+  });
+
   test('indented_list_items_are_styled_as_list_lines', () => {
     const markdown = '- parent\n  - child\n    1. grandchild\n';
     const plan = buildProjectionPlan(markdown);

@@ -50,7 +50,7 @@ export function buildProjectionPlan(source: string, options: ProjectionOptions =
   const lineStyles: LineStyle[] = [];
   const sourceIslands = mergeIslands([...findUnterminatedFence(source), ...(options.sourceIslands ?? [])]);
   // Code is literal: a shell comment must not become a heading and `**` must not become bold.
-  const fenced = findFencedBlocks(source);
+  const fenced = indexRanges(findFencedBlocks(source));
 
   collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands, fenced);
   collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hiddenTokens, options.selection, sourceIslands, fenced);
@@ -127,12 +127,12 @@ function collectLines(
   hidden: HiddenToken[],
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
-  fenced: readonly SourceRange[]
+  fenced: RangeIndex
 ): void {
   let offset = 0;
   for (const line of source.split('\n')) {
     const end = offset + line.length;
-    if (fenced.some((block) => offset >= block.from && offset <= block.to)) {
+    if (fenced.containsOffset(offset)) {
       offset = end + 1;
       continue;
     }
@@ -165,12 +165,12 @@ function collectInline(
   hidden: HiddenToken[],
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
-  fenced: readonly SourceRange[]
+  fenced: RangeIndex
 ): void {
   for (const match of source.matchAll(pattern)) {
     const from = match.index;
     const to = from + match[0].length;
-    if (islands.some((island) => overlaps({ from, to }, island)) || fenced.some((block) => overlaps({ from, to }, block))) {
+    if (islands.some((island) => overlaps({ from, to }, island)) || fenced.overlapsSpan({ from, to })) {
       continue;
     }
     marks.push({ from: from + delimiter, to: to - delimiter, kind });
@@ -178,6 +178,35 @@ function collectInline(
       hidden.push({ from, to: from + delimiter }, { from: to - delimiter, to });
     }
   }
+}
+
+interface RangeIndex {
+  /** True when the offset lies within a range, ends included. */
+  readonly containsOffset: (offset: number) => boolean;
+  /** True when the span shares at least one character with a range. */
+  readonly overlapsSpan: (span: SourceRange) => boolean;
+}
+
+/**
+ * Looks ranges up by binary search. Fences are sorted and never overlap, and a large document has thousands of
+ * them and tens of thousands of lines, so a linear scan per line made projection quadratic.
+ */
+function indexRanges(ranges: readonly SourceRange[]): RangeIndex {
+  const firstEndingAtOrAfter = (position: number, inclusive: boolean): number => {
+    let low = 0;
+    let high = ranges.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      const end = ranges[middle]?.to ?? 0;
+      if (inclusive ? end >= position : end > position) high = middle;
+      else low = middle + 1;
+    }
+    return low;
+  };
+  return {
+    containsOffset: (offset) => (ranges[firstEndingAtOrAfter(offset, true)]?.from ?? Number.POSITIVE_INFINITY) <= offset,
+    overlapsSpan: (span) => (ranges[firstEndingAtOrAfter(span.from, false)]?.from ?? Number.POSITIVE_INFINITY) < span.to
+  };
 }
 
 function findUnterminatedFence(source: string): SourceIslandSpec[] {
