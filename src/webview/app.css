@@ -4,6 +4,7 @@
 @import '@fontsource-variable/jetbrains-mono/wght.css';
 @import './styles/layout.css';
 @import './styles/appearance.css';
+@import './styles/vscode.css';
 @import './styles/document.css';
 @import './styles/palette.css';
 

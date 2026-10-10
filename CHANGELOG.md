@@ -2,6 +2,17 @@
 
 All notable changes to markami are documented here.
 
+## Unreleased
+
+### Changed
+
+- The default appearance is a clean VS Code style, modelled on the VS Code Markdown preview and using your exact
+  theme colors: UI font at 14px/1.6, ruled h1 and h2, compact lists, pill-style inline code, 4px quote bar, 26px
+  page padding with room to scroll past the last line. The Shantell Sans and Catppuccin Mocha Document appearance
+  from 0.1.1 stays available as an opt-in style (`markami.appearance.mode`). `markami.theme.useEditorFont` now
+  defaults to `false` so prose uses the UI font.
+- The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
+
 ## 0.1.1 — 2026-10-10
 
 Preview release. Document appearance becomes the default and a designed reading view; rendering defects found

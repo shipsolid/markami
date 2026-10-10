@@ -88,7 +88,8 @@ describe('command and configuration contract', () => {
     expect(properties['markami.remoteImages']?.default).toBe('prompt');
     expect(properties['markami.openAsDefault']?.default).toBe(false);
     expect(properties['markami.codeBlock.wrap']?.default).toBe(true);
-    expect(properties['markami.appearance.mode']?.default).toBe('document');
+    expect(properties['markami.appearance.mode']?.default).toBe('vscode');
+    expect(properties['markami.theme.useEditorFont']?.default).toBe(false);
     expect(properties['markami.document.maxContentWidth']?.default).toBe(1200);
     expect(properties['markami.document.palette']?.default).toBe('catppuccin-mocha');
     expect(properties['markami.document.palette']?.enum).toEqual(['catppuccin-mocha', 'vscode']);
@@ -120,6 +121,7 @@ describe('command and configuration contract', () => {
       useEditorFont: false,
       documentPalette: 'catppuccin-mocha'
     });
+    expect(readWebviewConfiguration({ get: () => undefined }).useEditorFont).toBe(false);
     expect(readRemoteImagePolicy(configuration)).toBe('prompt');
     expect(readAssetPasteDirectory(configuration)).toBe('assets/${documentBasename}');
   });

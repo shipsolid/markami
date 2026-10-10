@@ -3,45 +3,16 @@
   color: var(--vscode-editor-foreground);
 }
 
-.markami-document-shell[data-appearance='vscode'][data-editor-font='true'] .cm-content {
-  font-family: var(--vscode-editor-font-family);
-  line-height: 1.45;
-}
-
-.markami-document-shell[data-appearance='vscode'][data-editor-font='false'] .cm-content {
-  font-family: var(--vscode-font-family);
-}
-
 .markami-document-shell .cm-line.markami-quote {
-  border-left: 3px solid var(--vscode-textBlockQuote-border);
   color: var(--vscode-textBlockQuote-foreground, var(--vscode-editor-foreground));
-  padding-left: 12px;
 }
 
-.markami-document-shell[data-appearance='vscode'] .cm-line[class*='markami-heading'] {
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading1 {
-  font-size: 1.6em;
-  font-weight: 700;
-}
-
-.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading2 {
-  font-size: 1.4em;
-}
-
-.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading3 {
-  font-size: 1.2em;
-}
-
-.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading4 {
-  font-size: 1.1em;
-}
-
-.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading6 {
-  color: var(--vscode-descriptionForeground);
+/* The caret marks focus in the editing surface, as in VS Code's own editor; controls keep their focus ring. */
+.markami-document-shell .cm-editor,
+.markami-document-shell .cm-editor.cm-focused,
+.markami-document-shell .cm-content,
+.markami-document-shell .cm-scroller {
+  outline: none;
 }
 
 .markami-document-shell .markami-code-header,
@@ -86,7 +57,7 @@ button:disabled {
 }
 
 .markami-document-controls :focus-visible,
-.markami-document-shell [tabindex]:focus-visible,
+.markami-document-shell [tabindex]:not(.cm-content):focus-visible,
 .markami-document-shell button:focus-visible,
 .markami-find :focus-visible,
 .markami-outline :focus-visible,

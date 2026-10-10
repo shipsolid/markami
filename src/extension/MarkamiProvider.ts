@@ -432,7 +432,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
     return {
       appearance: configuredAppearance === 'document' || configuredAppearance === 'vscode'
         ? configuredAppearance
-        : 'document',
+        : 'vscode',
       width: configuredWidth === 'readable' || configuredWidth === 'full' || configuredWidth === 'auto'
         ? configuredWidth
         : 'auto',

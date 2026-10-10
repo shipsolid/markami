@@ -400,8 +400,8 @@ Both appearance modes MUST ship. They change presentation only; the editing mode
 
 | Mode value | UI label | Behavior |
 |---|---|---|
-| `vscode` | VS Code | Compact technical-document typography, VS Code font preference, restrained spacing, theme-native controls; follows the VS Code theme and editor font |
-| `document` | Document | Bundled reading fonts, generous paragraph spacing, stronger heading hierarchy, card-style technical blocks, optional Catppuccin Mocha palette in dark themes; installation default |
+| `vscode` | VS Code | The VS Code Markdown preview rendered in place: UI font, 14px at 1.6, ruled h1/h2, compact lists, theme-native controls and your exact theme colors; installation default |
+| `document` | Document | Bundled reading fonts, generous paragraph spacing, stronger heading hierarchy, card-style technical blocks, optional Catppuccin Mocha palette in dark themes |
 
 A small document toolbar provides an Appearance control; the command palette exposes the same choice. Switching modes preserves caret, selection, scroll anchor, open source islands, dirty state, and pending edits. It MUST produce no Markdown change or document undo entry. Font/color changes MUST not trigger Mermaid source changes or whole-document serialization.
 
@@ -929,13 +929,13 @@ The following settings are the initial configuration contract; new controls are 
   "markami.slashCommands.enabled": true,
   "markami.selectionToolbar.enabled": true,
   "markami.blockHandles.enabled": true,
-  "markami.appearance.mode": "document",
+  "markami.appearance.mode": "vscode",
   "markami.document.width": "auto",
   "markami.document.maxContentWidth": 1200,
   "markami.document.palette": "catppuccin-mocha",
   "markami.viewPreferences.rememberPerFile": true,
   "markami.sourceIslands.showLabel": true,
-  "markami.theme.useEditorFont": true,
+  "markami.theme.useEditorFont": false,
   "markami.assets.pasteDirectory": "assets/${documentBasename}",
   "markami.debug.showSourceRanges": false
 }
@@ -952,7 +952,7 @@ Strict fidelity is an invariant: unsupported transformations fall back to source
 | `markami.slashCommands.enabled` | boolean / true | Resource; disables typed trigger only |
 | `markami.selectionToolbar.enabled` | boolean / true | Resource; shortcuts and explicit toolbar command still work |
 | `markami.blockHandles.enabled` | boolean / true | Resource; hides gutter affordance, retains keyboard move commands |
-| `markami.appearance.mode` | `vscode` or `document` / `document` | Resource default; file override permitted |
+| `markami.appearance.mode` | `vscode` or `document` / `vscode` | Resource default; file override permitted |
 | `markami.document.width` | `auto`, `readable`, `full` / `auto` | Resource default; file override permitted |
 | `markami.document.maxContentWidth` | integer 480–2400 / 1200 | CSS pixels; ignored by `full` |
 | `markami.document.palette` | `catppuccin-mocha` or `vscode` / `catppuccin-mocha` | Document appearance only, and only in dark themes; light and high-contrast themes always follow VS Code |

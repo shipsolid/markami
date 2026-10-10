@@ -317,8 +317,8 @@
         "markami.appearance.mode": {
           "type": "string",
           "enum": ["vscode", "document"],
-          "enumDescriptions": ["Compact, editor-oriented typography.", "Comfortable document-oriented typography."],
-          "default": "document",
+          "enumDescriptions": ["Clean VS Code Markdown-preview typography in your exact theme colors.", "Designed reading view with bundled fonts and an optional Catppuccin Mocha palette."],
+          "default": "vscode",
           "scope": "resource",
           "description": "Set the default presentation for rendered Markdown. This never changes document source."
         },
@@ -362,9 +362,9 @@
         },
         "markami.theme.useEditorFont": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "scope": "resource",
-          "description": "Use the configured VS Code editor font in VS Code appearance mode. Document mode uses its own reading and code fonts."
+          "description": "Use the configured VS Code editor font for prose in VS Code appearance. Off by default so prose uses the UI font; code always uses the editor font. Document appearance uses its own fonts."
         },
         "markami.sourceIslands.showLabel": {
           "type": "boolean",

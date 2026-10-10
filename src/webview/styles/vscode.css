@@ -1,0 +1,94 @@
+/*
+ * VS Code appearance: the VS Code Markdown preview, rendered in place. It reads only VS Code theme tokens, so the
+ * page looks like part of the active theme. Spacing is padding plus the source's own blank lines, never margins on
+ * CodeMirror lines: a blank source line is the 16px paragraph gap and tightens to 8px under a heading.
+ */
+
+.markami-document-shell[data-appearance='vscode'] .cm-content {
+  font-family: var(--vscode-font-family);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 16px 26px 30vh;
+}
+
+.markami-document-shell[data-appearance='vscode'][data-editor-font='true'] .cm-content {
+  font-family: var(--vscode-editor-font-family);
+}
+
+@media (max-width: 480px) {
+  .markami-document-shell[data-appearance='vscode'] .cm-content {
+    padding-inline: 16px;
+  }
+}
+
+/* Headings */
+.markami-document-shell[data-appearance='vscode'] .cm-line[class*='markami-heading'] {
+  font-weight: 600;
+  line-height: 1.25;
+  padding-top: 8px;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading1,
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading2 {
+  border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border, #80808060));
+  padding-bottom: 0.3em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading1 {
+  font-size: 2em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading2 {
+  font-size: 1.5em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading3 {
+  font-size: 1.25em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading4 {
+  font-size: 1em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading5 {
+  font-size: 0.875em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading6 {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
+/* A blank source line is the paragraph gap; it tightens under a heading. */
+.markami-document-shell[data-appearance='vscode'] .cm-line:not([class*='markami-']):has(> br:only-child) {
+  height: 16px;
+  line-height: 16px;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line[class*='markami-heading'] + .cm-line:not([class*='markami-']):has(> br:only-child) {
+  height: 8px;
+  line-height: 8px;
+}
+
+/* Lists, inline code, quotes */
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-list {
+  padding-block: 1px;
+}
+
+.markami-document-shell[data-appearance='vscode'] .markami-inlineCode {
+  border-radius: 4px;
+  font-size: 85%;
+  padding: 0.15em 0.4em;
+}
+
+.markami-document-shell[data-appearance='vscode'] .cm-line.markami-quote {
+  background: var(--vscode-textBlockQuote-background, transparent);
+  border-left: 4px solid var(--vscode-textBlockQuote-border);
+  padding: 4px 16px;
+}
+
+/* Tables */
+.markami-document-shell[data-appearance='vscode'] .markami-table [role='gridcell'],
+.markami-document-shell[data-appearance='vscode'] .markami-table [role='columnheader'] {
+  padding: 6px 13px;
+}

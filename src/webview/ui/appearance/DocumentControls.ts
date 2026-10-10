@@ -13,10 +13,10 @@ export interface AppearancePreferences {
 export type AppearanceChange = Partial<AppearancePreferences>;
 
 export const DEFAULT_APPEARANCE: AppearancePreferences = {
-  appearance: 'document',
+  appearance: 'vscode',
   width: 'auto',
   maxContentWidth: 1200,
-  useEditorFont: true
+  useEditorFont: false
 };
 
 export function normalizeAppearancePreferences(value: unknown): AppearancePreferences {

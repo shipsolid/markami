@@ -33,7 +33,7 @@ export function readWebviewConfiguration(configuration: ConfigurationReader): We
     showSourceIslandLabels: readBoolean(configuration, 'sourceIslands.showLabel', true),
     debugShowSourceRanges: readBoolean(configuration, 'debug.showSourceRanges', false),
     codeBlockWrap: readBoolean(configuration, 'codeBlock.wrap', true),
-    useEditorFont: readBoolean(configuration, 'theme.useEditorFont', true),
+    useEditorFont: readBoolean(configuration, 'theme.useEditorFont', false),
     documentPalette: configuration.get('document.palette') === 'vscode' ? 'vscode' : 'catppuccin-mocha'
   };
 }
