@@ -683,3 +683,38 @@
   approval; replace the generated body afterwards per `docs/releasing.md`); the `[!NOTE]` alert marker, always-visible
   table and handle chrome, list markers, and the waived IME and screen-reader smoke (issue #8) remain
 
+## Task 31 — Cleaner, theme-native default style (Markflow-informed UI pass)
+
+- Status: implemented on main in nine commits (`2704d34` through `cc7d6dd`), CI to confirm; not released. Version
+  0.1.1 is still the published one; these changes are under `## Unreleased` in the changelog
+- Trigger: the owner compared markami against Markflow (MIT, Milkdown/ProseMirror) and asked for a cleaner, modern
+  look that reads as part of the VS Code theme, with an outline that follows resizes. Markflow's engine is not
+  adopted: it re-serializes the whole document (its README admits `-` bullets become `*`), which breaks the
+  source-fidelity contract. No Markflow code was copied; the style follows the VS Code Markdown preview values
+- Decisions confirmed with the owner: clean VS Code style as the default with the Document style opt-in; remove
+  the in-page bar for editor-title icons; port rendered table cells and hover controls, code colors and line
+  numbers, heading/list/spacing polish, and quieter source reveal; dock the outline only when there is room
+- What changed: (1) default `vscode` appearance rewritten as the preview style (UI font 14px/1.6, ruled h1/h2, 16px
+  paragraph gap, pill code, 4px quote bar, 26px padding, theme tokens only, no focus ring on the editing surface);
+  (2) the Appearance/Width/Maximum bar removed, `markami.toggleDocumentAppearance` plus editor-title icons added;
+  (3) table controls, code tools, and block handles shown on hover or focus only; (4) table cells render inline
+  Markdown and a click edits the cell in place; (5) syntax highlighting (a highlight style was never applied before)
+  and CSS-counter line numbers (`markami.codeBlock.lineNumbers`); (6) list glyphs, nesting, hanging indent, dimmed
+  revealed markers; (7) outline docking measured with a ResizeObserver; (8) typed alert titles; (9) capture suite
+  shows the default style with one Document image
+- Defects found and fixed on the way, each with a test that failed first: delimiters inside inline code were parsed
+  (`` `**x**` `` rendered bold); the README claim of syntax highlighting was false for 0.1.0 and 0.1.1; clicking a
+  table cell revealed the whole table's source
+- Evidence per piece: RED then GREEN with `vscodeStyle`, `documentChrome`, `hoverChrome`, `tableCells`,
+  `codeBlocks`, `lists`, `alerts`, and `documentOutline` browser specs and the projection, table-inline, manifest,
+  and docking unit tests. Not run RED: the native integration test for the toggle command and the outline resize
+  and hidden-tab browser specs were written with their changes and pass, but were not run against the old code
+- Gates on the final tree: `npm run verify`; `test:webview` 95; `test:visual` 5; `bench` (1 MiB open median
+  368 ms against 350 ms before this pass, typing median 20.3 ms against 19.2 ms); `npm run package` policy passed;
+  88 browser specs in the Playwright container; 19 native VS Code integration tests (VS Code 1.141.0, Linux
+  container); a full capture dry run in real VS Code under Dark Modern, whose images show the default style
+- Known gaps: the pointer-position caret mapping when a rendered cell switches to source (the caret lands at the end);
+  the list-marker widget is a replace decoration, so Backspace at the start of item text moves over the marker as
+  one unit; the published listing images still show the 0.1.1 look until the capture workflow runs for a release;
+  Windows and macOS integration run in CI only
+
