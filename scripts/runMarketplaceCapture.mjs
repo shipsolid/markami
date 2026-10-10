@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runTests } from '@vscode/test-electron';
 
+import { prepareCaptureWorkspace } from './captureWorkspace.mjs';
 import { MARKETPLACE_CAPTURES, validateMarketplaceCapture } from './marketplaceListing.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -55,8 +56,10 @@ async function main(arguments_) {
   try {
     const extractedRoot = path.join(temporaryRoot, 'vsix');
     const stagedCaptureRoot = path.join(temporaryRoot, 'captures');
+    const workspaceRoot = path.join(temporaryRoot, 'marketplace');
     await mkdir(extractedRoot, { recursive: true });
     await mkdir(stagedCaptureRoot, { recursive: true });
+    await prepareCaptureWorkspace(workspaceRoot, path.join(root, 'fixtures', 'marketplace'));
     execFileSync('unzip', ['-q', artifact, '-d', extractedRoot], { stdio: 'inherit' });
     const extensionRoot = await validateExtractedExtension(extractedRoot);
 
@@ -71,7 +74,7 @@ async function main(arguments_) {
         MARKETPLACE_CAPTURE_TOOL: process.env.MARKETPLACE_CAPTURE_TOOL ?? 'import'
       },
       launchArgs: [
-        path.join(root, 'fixtures', 'marketplace'),
+        workspaceRoot,
         '--disable-extensions',
         '--disable-gpu',
         '--no-sandbox',

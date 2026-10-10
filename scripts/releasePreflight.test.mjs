@@ -28,7 +28,8 @@ const requiredFiles = new Set([
 const marketplaceCaptures = [
   'media/marketplace/rendered-editor.png',
   'media/marketplace/source-preserving-editing.png',
-  'media/marketplace/technical-markdown.png'
+  'media/marketplace/technical-markdown.png',
+  'media/marketplace/git-diff.png'
 ];
 const marketplaceGallery = marketplaceCaptures.map((capture) => `![Capture](${capture})`).join('\n');
 

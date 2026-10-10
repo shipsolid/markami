@@ -31,6 +31,14 @@ export const MARKETPLACE_CAPTURES = Object.freeze([
     heading: 'Keep technical content local',
     alt: 'markami rendering Mermaid, math, highlighted code, and a GitHub Flavored Markdown table in VS Code',
     copy: 'Mermaid, math, syntax highlighting, and table editing ship locally and continue to work offline.'
+  }),
+  Object.freeze({
+    path: 'media/marketplace/git-diff.png',
+    width: WIDTH,
+    height: HEIGHT,
+    heading: 'Keep your Git diffs small',
+    alt: 'markami beside a Git diff in which promoting one paragraph to a heading changed exactly one line',
+    copy: 'Promote a paragraph to a heading in the rendered document and the diff shows that one line. Line endings, trailing spaces, and table alignment stay as written.'
   })
 ]);
 

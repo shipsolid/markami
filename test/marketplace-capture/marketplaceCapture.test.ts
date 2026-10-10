@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as vscode from 'vscode';
@@ -48,6 +48,29 @@ suite('packaged Marketplace surface', function () {
     await setDocumentPresentation('vscode', 'auto');
     await wait(3_000);
     await capture(captureTool, outputDirectory, 'technical-markdown.png');
+
+    // The listing claims small diffs, so the image is only taken after proving the saved bytes changed in one place.
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    const notes = vscode.Uri.joinPath(workspace.uri, 'release-notes.md');
+    const committed = await readFile(notes.fsPath, 'utf8');
+    await openRendered(workspace.uri, 'release-notes.md');
+    await setDocumentPresentation('vscode', 'auto');
+    await executeWhenReady('markami.heading1');
+    const document = vscode.workspace.textDocuments.find((candidate) => candidate.uri.toString() === notes.toString());
+    assert.ok(document, 'release-notes.md must be open');
+    await waitFor(() => document.isDirty, 'the heading edit reaching the document');
+    assert.equal(await document.save(), true);
+    assert.equal(
+      await readFile(notes.fsPath, 'utf8'),
+      committed.replace('Release checklist\r\n', '# Release checklist\r\n'),
+      'promoting the paragraph must change that one line and nothing else'
+    );
+
+    await waitForGitChange(notes);
+    await vscode.commands.executeCommand('workbench.action.splitEditorRight');
+    await vscode.commands.executeCommand('git.openChange', notes);
+    await wait(2_000);
+    await capture(captureTool, outputDirectory, 'git-diff.png');
   });
 });
 
@@ -71,6 +94,30 @@ async function setDocumentPresentation(appearance: 'vscode' | 'document', width:
   await executeWhenReady('markami.setDocumentAppearance', appearance);
   await executeWhenReady('markami.setDocumentWidth', width);
   await wait(1_000);
+}
+
+async function waitFor(condition: () => boolean, description: string): Promise<void> {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await wait(50);
+  }
+  assert.fail(`timed out waiting for ${description}`);
+}
+
+interface GitApi {
+  readonly repositories: readonly { readonly state: { readonly workingTreeChanges: readonly { readonly uri: vscode.Uri }[] } }[];
+}
+
+async function waitForGitChange(uri: vscode.Uri): Promise<void> {
+  const extension = vscode.extensions.getExtension<{ getAPI(version: 1): GitApi }>('vscode.git');
+  assert.ok(extension, 'the built-in Git extension is required for the diff capture');
+  const api = (await extension.activate()).getAPI(1);
+  await waitFor(
+    () => api.repositories.some((repository) =>
+      repository.state.workingTreeChanges.some((change) => change.uri.toString() === uri.toString())),
+    'Git to report the saved change'
+  );
 }
 
 async function capture(tool: string, directory: string, filename: string): Promise<void> {

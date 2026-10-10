@@ -13,7 +13,8 @@ import {
 const allCaptures = [
   'media/marketplace/rendered-editor.png',
   'media/marketplace/source-preserving-editing.png',
-  'media/marketplace/technical-markdown.png'
+  'media/marketplace/technical-markdown.png',
+  'media/marketplace/git-diff.png'
 ];
 
 test('accepts only one explicit VSIX artifact argument', () => {

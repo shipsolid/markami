@@ -77,8 +77,10 @@ gh secret list --env vscode-marketplace
    intentionally unavailable from feature branches so unrelated commits cannot enter an asset PR.
 2. The workflow packages the current version, extracts `extension/` from that exact VSIX, launches it
    in VS Code stable under a 1440×900 Xvfb display, and captures only the public fixtures in
-   `fixtures/marketplace/`.
-3. Download the workflow artifact and inspect all three PNGs for accuracy, clipping, legibility,
+   `fixtures/marketplace/`, staged in a throwaway Git repository so the diff capture shows a real
+   working-tree change. The capture run fails unless the saved file differs from the committed one in
+   exactly the expected line.
+3. Download the workflow artifact and inspect every PNG for accuracy, clipping, legibility,
    private content, and source-reveal correctness. Review the generated README gallery in the pull
    request.
 4. Merge the capture PR only after visual approval. Then set `listing_approved: true` in release
