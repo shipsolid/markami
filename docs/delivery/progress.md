@@ -668,3 +668,18 @@
   binary search: 1 MiB median 352 to 373 ms, typing median 19.2 to 20.0 ms. The projection tests that pin fence
   boundaries (`lines_touching_a_fence...`) were added before the refactor and stayed green
 
+## Task 30 — Published 0.1.1 Preview to the Visual Studio Marketplace
+
+- Status: complete; `shipsolid.markami` 0.1.1 is live as `validated, public, preview`, and the provider response,
+  public artifact digest, and clean-profile install are recorded in
+  [`release-notes.md`](release-notes.md#011-publication-record)
+- Path: version bump and release evidence (`60cf41c`), Marketplace captures workflow (run 38052856072) and PR #9
+  reviewed and merged by the owner, main CI bench failure traced to the quadratic fence lookup and fixed
+  (`1d0f3d3`, Task 29), digest re-recorded and listing approved (`48bae37`), annotated tag `v0.1.1`, Release dry
+  run 38054078699, then publish run 38054250565 behind the owner's `vscode-marketplace` approval
+- First exercise of the bumped actions in `release.yml` (checkout 7.0.1, setup-node 7.1.0, upload-artifact 7.0.2,
+  download-artifact 8.0.2): the dry run and the publish run both passed the package-to-publish hand-off
+- Open: no GitHub release for v0.1.1 yet (`create_github_release=true` from the tag, behind the `github-release`
+  approval; replace the generated body afterwards per `docs/releasing.md`); the `[!NOTE]` alert marker, always-visible
+  table and handle chrome, list markers, and the waived IME and screen-reader smoke (issue #8) remain
+
