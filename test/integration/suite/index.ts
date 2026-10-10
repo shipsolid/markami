@@ -6,7 +6,11 @@ import { warmUpMarkamiEditor } from '../support.js';
 export async function run(): Promise<void> {
   const mocha = new Mocha({ color: true, ui: 'tdd' });
   const root = path.resolve(__dirname, '..');
-  const files = await glob('**/*.test.js', { cwd: root });
+  // An installed extension runs in production mode, which omits the test-only inspection command that the
+  // view-preferences suite drives.
+  const installed = process.env.MARKAMI_INSTALLED_VSIX === '1';
+  const files = (await glob('**/*.test.js', { cwd: root }))
+    .filter((file) => !(installed && file === 'viewPreferences.test.js'));
 
   await warmUpMarkamiEditor();
 

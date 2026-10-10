@@ -406,13 +406,15 @@
     "test:package": "node scripts/checkPackage.test.mjs",
     "test:release": "node scripts/releasePreflight.test.mjs",
     "test:marketplace": "node --test scripts/marketplaceListing.test.mjs scripts/runMarketplaceCapture.test.mjs scripts/gitRevision.test.mjs",
+    "test:install-smoke": "node --test scripts/installSmoke.test.mjs",
     "check:licenses": "node scripts/checkLicenses.mjs",
     "generate:notices": "node scripts/generateNotices.mjs",
     "package": "node scripts/package.mjs",
     "check:package": "node scripts/checkPackage.mjs",
     "release:preflight": "node scripts/releasePreflight.mjs",
     "capture:marketplace": "node scripts/runMarketplaceCapture.mjs",
-    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run test:release && npm run test:marketplace && npm run check:licenses && npm run build"
+    "smoke:install": "npm run build:integration && node scripts/installSmoke.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run test:unit && npm run test:protocol && npm run test:fidelity && npm run test:package && npm run test:release && npm run test:marketplace && npm run test:install-smoke && npm run check:licenses && npm run build"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",
