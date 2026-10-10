@@ -47,7 +47,7 @@ test('production styles satisfy the viewport, theme, and local-overflow matrix',
           const measurements = await page.evaluate(() => {
             const shell = document.querySelector<HTMLElement>('#editor');
             const content = document.querySelector<HTMLElement>('.cm-content');
-            const table = document.querySelector<HTMLElement>('.markami-table');
+            const table = document.querySelector<HTMLElement>('.markami-table-scroll');
             const grid = document.querySelector<HTMLElement>('.markami-table-grid');
             const code = document.querySelector<HTMLElement>('.markami-code-line');
             if (shell === null || content === null || table === null || grid === null || code === null) {
@@ -114,7 +114,7 @@ function documentMarkup(): string {
     <div class="cm-editor"><div class="cm-scroller"><div class="cm-content">
       <div class="cm-line markami-heading1">Heading</div>
       <div class="cm-line">Rendered prose remains inside the selected content column.</div>
-      <div class="markami-table"><div class="markami-table-controls"><button>Action</button></div><div class="markami-table-grid" role="grid"><div role="row">${wideCells}</div></div></div>
+      <div class="markami-table"><div class="markami-table-controls"><button>Action</button></div><div class="markami-table-scroll"><div class="markami-table-grid" role="grid"><div role="row">${wideCells}</div></div></div></div>
       <div class="cm-line markami-code-line">${'const_very_long_identifier = '.repeat(40)}</div>
       <div class="motion-probe">motion</div>
     </div></div></div>

@@ -135,6 +135,6 @@ describe('appearance and responsive width', () => {
       })
     });
 
-    expect(shell.querySelector('.markami-table > .markami-table-grid[role="grid"]')).not.toBeNull();
+    expect(shell.querySelector('.markami-table > .markami-table-scroll > .markami-table-grid[role="grid"]')).not.toBeNull();
   });
 });

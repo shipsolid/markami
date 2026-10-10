@@ -72,7 +72,10 @@ class TableWidget extends WidgetType {
       button.addEventListener('click', () => this.applyStructure(view, operation));
       controls.append(button);
     }
-    root.append(controls, grid);
+    const scroll = document.createElement('div');
+    scroll.className = 'markami-table-scroll';
+    scroll.append(grid);
+    root.append(controls, scroll);
     this.table.rows.forEach((row, rowIndex) => {
       const rowElement = document.createElement('div');
       rowElement.setAttribute('role', 'row');
@@ -132,7 +135,7 @@ class TableWidget extends WidgetType {
       view.dispatch({ selection: { anchor: this.table.from, head: this.table.to }, scrollIntoView: true });
       view.focus();
     });
-    root.append(reveal);
+    controls.append(reveal);
     return root;
   }
 

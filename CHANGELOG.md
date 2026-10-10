@@ -14,6 +14,10 @@ All notable changes to markami are documented here.
 - The in-page Appearance / Width / Maximum bar is gone. The editor title bar gets icons: **Toggle Document
   Appearance** and **Open Source Editor** in the rendered editor, and **Open Rendered Editor** on Markdown text
   editors. Width and maximum width remain settings and palette commands.
+- Chrome appears when you need it: table controls (including **Edit table source**) float above the hovered or
+  focused table, a code block's language label and **Copy** float over its corner for the hovered block, the block
+  holding the caret, or while a tool has keyboard focus, and block handles are invisible until the pointer is in
+  the editor. All of them stay keyboard-reachable and take no layout space.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

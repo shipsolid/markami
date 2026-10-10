@@ -56,16 +56,51 @@
   display: none;
 }
 
-/* A fenced block is a card: the header widget, the code lines, and the hidden closing fence share one background and edge. */
+/*
+ * A fenced block is a card: the code lines and the hidden closing fence share one background and edge. The header
+ * widget takes no row; its tools float over the top-right corner and show for the hovered block, the block holding
+ * the caret, or while a tool has keyboard focus.
+ */
 .markami-code-header {
+  height: 0;
+  overflow: visible;
+  position: relative;
+}
+
+.markami-code-tools {
   align-items: center;
-  background: var(--vscode-textCodeBlock-background);
-  border-bottom: 1px solid var(--vscode-widget-border, transparent);
-  border-radius: 6px 6px 0 0;
   display: flex;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  top: 4px;
+  transition: opacity 0.12s;
+  z-index: 2;
+}
+
+.markami-code-header[data-hover='true'] .markami-code-tools,
+.markami-code-header[data-active='true'] .markami-code-tools,
+.markami-code-header:focus-within .markami-code-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.markami-code-label {
+  color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family);
-  justify-content: space-between;
-  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.markami-code-tools button {
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.markami-document-shell .cm-line.markami-code-first {
+  border-radius: 6px 6px 0 0;
+  padding-top: 20px;
 }
 
 .markami-document-shell .cm-line.markami-code-line {
@@ -137,8 +172,14 @@
 }
 
 .markami-table {
-  border: 1px solid var(--vscode-widget-border, transparent);
   display: block;
+  max-width: 100%;
+  position: relative;
+}
+
+.markami-table-scroll {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 6px;
   max-width: 100%;
   overflow-x: auto;
 }
@@ -165,11 +206,49 @@
   font-weight: 600;
 }
 
+/* Table controls float above the table's top-right corner and show on hover or keyboard focus. */
 .markami-table-controls {
+  bottom: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 4px;
+  justify-content: flex-end;
+  opacity: 0;
+  padding-bottom: 4px;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  transition: opacity 0.12s;
+  z-index: 3;
+}
+
+.markami-table-controls button {
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.markami-table:hover .markami-table-controls,
+.markami-table:focus-within .markami-table-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Block handles are invisible until the pointer is in the editor, solid on hover or keyboard focus. */
+.markami-block-gutter button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.cm-editor:hover .markami-block-gutter button {
+  opacity: 0.35;
+}
+
+.cm-editor .markami-block-gutter button:hover,
+.cm-editor .markami-block-gutter button:focus-visible {
+  opacity: 1;
 }
 
 .markami-frontmatter-summary {

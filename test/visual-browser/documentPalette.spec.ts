@@ -20,7 +20,7 @@ const HIGH_CONTRAST: WebviewTheme = {
 
 async function open(page: Page, options: { theme: WebviewTheme; palette: WebviewPalette; appearance?: WebviewAppearance }): Promise<void> {
   await openProductionWebview(page, { fixture, theme: options.theme, palette: options.palette, appearance: options.appearance ?? 'document', width: 'auto' });
-  await page.waitForSelector('.markami-code-header');
+  await page.waitForSelector('.markami-code-header', { state: 'attached' });
   await page.setViewportSize({ width: 1300, height: 900 });
   await page.mouse.move(1, 1);
 }
@@ -43,10 +43,10 @@ test('Document appearance in a dark theme uses the Catppuccin Mocha palette', as
     };
     return {
       shell: { background: color('.markami-document-shell', 'backgroundColor'), color: color('.markami-document-shell', 'color') },
-      codeBackground: color('.markami-code-header', 'backgroundColor'),
+      codeBackground: color('.cm-line.markami-code-first', 'backgroundColor'),
       link: color('.markami-link', 'color'),
       quoteBar: color('.cm-line.markami-quote', 'borderLeftColor'),
-      button: { background: color('.markami-code-header button', 'backgroundColor'), color: color('.markami-code-header button', 'color') }
+      button: { background: color('.markami-code-tools button', 'backgroundColor'), color: color('.markami-code-tools button', 'color') }
     };
   });
 
@@ -78,7 +78,7 @@ test('the Mocha palette keeps readable contrast for text, links, buttons, and th
       return getComputedStyle(element);
     };
     const shell = style('.markami-document-shell');
-    const button = style('.markami-code-header button');
+    const button = style('.markami-code-tools button');
     const active = style('.markami-outline [aria-current="location"]');
     return {
       text: ratio(shell.color, shell.backgroundColor),

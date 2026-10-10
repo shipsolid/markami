@@ -123,21 +123,25 @@
 }
 
 /* Cards: code, tables, diagrams, math, and frontmatter */
-.markami-document-shell[data-appearance='document'] .markami-code-header {
-  border-bottom: 0;
-  border-radius: var(--markami-card-radius) var(--markami-card-radius) 0 0;
+.markami-document-shell[data-appearance='document'] .markami-code-label {
   font-family: var(--markami-font-mono);
-  font-size: 12px;
   letter-spacing: 0.08em;
   line-height: 16px;
-  padding: 12px var(--markami-card-padding) 8px;
   word-spacing: 0;
 }
 
-.markami-document-shell[data-appearance='document'] .markami-code-header button {
-  font: inherit;
-  letter-spacing: inherit;
-  padding: 2px 8px;
+.markami-document-shell[data-appearance='document'] .markami-code-tools {
+  right: var(--markami-card-padding);
+}
+
+.markami-document-shell[data-appearance='document'] .markami-code-tools button {
+  font-family: var(--markami-font-mono);
+  letter-spacing: 0.08em;
+  word-spacing: 0;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-code-first {
+  border-radius: var(--markami-card-radius) var(--markami-card-radius) 0 0;
 }
 
 .markami-document-shell[data-appearance='document'] .cm-line.markami-code-line {
@@ -155,7 +159,7 @@
   line-height: 16px;
 }
 
-.markami-document-shell[data-appearance='document'] .markami-table {
+.markami-document-shell[data-appearance='document'] .markami-table-scroll {
   border-radius: var(--markami-card-radius);
 }
 

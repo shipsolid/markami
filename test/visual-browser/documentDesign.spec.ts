@@ -30,7 +30,7 @@ interface Measured {
 
 async function open(page: Page, width: number): Promise<string[]> {
   const { external } = await openProductionWebview(page, { fixture, theme: DARK_PLUS, appearance: 'document', width: 'auto' });
-  await page.waitForSelector('.markami-code-header');
+  await page.waitForSelector('.markami-code-header', { state: 'attached' });
   await page.setViewportSize({ width, height: 900 });
   await page.evaluate(async () => {
     await document.fonts.load('700 36px "Shantell Sans Variable"');
@@ -154,7 +154,7 @@ test('inline code and labels use the bundled mono face', async ({ page }) => {
         padding: `${computed.paddingTop} ${computed.paddingRight}`
       };
     };
-    return { code: read('.markami-inlineCode'), label: read('.markami-code-header span') };
+    return { code: read('.markami-inlineCode'), label: read('.markami-code-label') };
   });
 
   expect(mono.code.family.startsWith('"JetBrains Mono Variable"')).toBe(true);
@@ -192,17 +192,15 @@ test('the reading measure is 100ch and page padding is 16px then 24px', async ({
 test('code, table, and diagram blocks are 12px-radius cards with 24px side padding', async ({ page }) => {
   await open(page, 1300);
   const cards = await page.evaluate(() => {
-    const header = document.querySelector('.markami-code-header');
-    const codeLine = document.querySelector('.cm-line.markami-code-line');
-    const table = document.querySelector('.markami-table');
-    if (header === null || codeLine === null || table === null) throw new Error('missing card fixture');
+    const first = document.querySelector('.cm-line.markami-code-first');
+    const table = document.querySelector('.markami-table-scroll');
+    if (first === null || table === null) throw new Error('missing card fixture');
     return {
-      headerRadius: getComputedStyle(header).borderTopLeftRadius,
-      headerPadding: getComputedStyle(header).paddingLeft,
-      codePadding: getComputedStyle(codeLine).paddingLeft,
+      codeRadius: getComputedStyle(first).borderTopLeftRadius,
+      codePadding: getComputedStyle(first).paddingLeft,
       tableRadius: getComputedStyle(table).borderTopLeftRadius
     };
   });
 
-  expect(cards).toEqual({ headerRadius: '12px', headerPadding: '24px', codePadding: '24px', tableRadius: '12px' });
+  expect(cards).toEqual({ codeRadius: '12px', codePadding: '24px', tableRadius: '12px' });
 });

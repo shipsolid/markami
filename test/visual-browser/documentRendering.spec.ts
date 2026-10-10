@@ -23,7 +23,7 @@ const fixture = [
 
 async function open(page: Page, appearance: WebviewAppearance): Promise<void> {
   await openProductionWebview(page, { fixture, theme: DARK_PLUS, appearance });
-  await page.waitForSelector('.markami-code-header');
+  await page.waitForSelector('.markami-code-header', { state: 'attached' });
   await page.mouse.move(1, 1);
 }
 
@@ -59,8 +59,7 @@ for (const appearance of ['vscode', 'document'] as const) {
           return { top, bottom, left, right, height };
         };
         const header = document.querySelector('.markami-code-header');
-        const label = header?.querySelector('span');
-        if (header === null || label === null || label === undefined) throw new Error('missing code header');
+        if (header === null) throw new Error('missing code header');
         // Whatever slot holds the header: its line wrapper if it sits inside a line, otherwise the widget element itself.
         let headerLine: Element = header.closest('.cm-line') ?? header;
         while (headerLine.parentElement !== null && !headerLine.parentElement.classList.contains('cm-content')) headerLine = headerLine.parentElement;
@@ -72,22 +71,21 @@ for (const appearance of ['vscode', 'document'] as const) {
         }
         if (next === null) throw new Error('missing closing fence line');
         return {
-          headerLine: rectangle(headerLine), header: rectangle(header), label: rectangle(label),
+          headerLine: rectangle(headerLine), header: rectangle(header),
           lines: lines.map(rectangle), closing: rectangle(next),
-          closingBackground: getComputedStyle(next).backgroundColor,
-          codePaddingLeft: parseFloat(getComputedStyle(lines[0] ?? headerLine).paddingLeft),
-          headerPaddingLeft: parseFloat(getComputedStyle(header).paddingLeft)
+          closingBackground: getComputedStyle(next).backgroundColor
         };
       });
       const firstLine = card.lines[0];
       const lastLine = card.lines.at(-1);
       if (firstLine === undefined || lastLine === undefined) throw new Error('code lines missing');
 
+      // The header is a zero-height anchor for the tools, so the first code line starts exactly where it sits.
+      expect(card.header.height).toBeLessThanOrEqual(1);
       expect(Math.abs(card.headerLine.height - card.header.height)).toBeLessThanOrEqual(1);
       expect(Math.abs(card.header.left - firstLine.left)).toBeLessThanOrEqual(1);
       expect(Math.abs(card.header.right - firstLine.right)).toBeLessThanOrEqual(1);
-      expect(card.headerPaddingLeft).toBe(card.codePaddingLeft);
-      expect(Math.abs(card.label.left - (firstLine.left + card.codePaddingLeft))).toBeLessThanOrEqual(1);
+      expect(Math.abs(firstLine.top - card.header.bottom)).toBeLessThanOrEqual(1);
       // An edge, not a text line: 8px compact, 16px in the document card.
       expect(card.closing.height).toBeLessThanOrEqual(appearance === 'document' ? 16 : 8);
       expect(Math.abs(card.closing.top - lastLine.bottom)).toBeLessThanOrEqual(1);

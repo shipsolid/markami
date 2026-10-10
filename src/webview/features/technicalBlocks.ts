@@ -42,7 +42,7 @@ const technicalOptions = Facet.define<TechnicalBlockOptions, TechnicalBlockOptio
 });
 
 export function technicalBlocks(options: Partial<TechnicalBlockOptions> = {}): Extension {
-  return [technicalOptions.of({ ...defaultOptions, ...options }), technicalBlocksField];
+  return [technicalOptions.of({ ...defaultOptions, ...options }), technicalBlocksField, codeBlockHover];
 }
 
 export const technicalBlocksField = StateField.define<DecorationSet>({
@@ -109,16 +109,24 @@ function decorationsFor(
     ranges.push(Decoration.replace({ widget: new TaskCheckboxWidget(task) }).range(task.from, task.to));
   }
   for (const block of plan.codeBlocks) {
-    ranges.push(Decoration.replace({ widget: new CodeHeaderWidget(block), block: true }).range(block.opening.from, block.opening.to));
+    ranges.push(Decoration.replace({ widget: new CodeHeaderWidget(block, block.active), block: true }).range(block.opening.from, block.opening.to));
     if (block.closing !== undefined) {
       ranges.push(Decoration.replace({}).range(block.closing.from, block.closing.to));
       ranges.push(Decoration.line({ class: 'markami-code-fence-close' }).range(state.doc.lineAt(block.closing.from).from));
     }
+    const codeLines: number[] = [];
     for (let position = block.content.from; position < block.content.to;) {
       const line = state.doc.lineAt(position);
-      ranges.push(Decoration.line({ class: options.codeWrap ? 'markami-code-line markami-code-wrap' : 'markami-code-line' }).range(line.from));
+      codeLines.push(line.from);
       position = line.to < state.doc.length ? line.to + 1 : block.content.to;
     }
+    codeLines.forEach((lineFrom, index) => {
+      const classes = ['markami-code-line'];
+      if (options.codeWrap) classes.push('markami-code-wrap');
+      if (index === 0) classes.push('markami-code-first');
+      if (index === codeLines.length - 1) classes.push('markami-code-last');
+      ranges.push(Decoration.line({ class: classes.join(' ') }).range(lineFrom));
+    });
   }
   for (const block of plan.mermaid) {
     if (!options.renderMermaid) continue;
@@ -173,18 +181,24 @@ export class TaskCheckboxWidget extends WidgetType {
 }
 
 class CodeHeaderWidget extends WidgetType {
-  public constructor(private readonly block: TechnicalCodeBlock) {
+  public constructor(private readonly block: TechnicalCodeBlock, private readonly active: boolean) {
     super();
   }
 
   public override eq(other: CodeHeaderWidget): boolean {
-    return other.block.from === this.block.from && other.block.info === this.block.info;
+    return other.block.from === this.block.from && other.block.info === this.block.info && other.active === this.active;
   }
 
+  // The header takes no row: it is a zero-height anchor whose tools float over the card's top-right corner and show
+  // for the hovered block, the block holding the caret, or while a tool has keyboard focus.
   public override toDOM(view: EditorView): HTMLElement {
     const header = document.createElement('div');
     header.className = 'markami-code-header';
+    if (this.active) header.dataset.active = 'true';
+    const tools = document.createElement('div');
+    tools.className = 'markami-code-tools';
     const label = document.createElement('span');
+    label.className = 'markami-code-label';
     label.textContent = this.block.language || 'code';
     const copy = document.createElement('button');
     copy.type = 'button';
@@ -193,13 +207,47 @@ class CodeHeaderWidget extends WidgetType {
     copy.addEventListener('click', () => {
       void navigator.clipboard.writeText(view.state.doc.sliceString(this.block.content.from, this.block.content.to));
     });
-    header.append(label, copy);
+    tools.append(label, copy);
+    header.append(tools);
     return header;
   }
 
   public override ignoreEvent(): boolean {
     return false;
   }
+}
+
+/** Marks the header of the code block under the pointer so its tools can show without a wrapper around the lines. */
+const codeBlockHover = EditorView.domEventHandlers({
+  mousemove(event, view) {
+    setHoveredCodeHeader(view, codeHeaderFor(event.target));
+  },
+  mouseleave(_event, view) {
+    setHoveredCodeHeader(view, undefined);
+  }
+});
+
+function setHoveredCodeHeader(view: EditorView, header: HTMLElement | undefined): void {
+  for (const hovered of view.contentDOM.querySelectorAll<HTMLElement>('.markami-code-header[data-hover="true"]')) {
+    if (hovered !== header) delete hovered.dataset.hover;
+  }
+  if (header !== undefined) header.dataset.hover = 'true';
+}
+
+function codeHeaderFor(target: EventTarget | null): HTMLElement | undefined {
+  if (!(target instanceof Element)) return undefined;
+  const own = target.closest<HTMLElement>('.markami-code-header');
+  if (own !== null) return own;
+  let sibling: Element | null = target.closest('.cm-line.markami-code-line, .cm-line.markami-code-fence-close');
+  while (sibling !== null) {
+    const header = sibling.matches('.markami-code-header')
+      ? sibling
+      : sibling.querySelector(':scope > .markami-code-header');
+    if (header instanceof HTMLElement) return header;
+    if (!sibling.matches('.cm-line.markami-code-line, .cm-line.markami-code-fence-close')) return undefined;
+    sibling = sibling.previousElementSibling;
+  }
+  return undefined;
 }
 
 class MermaidWidget extends WidgetType {

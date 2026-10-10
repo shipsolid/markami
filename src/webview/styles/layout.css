@@ -49,10 +49,9 @@ body {
   max-width: none;
 }
 
-.markami-table,
+.markami-table-scroll,
 .markami-mermaid,
 .markami-math,
-.markami-code-header,
 .cm-line.markami-code-line {
   box-sizing: border-box;
   max-width: 100%;

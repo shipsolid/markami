@@ -12,7 +12,7 @@ const fixture = [
 
 async function open(page: Page, width: number, appearance: WebviewAppearance = 'document'): Promise<void> {
   await openProductionWebview(page, { fixture, theme: DARK_PLUS, appearance, width: 'auto' });
-  await page.waitForSelector('.markami-code-header');
+  await page.waitForSelector('.markami-code-header', { state: 'attached' });
   await page.setViewportSize({ width, height: 900 });
   await page.mouse.move(1, 1);
 }
@@ -33,8 +33,8 @@ async function layout(page: Page): Promise<Layout> {
   return page.evaluate(() => {
     const outline = document.querySelector<HTMLElement>('.markami-outline');
     const content = document.querySelector('.cm-content');
-    const header = document.querySelector('.markami-code-header');
-    const copy = document.querySelector('.markami-code-header button');
+    const header = document.querySelector('.cm-line.markami-code-first');
+    const copy = document.querySelector('.markami-code-tools button');
     if (outline === null || content === null || header === null || copy === null) throw new Error('missing layout fixture');
     const box = outline.getBoundingClientRect();
     const slot = header.getBoundingClientRect();
