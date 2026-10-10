@@ -1,27 +1,30 @@
 ---
 version: 0.1.0
-public_release: blocked
+public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
 listing_approved: true
-artifact_size: 4210861
-artifact_sha256: 78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727
+artifact_size: 4211942
+artifact_sha256: 65e5d8b595ed93896b49a415e6e680c049fc80e187fc3bf5f188b2a6912c62ae
 ---
 
 # markami 0.1.0 release evidence
 
-Status: **installable; CI green on all platforms; blocked only on native IME and screen-reader smoke and tag authorization**.
+Status: **approved for the 0.1.0 Preview; not yet published**.
 
-This is a preparation record, not a publication claim. No release tag, GitHub release, Marketplace
-listing, or public install has been verified.
+This is a preparation record, not a publication claim. No GitHub release, Marketplace listing, or public
+install has been verified. The release tag is created from the commit that contains this record; the
+protected workflow regenerates the checksum and size from that tag and fails if they differ from the
+values above. A runner-built VSIX was byte-identical to a locally built one for the same source on
+2026-10-10, so the recorded digest is expected to match.
 
 ## Candidate artifact
 
 | Field | Value |
 |---|---|
 | VSIX | `artifacts/markami-0.1.0.vsix` |
-| Size | 4,210,861 bytes |
-| SHA-256 | `78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727` |
+| Size | 4,211,942 bytes |
+| SHA-256 | `65e5d8b595ed93896b49a415e6e680c049fc80e187fc3bf5f188b2a6912c62ae` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -81,13 +84,19 @@ the release workflow. Local package evidence is recorded in
   Evidence: CI run 38039775318 on `main` passed the integration suite on `ubuntu-latest`,
   `windows-latest`, and `macos-latest` with VS Code stable (1.141.0) and on `ubuntu-latest` with
   VS Code 1.102.0.
-- [ ] Complete real IME and screen-reader smoke on supported native hosts.
+- [x] Complete real IME and screen-reader smoke on supported native hosts. **Waived by the owner on
+  2026-10-10 for the 0.1.0 Preview (`preview: true`); not performed.** Automated composition and
+  accessibility tests pass (`test/webview/ime.test.ts`, `test/webview/accessibility.test.ts`), the gap
+  is disclosed in the README and CHANGELOG, and the waiver should be revisited before a non-preview
+  release.
 - [x] Accept or remediate the documented low-severity Mermaid/KaTeX dependency advisories.
   Accepted by the owner's delegation on 2026-10-10 (GHSA-238p-pmpm-9mq7, low): Mermaid 12.1.0 is the
   latest release and nests KaTeX 0.16.47 (fixed in 0.18.2). It is not reachable here because Mermaid
   never passes KaTeX's `trust` option, rendered diagrams are stripped of `a` and `href`, and the webview
   CSP blocks inline script. The extension's own KaTeX is 0.19.0.
-- [ ] Create and push signed/annotated tag `v0.1.0` only after the owner authorizes the release.
+- [x] Create and push signed/annotated tag `v0.1.0` only after the owner authorizes the release.
+  The owner authorized the tag, the Release dry run, and the Marketplace publish on 2026-10-10. The
+  publish itself still pauses for the owner's approval in the `vscode-marketplace` environment.
 
 After every item is evidenced, the protected workflow must publish the downloaded build artifact and
 verify both the provider response and the publicly downloadable VSIX before this document may name a
