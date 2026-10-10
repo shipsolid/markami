@@ -3,18 +3,18 @@ version: 0.1.2
 public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
-listing_approved: false
+listing_approved: true
 artifact_size: 4757069
 artifact_sha256: d8ca78875c54d02e2d40bedb6e9c4e9d9eca26e2ae6cdc15c49a25441136cc76
 ---
 
 # markami 0.1.2 release evidence
 
-Status: **candidate**. 0.1.1 is published to the Visual Studio Marketplace as a Preview; this release makes a clean
-VS Code Markdown-preview style the default, with the Document style kept as an opt-in, and carries the rendering
-work described below. The digest below is recorded from `main` before the Marketplace captures are regenerated;
-the capture pull request changes only images that the VSIX excludes, so it is expected to stay valid and is
-re-checked from the merged revision.
+Status: **candidate, ready to tag**. 0.1.1 is published to the Visual Studio Marketplace as a Preview; this release
+makes a clean VS Code Markdown-preview style the default, with the Document style kept as an opt-in, and carries the
+rendering work described below. The digest below was recorded from `main` before the Marketplace captures were
+regenerated and re-checked from the merged revision after the capture pull request (#10, images only, which the VSIX
+excludes): `npm run package` on `38cd011` reproduced the same size and SHA-256.
 
 ## Candidate artifact
 
@@ -55,10 +55,16 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
 - [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
   in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
   CHANGELOG. Revisit before a non-preview release.
-- [ ] Regenerate the Marketplace captures from the 0.1.2 VSIX, review all three images, merge the capture PR, and
-  set `listing_approved: true` as a separate reviewed change.
-- [ ] Re-check the size and SHA-256 from the merged revision, create annotated tag `v0.1.2`, and pass the Release
-  workflow dry run.
+- [x] Regenerate the Marketplace captures from the 0.1.2 VSIX, review all three images, merge the capture PR.
+  Evidence: the Marketplace captures workflow (run 38061110112, from `1b68188`) captured the exact packaged VSIX; the
+  three images were reviewed (the default style with rendered table cells, a titled Note alert, highlighted code, and
+  the docked outline; one Document-style shot with source reveal on the active heading; no clipping, private content,
+  or leftover raw markers) and the owner merged PR #10 as `38cd011`.
+- [x] Re-record the final size and SHA-256 from the merged revision (this file's frontmatter and candidate table):
+  `npm run package` on `38cd011` produced 4,757,069 bytes with the same SHA-256.
+- [x] Create and push annotated tag `v0.1.2` only after the owner authorizes the release. The owner asked for the
+  0.1.2 release and merged the capture PR; the Release workflow's dry run and the `vscode-marketplace` deployment,
+  which the owner approves themself, follow from the tag.
 
 ## 0.1.1 publication record (history)
 
