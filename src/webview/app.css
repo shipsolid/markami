@@ -4,6 +4,7 @@
 @import '@fontsource-variable/jetbrains-mono/wght.css';
 @import './styles/layout.css';
 @import './styles/appearance.css';
+@import './styles/document.css';
 
 .markami-link {
   color: var(--vscode-textLink-foreground);

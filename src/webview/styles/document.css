@@ -1,0 +1,178 @@
+/*
+ * Document appearance: the designed reading view. Everything here is scoped to data-appearance='document';
+ * VS Code appearance keeps the compact editor look from appearance.css.
+ *
+ * Spacing is carried by padding and by the source's own blank lines, never by margins on CodeMirror lines:
+ * a blank source line is the paragraph gap, so the editor and the rendered result agree on every offset.
+ */
+
+.markami-document-shell[data-appearance='document'] {
+  --markami-font-text: 'Shantell Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --markami-font-mono: 'JetBrains Mono Variable', var(--vscode-editor-font-family), ui-monospace, monospace;
+  --markami-body-size: 17px;
+  --markami-h1-size: 24px;
+  --markami-page-padding: 16px;
+  --markami-card-padding: 24px;
+  --markami-card-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .markami-document-shell[data-appearance='document'] {
+    --markami-body-size: 18px;
+    --markami-h1-size: 30px;
+    --markami-page-padding: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .markami-document-shell[data-appearance='document'] {
+    --markami-h1-size: 36px;
+  }
+}
+
+.markami-document-shell[data-appearance='document'] .cm-content {
+  font-family: var(--markami-font-text);
+  font-size: var(--markami-body-size);
+  letter-spacing: 0.005em;
+  line-height: 1.9;
+  padding: 24px var(--markami-page-padding);
+  word-spacing: 0.06em;
+}
+
+.markami-document-shell[data-appearance='document'][data-width='auto'] .cm-content {
+  max-width: min(100%, calc(100ch + 2 * var(--markami-page-padding)), var(--markami-max-content-width, 1200px));
+}
+
+/* Headings */
+.markami-document-shell[data-appearance='document'] .cm-line[class*='markami-heading'] {
+  font-family: var(--markami-font-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading1 {
+  font-size: var(--markami-h1-size);
+  line-height: 1.25;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading2 {
+  border-bottom: 1px solid var(--vscode-widget-border, transparent);
+  font-size: 27.2px;
+  line-height: 38.4px;
+  padding-block: 24px 12px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading3 {
+  font-size: 22px;
+  line-height: 32px;
+  padding-top: 8px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading4 {
+  font-size: 1.1em;
+  line-height: 1.5;
+  padding-top: 8px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading5 {
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading6 {
+  color: var(--vscode-descriptionForeground);
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* A blank source line is the paragraph gap; it tightens under a heading. */
+.markami-document-shell[data-appearance='document'] .cm-line:not([class*='markami-']):has(> br:only-child) {
+  height: 24px;
+  line-height: 24px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading1 + .cm-line:not([class*='markami-']):has(> br:only-child),
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading2 + .cm-line:not([class*='markami-']):has(> br:only-child) {
+  height: 16px;
+  line-height: 16px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-heading3 + .cm-line:not([class*='markami-']):has(> br:only-child) {
+  height: 12px;
+  line-height: 12px;
+}
+
+/* Lists */
+.markami-document-shell[data-appearance='document'] .cm-line.markami-list {
+  line-height: 1.85;
+  padding-block: 4.8px;
+}
+
+/* Inline code */
+.markami-document-shell[data-appearance='document'] .markami-inlineCode {
+  font-family: var(--markami-font-mono);
+  font-size: 87.5%;
+  padding: 2px 6px;
+}
+
+/* Cards: code, tables, diagrams, math, and frontmatter */
+.markami-document-shell[data-appearance='document'] .markami-code-header {
+  border-bottom: 0;
+  border-radius: var(--markami-card-radius) var(--markami-card-radius) 0 0;
+  font-family: var(--markami-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  padding: 12px var(--markami-card-padding) 8px;
+  word-spacing: 0;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-code-header button {
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 2px 8px;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-code-line {
+  font-family: var(--markami-font-mono);
+  font-size: 87.5%;
+  letter-spacing: 0;
+  line-height: 1.6;
+  padding-inline: var(--markami-card-padding);
+  word-spacing: 0;
+}
+
+.markami-document-shell[data-appearance='document'] .cm-line.markami-code-fence-close {
+  border-radius: 0 0 var(--markami-card-radius) var(--markami-card-radius);
+  height: 16px;
+  line-height: 16px;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-table {
+  border-radius: var(--markami-card-radius);
+}
+
+.markami-document-shell[data-appearance='document'] .markami-table [role='gridcell'],
+.markami-document-shell[data-appearance='document'] .markami-table [role='columnheader'] {
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px 16px;
+}
+
+.markami-document-shell[data-appearance='document'] .markami-mermaid,
+.markami-document-shell[data-appearance='document'] div.markami-math {
+  border-radius: var(--markami-card-radius);
+  padding: var(--markami-card-padding);
+}
+
+.markami-document-shell[data-appearance='document'] .markami-frontmatter-summary {
+  border-radius: var(--markami-card-radius);
+  font-family: var(--markami-font-mono);
+  font-size: 14px;
+  gap: 12px;
+  letter-spacing: 0;
+  line-height: 20px;
+  padding: 12px var(--markami-card-padding);
+  word-spacing: 0;
+}

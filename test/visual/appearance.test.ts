@@ -9,6 +9,7 @@ import { applyAppearance, resolveContentWidth } from '../../src/webview/ui/appea
 
 const appearanceCss = readFileSync(path.join(process.cwd(), 'src/webview/styles/appearance.css'), 'utf8');
 const layoutCss = readFileSync(path.join(process.cwd(), 'src/webview/styles/layout.css'), 'utf8');
+const documentCss = readFileSync(path.join(process.cwd(), 'src/webview/styles/document.css'), 'utf8');
 
 let view: EditorView | undefined;
 
@@ -53,7 +54,7 @@ describe('appearance visual-state baselines', () => {
 
   test('production CSS applies responsive shell and document hierarchy', () => {
     const style = document.createElement('style');
-    style.textContent = `${layoutCss}\n${appearanceCss}`;
+    style.textContent = `${layoutCss}\n${appearanceCss}\n${documentCss}`;
     document.head.append(style);
     const shell = document.createElement('main');
     shell.className = 'markami-document-shell';
@@ -63,17 +64,22 @@ describe('appearance visual-state baselines', () => {
     content.className = 'cm-content';
     const first = document.createElement('div');
     first.className = 'cm-line markami-heading1';
+    const second = document.createElement('div');
+    second.className = 'cm-line markami-heading2';
+    const third = document.createElement('div');
+    third.className = 'cm-line markami-heading3';
     const sixth = document.createElement('div');
     sixth.className = 'cm-line markami-heading6';
-    content.append(first, sixth);
+    content.append(first, second, third, sixth);
     shell.append(content);
     document.body.append(shell);
 
     expect(getComputedStyle(shell).display).toBe('flex');
     expect(getComputedStyle(shell).overflow).toBe('hidden');
     expect(getComputedStyle(content).boxSizing).toBe('border-box');
-    expect(getComputedStyle(first).fontSize).toBe('28.8px');
     expect(getComputedStyle(first).fontWeight).toBe('700');
+    expect(getComputedStyle(second).fontSize).toBe('27.2px');
+    expect(getComputedStyle(third).fontSize).toBe('22px');
     expect(getComputedStyle(sixth).fontSize).toBe('16px');
     expect(appearanceCss).toContain('@media (prefers-reduced-motion: reduce)');
     expect(layoutCss).toContain('@media (max-width: 480px)');

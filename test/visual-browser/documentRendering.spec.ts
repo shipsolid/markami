@@ -88,7 +88,8 @@ for (const appearance of ['vscode', 'document'] as const) {
       expect(Math.abs(card.header.right - firstLine.right)).toBeLessThanOrEqual(1);
       expect(card.headerPaddingLeft).toBe(card.codePaddingLeft);
       expect(Math.abs(card.label.left - (firstLine.left + card.codePaddingLeft))).toBeLessThanOrEqual(1);
-      expect(card.closing.height).toBeLessThanOrEqual(12);
+      // An edge, not a text line: 8px compact, 16px in the document card.
+      expect(card.closing.height).toBeLessThanOrEqual(appearance === 'document' ? 16 : 8);
       expect(Math.abs(card.closing.top - lastLine.bottom)).toBeLessThanOrEqual(1);
       expect(card.closingBackground).toBe('rgb(10, 10, 10)');
     });

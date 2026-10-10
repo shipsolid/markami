@@ -6,6 +6,12 @@ All notable changes to markami are documented here.
 
 ### Changed
 
+- Document appearance is the default and is a designed reading view: Shantell Sans body and headings at 17–18px
+  with 1.9 line height, JetBrains Mono for code, labels and metadata, a 100ch reading measure, and 12px-radius
+  cards with 24px padding for code, tables, diagrams, math and frontmatter. A blank source line is the
+  paragraph gap, tightening under headings. Both fonts are bundled locally (+0.5 MB, SIL Open Font License).
+  `markami.appearance.mode` now defaults to `document` and `markami.document.maxContentWidth` to 1200;
+  VS Code appearance remains available.
 - Fenced code blocks wrap long lines by default (`markami.codeBlock.wrap` now defaults to `true`), so a long
   command or token no longer gets its own horizontal scrollbar on every line.
 

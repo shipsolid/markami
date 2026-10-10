@@ -8,51 +8,8 @@
   line-height: 1.45;
 }
 
-.markami-document-shell[data-appearance='vscode'][data-editor-font='false'] .cm-content,
-.markami-document-shell[data-appearance='document'] .cm-content {
+.markami-document-shell[data-appearance='vscode'][data-editor-font='false'] .cm-content {
   font-family: var(--vscode-font-family);
-}
-
-.markami-document-shell[data-appearance='document'] .cm-content {
-  font-size: calc(var(--vscode-font-size, 13px) + 1px);
-  line-height: 1.65;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line {
-  padding-block: 0.15em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line[class*='markami-heading'] {
-  font-family: var(--vscode-font-family);
-  font-weight: 600;
-  line-height: 1.25;
-  margin-block: 0.55em 0.2em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading1 {
-  font-size: 1.8em;
-  font-weight: 700;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading2 {
-  font-size: 1.5em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading3 {
-  font-size: 1.3em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading4 {
-  font-size: 1.15em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading5 {
-  font-size: 1.05em;
-}
-
-.markami-document-shell[data-appearance='document'] .cm-line.markami-heading6 {
-  color: var(--vscode-descriptionForeground);
-  font-size: 1em;
 }
 
 .markami-document-shell .cm-line.markami-quote {
@@ -85,23 +42,6 @@
 
 .markami-document-shell[data-appearance='vscode'] .cm-line.markami-heading6 {
   color: var(--vscode-descriptionForeground);
-}
-
-.markami-document-shell[data-appearance='document'] .markami-table,
-.markami-document-shell[data-appearance='document'] .markami-mermaid,
-.markami-document-shell[data-appearance='document'] .markami-math,
-.markami-document-shell[data-appearance='document'] .markami-frontmatter-summary,
-.markami-document-shell[data-appearance='document'] .markami-safe-html {
-  margin-block: 1em;
-}
-
-.markami-document-shell[data-appearance='document'] .markami-table {
-  border-radius: 4px;
-}
-
-.markami-document-shell[data-appearance='document'] .markami-table [role='gridcell'],
-.markami-document-shell[data-appearance='document'] .markami-table [role='columnheader'] {
-  padding: 8px 12px;
 }
 
 .markami-document-shell .markami-code-header,
