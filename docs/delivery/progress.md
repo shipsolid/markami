@@ -795,3 +795,16 @@
 - Not verified: how the walkthrough pages render on the VS Code Welcome page, and the default-editor modal, which
   need a person at a real window; the confirm path is covered by unit tests with an injected host. No conversion,
   install, or activation effect is claimed; the audit's scores are heuristic
+
+## Task 34 — Prepared the 0.1.3 candidate
+
+- Status: candidate prepared and committed locally (`18fc11c`); not pushed, not tagged, not published
+- Scope: version 0.1.3, changelog, runbook examples, and release evidence with `listing_approved: true` (owner-approved
+  after reviewing capture PR #11). Digest recorded after the changelog was final because the VSIX includes it:
+  4,761,599 bytes, SHA-256 `8ddeaf79…dfb6`, reproduced by a second `npm run package` from the committed revision
+- Evidence: `npm run verify` exits 0; artifact- and source-phase `release:preflight` pass with the single blocker the
+  checklist's three open gates; CI run 38073661424 on `d26389e` passed the three-platform integration and install-smoke
+  matrices, VS Code 1.102, benchmarks, and package; `npm run smoke:install` in the Playwright container installed the
+  0.1.3 VSIX, passed 21 integration tests against it, and uninstalled cleanly
+- Open on purpose: seeing the walkthrough and the confirmation dialog in a real window, CI on the preparation commit,
+  and the tag, which needs the owner's authorization
