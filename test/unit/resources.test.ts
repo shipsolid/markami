@@ -209,3 +209,39 @@ describe('resource policy', () => {
     ]);
   });
 });
+
+describe('symlinked workspace roots', () => {
+  async function symlinkedWorkspace(): Promise<{ readonly link: string; readonly document: string }> {
+    const base = await mkdtemp(path.join(tmpdir(), 'markami-symlink-'));
+    const real = path.join(base, 'real');
+    await mkdir(path.join(real, 'docs'), { recursive: true });
+    await mkdir(path.join(real, 'images'));
+    await writeFile(path.join(real, 'docs', 'a.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    await writeFile(path.join(real, 'images', 'diagram.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    const link = path.join(base, 'link');
+    await symlink(real, link, 'junction');
+    return { link, document: path.join(link, 'docs', 'index.md') };
+  }
+
+  test('resolved images stay inside the lexical root that the webview is allowed to load', async () => {
+    const { link, document } = await symlinkedWorkspace();
+
+    await expect(resolveResource(document, './a.png', [link], 'block')).resolves.toEqual({
+      ok: true,
+      kind: 'localFile',
+      path: path.join(link, 'docs', 'a.png')
+    });
+  });
+
+  test('an image picked inside a symlinked workspace is linked relative to the document', async () => {
+    const { link, document } = await symlinkedWorkspace();
+    const service = new ResourceService({
+      workspaceRoots: [link],
+      trusted: true,
+      pickFile: () => Promise.resolve(path.join(link, 'images', 'diagram.png'))
+    });
+
+    await expect(service.pickImage(document)).resolves.toBe('![diagram](../images/diagram.png)');
+  });
+});
+

@@ -177,6 +177,14 @@ export function shouldApplyExternalChange(
   return !ownedOrigin && disposition === 'applied';
 }
 
+/** A change the view has already acknowledged is stale, not a conflict; only a true divergence locks the editor. */
+export function shouldShowExternalConflict(
+  disposition: ExternalChangeDisposition | undefined,
+  ownedOrigin: boolean
+): boolean {
+  return !ownedOrigin && disposition === 'conflict';
+}
+
 function isCurrentProtocol(version: number): boolean {
   return version === PROTOCOL_VERSION;
 }

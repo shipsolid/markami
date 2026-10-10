@@ -26,8 +26,10 @@ suite('packaged Marketplace surface', function () {
 
     await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'Default Dark Modern', vscode.ConfigurationTarget.Global);
     await vscode.workspace.getConfiguration('window').update('zoomLevel', 0, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration('git').update('openRepositoryInParentFolders', 'never', vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand('workbench.action.closeSidebar');
     await vscode.commands.executeCommand('workbench.action.closePanel');
+    await vscode.commands.executeCommand('workbench.action.closeAuxiliaryBar');
 
     await openRendered(workspace.uri, 'overview.md');
     await setDocumentPresentation();
@@ -36,7 +38,7 @@ suite('packaged Marketplace surface', function () {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await openRendered(workspace.uri, 'source-fidelity.md');
     await setDocumentPresentation();
-    assert.equal(await vscode.commands.executeCommand('markami.toggleSourceReveal'), true);
+    await executeWhenReady('markami.toggleSourceReveal');
     await wait(1_000);
     await capture(captureTool, outputDirectory, 'source-preserving-editing.png');
 
@@ -54,13 +56,26 @@ async function openRendered(workspace: vscode.Uri, filename: string): Promise<vo
   await wait(2_000);
 }
 
+// markami commands answer false until the freshly opened webview completes its ready handshake.
+async function executeWhenReady(command: string, ...args: readonly unknown[]): Promise<void> {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (await vscode.commands.executeCommand<boolean>(command, ...args)) return;
+    await wait(50);
+  }
+  assert.fail(`${command} was not accepted by a ready markami editor within 15s`);
+}
+
 async function setDocumentPresentation(): Promise<void> {
-  assert.equal(await vscode.commands.executeCommand('markami.setDocumentAppearance', 'document'), true);
-  assert.equal(await vscode.commands.executeCommand('markami.setDocumentWidth', 'readable'), true);
+  await executeWhenReady('markami.setDocumentAppearance', 'document');
+  await executeWhenReady('markami.setDocumentWidth', 'readable');
   await wait(1_000);
 }
 
 async function capture(tool: string, directory: string, filename: string): Promise<void> {
+  // Host toasts (extensions disabled, parent-folder Git prompt) must never reach a public listing image.
+  await vscode.commands.executeCommand('notifications.clearAll');
+  await wait(500);
   const output = path.join(directory, filename);
   await runFile(tool, ['-window', 'root', output]);
   assert.ok((await stat(output)).size > 0, `${filename} must not be empty`);

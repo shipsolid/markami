@@ -426,3 +426,89 @@
   its artifact/PR before release evidence may be approved
 - Publication boundary: no local commit, push, workflow dispatch, tag, GitHub release, or Marketplace
   publication occurred
+
+## Task 23 — CI repair and release-path audit
+
+- Status: complete on PR #2 (unmerged); all 7 GitHub checks pass, including the new Windows and macOS
+  integration legs; GitHub environment settings are documented but not applied
+- Trigger: `CI` failed on all 13 runs since `c494e49` on 2026-10-08 (last green: `ac80497`); `Release` and
+  `Marketplace captures` had never run; the view-preference and disk-fidelity integration tests had
+  only ever been compiled, never executed (see Tasks 12–19 host boundary)
+- Root causes (each reproduced before fixing; native VS Code 1.141.0 under Xvfb in the pinned
+  Playwright Ubuntu container):
+  - `scripts/gitRevision.test.mjs` read `.git` as a file, so it passed only inside a linked worktree
+    and failed with `EISDIR` on a normal checkout (CI, and the main checkout)
+  - disk-fidelity tests computed edit offsets from the BOM-prefixed disk bytes, but VS Code strips the
+    BOM from document text: `# HEdited` and `Two  edited ` were off by one
+  - "disabled remembrance" test called `openTextDocument`, which pins the model in the extension host
+    for minutes, so `closeAllEditors` never closed the document the test is about
+  - `markami.*` commands returned `true` for an active webview that had not sent `ready`; the posted
+    message was then dropped or delivered depending on timing (a real contract defect, not only a test race)
+  - `ViewPreferencesStore.get()` rewrote storage on every read to refresh LRU recency. VS Code's
+    extension-host memento replaces its whole value when it echoes an older storage change, so a read
+    could resurrect records a newer update or reset had removed (lost update; seen as `width` surviving
+    `resetWorkspaceViewPreferences`)
+- RED:
+  - `node --test scripts/gitRevision.test.mjs` failed with `EISDIR` on the main checkout
+  - `ActiveViewTracker` readiness tests failed (`markReady is not a function`)
+  - `reads_never_write_storage…` failed: five reads caused five storage writes
+  - integration: 3 deterministic failures plus 1 intermittent in the container, matching the CI logs
+- GREEN:
+  - `ActiveViewTracker` only exposes an active view after the webview `ready` handshake and revokes it
+    (and outstanding leases) on webview reload; `ViewPreferencesStore.get()` records recency in memory and
+    folds it into the next real write; the integration tests wait for readiness through
+    `test/integration/support.ts`, compute offsets from document text, and open the source side with
+    `vscode.openWith` instead of `openTextDocument`
+  - `npm run verify` — pass (101 unit, 38 protocol, 56 fidelity, 5 package, 13 release, 11 marketplace tests)
+  - `npm run test:webview` 77 passed; `npm run test:visual` 5 passed; `npm run test:visual:browser` 2 passed;
+    `npm run bench` passed; `npm audit --omit=dev --audit-level=high` exit 0 (2 low Mermaid/KaTeX advisories);
+    `npm run generate:notices` leaves `THIRD_PARTY_NOTICES.txt` unchanged; `actionlint` clean
+  - VS Code 1.141.0 integration, 18 of 18 passing in 40 consecutive full runs on the final tree (30 at
+    2 CPUs, 10 at 1 CPU); before the store fix the same setup failed about one run in four, and before the
+    suite-level warm-up about one in twenty (the first custom editor of a fresh instance was sometimes never
+    resolved, so `test/integration/suite/index.ts` now proves the webview pipeline once, with retries,
+    before any test runs)
+- Product defects found by an independent read of the extension host, each reproduced in native VS Code
+  before fixing:
+  - dirty-state flips (first edit, save, revert) fire `onDidChangeTextDocument` with no changes and an
+    unchanged version; the host forwarded them as `documentChanged`, and the webview answered with the
+    read-only "The file changed while markami had unacknowledged edits" banner after only a host edit and
+    a save (screenshots of the pre-fix and post-fix builds). Fixed host-side (no-op events are dropped) and
+    webview-side (an already-acknowledged change is ignored, only a true conflict raises the banner)
+  - VS Code reports a multi-change edit in descending offset order while the webview sends ascending
+    patches, so echo suppression failed for any edit with two or more patches (bold toggle, multi-cursor,
+    replace-all) and peers received the change twice; patch sets are now compared order-independently
+  - a CRLF document with no line break hydrated the webview as LF, so the first Enter was normalized by
+    VS Code and rejected as a canonical mismatch; the host now sends the document's real EOL
+  - every keystroke re-asked the host to resolve every image (cache key included the image position and
+    the cache was cleared on each edit), which with the default `remoteImages: prompt` raised a modal per
+    remote image per keystroke; resolutions are now keyed by destination and kept while still present
+  - behind a symlinked workspace root, resolved images lay outside the lexical `localResourceRoots`
+    (images failed to load) and picking an image wrote a link such as `../../real/images/x.png`; the
+    resolver now returns the lexical path and links are relative to the document's real directory
+  - not changed, owner decision: `package.json` declares no `capabilities`, so Restricted Mode disables
+    the extension although spec §38.6 describes safe editing in untrusted workspaces
+- Release-path evidence gathered without publishing:
+  - every pinned action SHA resolves, and each matches its version comment, including `azure/login` v3.1.0
+  - the same source packaged under Node 24.21 and Node 22.23 gives a byte-identical VSIX, so the digest
+    recorded in release notes will survive the CI toolchain
+  - the Marketplace capture workflow steps ran end to end in a container: 3 PNGs generated from the
+    packaged VSIX and validated; the capture suite now waits for webview readiness, closes the Chat panel,
+    and clears host toasts before each capture
+- Workflow edits: CI integration job now runs on Linux, Windows, and macOS (previously first exercised
+  by a tag-only Release run); the Release Marketplace job allows 30 minutes and retries the public
+  download for about 15 minutes with `--compressed`; `.github/dependabot.yml` keeps pinned actions current
+- Audit findings requiring owner action (documented in `docs/releasing.md`, not applied here):
+  - `vscode-marketplace` has custom deployment policies enabled with none defined (every deployment
+    is rejected), no required reviewer, and admin bypass on; `github-release` does not exist
+  - Actions cannot create pull requests, which the Marketplace captures workflow needs
+  - a local ignored `.env` holds a `VSCE_PAT`; the OIDC design needs no PAT, so revoke it
+  - public release remains blocked by owner-gated items: release-note and listing approval, reviewed
+    Marketplace captures, native smoke/IME/accessibility evidence, publisher Contributor membership
+    for the managed identity, and tag authorization
+- GitHub CI on PR #2: the new Windows leg passed all 18 tests but failed two teardown hooks with
+  `EBUSY` on `rmdir` because VS Code still held document handles; every integration teardown now removes
+  its directory through a retrying helper, after which all checks (verify, three integration legs,
+  dependency-policy, CodeQL) pass
+- Publication boundary: the changes are pushed on a branch and open as PR #2; no merge, tag, workflow
+  dispatch, GitHub release, or Marketplace publication occurred

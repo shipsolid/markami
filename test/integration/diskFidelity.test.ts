@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { removeDirectory } from './support.js';
 
 suite('disk fidelity', function () {
   this.timeout(30_000);
@@ -14,7 +15,7 @@ suite('disk fidelity', function () {
 
   teardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   for (const [name, source] of [
@@ -37,7 +38,8 @@ suite('disk fidelity', function () {
       const filePath = path.join(directory, `${name}-edit.md`);
       await writeFile(filePath, source, 'utf8');
       const document = await vscode.workspace.openTextDocument(filePath);
-      const offset = source.indexOf('Heading');
+      // VS Code strips the BOM from document text, so offsets must come from the document, not the disk bytes.
+      const offset = document.getText().indexOf('Heading');
       const edit = new vscode.WorkspaceEdit();
       edit.replace(
         document.uri,
@@ -73,7 +75,7 @@ suite('disk fidelity', function () {
     const document = await vscode.workspace.openTextDocument(filePath);
     await vscode.window.showTextDocument(document);
     const edit = new vscode.WorkspaceEdit();
-    edit.insert(document.uri, document.positionAt(source.indexOf('Two') + 3), ' edited');
+    edit.insert(document.uri, document.positionAt(document.getText().indexOf('Two') + 3), ' edited');
 
     assert.equal(await vscode.workspace.applyEdit(edit), true);
     await vscode.commands.executeCommand('workbench.action.files.saveAll');

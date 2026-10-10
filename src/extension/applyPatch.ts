@@ -13,6 +13,10 @@ export class VscodeCanonicalDocument implements CanonicalDocument {
     return this.document.version;
   }
 
+  public get eol(): '\n' | '\r\n' {
+    return this.document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  }
+
   public getText(): string {
     return this.document.getText();
   }

@@ -13,6 +13,7 @@ export type DocumentApplyResult =
 export interface CanonicalDocument {
   readonly uri: string;
   readonly version: number;
+  readonly eol?: '\n' | '\r\n';
   getText(): string;
   apply(baseVersion: number, patches: readonly TextPatch[]): Promise<DocumentApplyResult>;
   save?(): Promise<boolean>;
@@ -159,6 +160,8 @@ export class DocumentSession {
     version: number,
     changes: readonly TextPatch[]
   ): void {
+    // Dirty-state flips (first edit, save, revert) also raise this event, with no changes and the same version.
+    if (changes.length === 0) return;
     if (this.expectedApply !== undefined &&
       this.expectedApply.beforeVersion === beforeVersion &&
       samePatches(this.expectedApply.patches, changes)) {
@@ -180,7 +183,7 @@ export class DocumentSession {
       document: {
         text: this.document.getText(),
         version: this.document.version,
-        eol: this.document.getText().includes('\r\n') ? '\r\n' : '\n'
+        eol: this.document.eol ?? (this.document.getText().includes('\r\n') ? '\r\n' : '\n')
       },
       viewPreferences
     });
@@ -456,9 +459,15 @@ function hashField(hash: ReturnType<typeof createHash>, value: string): void {
   hash.update(String(Buffer.byteLength(value, 'utf8'))).update(':').update(value, 'utf8').update(';');
 }
 
+// VS Code reports a multi-change edit in descending offset order, but the webview sends ascending patches.
 function samePatches(left: readonly TextPatch[], right: readonly TextPatch[]): boolean {
-  return left.length === right.length && left.every((patch, index) => {
-    const other = right[index];
-    return other !== undefined && patch.from === other.from && patch.to === other.to && patch.insert === other.insert;
+  if (left.length !== right.length) return false;
+  const ordered = (patches: readonly TextPatch[]): TextPatch[] => [...patches].sort((a, b) =>
+    Number(a.from) - Number(b.from) || Number(a.to) - Number(b.to) || (a.insert < b.insert ? -1 : a.insert > b.insert ? 1 : 0));
+  const other = ordered(right);
+  return ordered(left).every((patch, index) => {
+    const candidate = other[index];
+    return candidate !== undefined && patch.from === candidate.from && patch.to === candidate.to &&
+      patch.insert === candidate.insert;
   });
 }

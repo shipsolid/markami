@@ -277,6 +277,19 @@ describe('ViewPreferencesStore', () => {
     });
   });
 
+  test('reads_never_write_storage_because_a_stale_memento_echo_can_resurrect_cleared_records', async () => {
+    const storage = new MemoryStorage();
+    const store = new ViewPreferencesStore(storage, { now: clock() });
+    await store.update('file:///doc.md', { width: 'full' });
+    const writesAfterUpdate = storage.writes;
+
+    for (let read = 0; read < 5; read += 1) {
+      expect(await store.get('file:///doc.md')).toEqual({ width: 'full' });
+    }
+
+    expect(storage.writes).toBe(writesAfterUpdate);
+  });
+
   test('lru_1001st_record_evicts_the_least_recently_used_uri', async () => {
     const store = new ViewPreferencesStore(new MemoryStorage(), { maxRecords: 1000, now: clock() });
     for (let index = 0; index < 1000; index += 1) {

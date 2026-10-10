@@ -19,7 +19,7 @@ import { isProtocolTextWithinLimit } from '../protocol/limits.js';
 import { parseHostMessage } from '../protocol/schemas.js';
 import { CompositionGate } from './bridge/compositionGate.js';
 import type { FileViewOverrideChanges, SyntaxRevealPolicy, ViewPreferencesState } from '../protocol/viewPreferences.js';
-import { HostBridge, shouldApplyExternalChange } from './bridge/hostBridge.js';
+import { HostBridge, shouldApplyExternalChange, shouldShowExternalConflict } from './bridge/hostBridge.js';
 import { preserveLiveConflictDraft } from './bridge/recovery.js';
 import { createFormattingActionRegistry, insertionActionId } from './editor/actionRegistry.js';
 import {
@@ -148,7 +148,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
   } else if (message.type === 'documentChanged' && !ownedOrigin) {
     if (shouldApplyExternalChange(disposition.externalChange, ownedOrigin)) {
       applyHostPatches(message.changes);
-    } else {
+    } else if (shouldShowExternalConflict(disposition.externalChange, ownedOrigin)) {
       showConflictBanner(bridge.queue?.optimisticText);
     }
   } else if (message.type === 'executeAction') {

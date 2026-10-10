@@ -45,6 +45,9 @@ export function resolveViewPreferences(
 
 export class ViewPreferencesStore {
   private readonly session = new Map<string, FileViewOverrides>();
+  // Reads only note recency here: the extension-host memento replaces its whole value when VS Code echoes an
+  // older storage change, so a read that writes can resurrect records a newer write or reset already removed.
+  private readonly touched = new Map<string, number>();
   private readonly maxRecords: number;
   private readonly now: () => number;
   private readonly rememberPerFile: () => boolean;
@@ -61,7 +64,7 @@ export class ViewPreferencesStore {
   }
 
   public get(uri: string): Promise<FileViewOverrides> {
-    return this.serialized(async () => {
+    return this.serialized(() => {
       if (!this.shouldPersist(uri)) {
         return { ...this.session.get(uri) };
       }
@@ -69,12 +72,8 @@ export class ViewPreferencesStore {
       if (state === undefined) return {};
       const record = readRecord(state.records[uri]);
       if (record === undefined) return {};
-      const overrides = sanitizeOverrides(record.overrides);
-      await this.writeRecords({
-        ...state.records,
-        [uri]: createRecord(overrides, this.timestamp())
-      });
-      return overrides;
+      this.touched.set(uri, this.timestamp());
+      return sanitizeOverrides(record.overrides);
     });
   }
 
@@ -97,6 +96,7 @@ export class ViewPreferencesStore {
   public resetFile(uri: string): Promise<void> {
     return this.serialized(async () => {
       this.session.delete(uri);
+      this.touched.delete(uri);
       const state = readState(this.storage.read());
       if (state === undefined || state.records[uri] === undefined) return;
       const records = { ...state.records };
@@ -108,6 +108,7 @@ export class ViewPreferencesStore {
   public resetWorkspace(): Promise<void> {
     return this.serialized(async () => {
       this.session.clear();
+      this.touched.clear();
       await this.storage.update(undefined);
     });
   }
@@ -137,6 +138,9 @@ export class ViewPreferencesStore {
     return this.serialized(async () => {
       const sessionMoves = [...this.session.entries()].filter(([uri]) => sameOrDescendant(uri, oldUri));
       for (const [uri] of sessionMoves) this.session.delete(uri);
+      for (const uri of this.touched.keys()) {
+        if (sameOrDescendant(uri, oldUri)) this.touched.delete(uri);
+      }
       const state = readState(this.storage.read());
       const records = { ...(state?.records ?? {}) };
       const recordMoves = Object.entries(records).filter(([uri]) => sameOrDescendant(uri, oldUri));
@@ -169,6 +173,9 @@ export class ViewPreferencesStore {
       for (const key of this.session.keys()) {
         if (sameOrDescendant(key, uri)) this.session.delete(key);
       }
+      for (const key of this.touched.keys()) {
+        if (sameOrDescendant(key, uri)) this.touched.delete(key);
+      }
       const state = readState(this.storage.read());
       if (state === undefined) return;
       const records = { ...state.records };
@@ -192,8 +199,20 @@ export class ViewPreferencesStore {
     return this.lastTimestamp;
   }
 
+  private withRecency(records: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+    const refreshed: Record<string, unknown> = { ...records };
+    for (const [uri, touchedAt] of this.touched) {
+      const record = readRecord(refreshed[uri]);
+      if (record !== undefined && touchedAt > record.updatedAt) {
+        refreshed[uri] = createRecord(record.overrides, touchedAt);
+      }
+    }
+    this.touched.clear();
+    return refreshed;
+  }
+
   private async writeRecords(records: Readonly<Record<string, unknown>>): Promise<void> {
-    const bounded = Object.entries(records)
+    const bounded = Object.entries(this.withRecency(records))
       .sort(([leftUri, left], [rightUri, right]) =>
         recordTimestamp(left) - recordTimestamp(right) || leftUri.localeCompare(rightUri))
       .slice(-this.maxRecords);
@@ -207,7 +226,7 @@ export class ViewPreferencesStore {
     });
   }
 
-  private serialized<T>(operation: () => Promise<T>): Promise<T> {
+  private serialized<T>(operation: () => T | PromiseLike<T>): Promise<T> {
     const result = this.queue.then(operation, operation);
     this.queue = result.then(() => undefined, () => undefined);
     return result;

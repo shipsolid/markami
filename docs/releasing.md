@@ -25,6 +25,52 @@ then obtains the Azure credential with `--azure-credential`. Do not paste a PAT 
 workflow input, repository variable, log, or file. See the official
 [VS Code secure automated publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
+## GitHub repository settings
+
+The Release and Marketplace captures workflows depend on repository settings that are not in version
+control. The 2026-10-10 audit of `shipsolid/markami` found:
+
+| Setting | Required | Audit result |
+| --- | --- | --- |
+| `vscode-marketplace` environment secrets | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | present |
+| `vscode-marketplace` required reviewer | the owner | missing |
+| `vscode-marketplace` deployment refs | tag policy `v*` | custom policies enabled with none defined, so every deployment is rejected |
+| `vscode-marketplace` admin bypass | off | on |
+| `github-release` environment | exists with the same reviewer and tag policy | missing |
+| Actions → "Allow GitHub Actions to create and approve pull requests" | on, so Marketplace captures can open its review PR | off |
+| Entra federated credential subject | `repo:shipsolid@13056224/markami@1408940721:environment:vscode-marketplace` | accepted by an OIDC login probe on 2026-10-09 |
+
+This repository uses GitHub's immutable-ID OIDC subject. A federated credential written with the
+name-based subject `repo:shipsolid/markami:environment:vscode-marketplace` is rejected by Entra
+(AADSTS70021). The probe proved only that the identity can sign in; membership as a Contributor of
+the Marketplace publisher is still unverified until the first protected dry run.
+
+Apply the missing settings (the reviewer is the owner, so self-review stays allowed):
+
+```bash
+OWNER_ID=$(gh api user --jq .id)
+for env in vscode-marketplace github-release; do
+  gh api -X PUT "repos/shipsolid/markami/environments/$env" --input - <<JSON
+{"prevent_self_review": false, "reviewers": [{"type": "User", "id": $OWNER_ID}],
+ "deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true},
+ "can_admins_bypass": false}
+JSON
+  gh api -X POST "repos/shipsolid/markami/environments/$env/deployment-branch-policies" -f name='v*' -f type=tag
+done
+gh api -X PUT repos/shipsolid/markami/actions/permissions/workflow \
+  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
+```
+
+Verify before tagging:
+
+```bash
+gh api repos/shipsolid/markami/environments/vscode-marketplace \
+  --jq '{can_admins_bypass, rules: [.protection_rules[].type]}'
+gh api repos/shipsolid/markami/environments/vscode-marketplace/deployment-branch-policies \
+  --jq '.branch_policies[] | {name, type}'
+gh secret list --env vscode-marketplace
+```
+
 ## Generate and approve Marketplace captures
 
 1. From the default branch, run **Actions → Marketplace captures → Run workflow**. The workflow is

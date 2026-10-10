@@ -34,8 +34,13 @@ jobs:
         run: npm run bench
 
   integration:
-    runs-on: ubuntu-latest
+    name: integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -45,4 +50,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: xvfb-run -a npm run test:integration
+      - name: Run integration on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+      - name: Run integration on Windows and macOS
+        if: runner.os != 'Linux'
+        run: npm run test:integration

@@ -121,6 +121,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         return;
       }
       if (parsed.data.type === 'ready' && parsed.data.protocolVersion === PROTOCOL_VERSION) {
+        this.activeView.markReady(panel);
         if (hydrated) session.rotateGeneration(viewId);
         hydrated = true;
         session.sendSnapshot(viewId, await this.preferenceState(preferenceUri()));
@@ -229,6 +230,7 @@ export class MarkamiProvider implements vscode.CustomTextEditorProvider {
         await this.handleResourceRequest(document, panel.webview, parsed.data);
       } else if (parsed.data.type === 'policyReloadReady' && parsed.data.requestId === pendingPolicyReload) {
         pendingPolicyReload = undefined;
+        this.activeView.markPending(panel);
         panel.webview.html = this.renderHtml(document, panel.webview, webviewRoot);
       } else if (parsed.data.type === 'updateViewPreferences') {
         await this.viewPreferences.update(preferenceUri(), parsed.data.changes);

@@ -19,24 +19,28 @@ const imageProjectionField = StateField.define<ImageProjectionState>({
   create(state) {
     const resolutions = new Map<string, string | undefined>();
     const selection = syntaxSelection(state);
-    return { resolutions, decorations: imageDecorations(state.doc.toString(), selection.from, selection.to, resolutions) };
+    return {
+      resolutions,
+      decorations: imageDecorations(findImages(state.doc.toString()), selection.from, selection.to, resolutions)
+    };
   },
   update(value, transaction) {
-    const resolutions = transaction.docChanged
-      ? new Map<string, string | undefined>()
-      : new Map(value.resolutions);
+    const images = findImages(transaction.state.doc.toString());
+    const resolutions = new Map(value.resolutions);
+    if (transaction.docChanged) {
+      // A resolution depends only on its destination, so keep every one that is still in the document.
+      const present = new Set(images.map(imageKey));
+      for (const key of resolutions.keys()) {
+        if (!present.has(key)) resolutions.delete(key);
+      }
+    }
     for (const effect of transaction.effects) {
       if (effect.is(resolvedImage)) resolutions.set(effect.value.key, effect.value.uri);
     }
     const selection = syntaxSelection(transaction.state);
     return {
       resolutions,
-      decorations: imageDecorations(
-        transaction.state.doc.toString(),
-        selection.from,
-        selection.to,
-        resolutions
-      )
+      decorations: imageDecorations(images, selection.from, selection.to, resolutions)
     };
   },
   provide: (field) => EditorView.decorations.from(field, (value) => value.decorations)
@@ -56,7 +60,6 @@ export function imageProjection(
     }
 
     public update(update: ViewUpdate): void {
-      if (update.docChanged) this.pending.clear();
       if (update.docChanged || update.selectionSet || update.transactions.some((transaction) => transaction.effects.length > 0)) {
         this.requestMissing();
       }
@@ -96,12 +99,12 @@ export function imageProjection(
 }
 
 function imageDecorations(
-  source: string,
+  images: readonly MarkdownImage[],
   selectionFrom: number,
   selectionTo: number,
   resolutions: ReadonlyMap<string, string | undefined>
 ): DecorationSet {
-  return Decoration.set(findImages(source).flatMap((image) => {
+  return Decoration.set(images.flatMap((image) => {
     if (selectionFrom <= image.to && selectionTo >= image.from) return [];
     const key = imageKey(image);
     return [Decoration.replace({
@@ -162,7 +165,7 @@ function renderPlaceholder(container: HTMLElement, alt: string, failed: boolean)
 }
 
 function imageKey(image: MarkdownImage): string {
-  return `${String(image.from)}:${String(image.to)}:${image.destination}`;
+  return image.destination;
 }
 
 function isMarkdownImage(value: unknown): value is MarkdownImage {
