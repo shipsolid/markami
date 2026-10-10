@@ -685,8 +685,8 @@
 
 ## Task 31 — Cleaner, theme-native default style (Markflow-informed UI pass)
 
-- Status: implemented on main in nine commits (`2704d34` through `cc7d6dd`), CI to confirm; not released. Version
-  0.1.1 is still the published one; these changes are under `## Unreleased` in the changelog
+- Status: implemented on main in nine commits (`2704d34` through `cc7d6dd`) and released as 0.1.2 (Task 32). The
+  changes are under `## 0.1.2` in the changelog
 - Trigger: the owner compared markami against Markflow (MIT, Milkdown/ProseMirror) and asked for a cleaner, modern
   look that reads as part of the VS Code theme, with an outline that follows resizes. Markflow's engine is not
   adopted: it re-serializes the whole document (its README admits `-` bullets become `*`), which breaks the
@@ -718,3 +718,17 @@
   one unit; the published listing images still show the 0.1.1 look until the capture workflow runs for a release;
   Windows and macOS integration run in CI only
 
+## Task 32 — Published 0.1.2 Preview to the Visual Studio Marketplace
+
+- Status: complete; `shipsolid.markami` 0.1.2 is live as `validated, public, preview`, and the provider response,
+  public artifact digest, and clean-profile install are recorded in
+  [`release-notes.md`](release-notes.md#012-publication-record)
+- Path: UI pass pushed (CI run 38060843361 green on `d659925`), version bump and release evidence (`1b68188`),
+  Marketplace captures workflow (run 38061110112) and PR #10 reviewed and merged by the owner, digest re-checked
+  from the merged revision and listing approved (`8f8e4af`), annotated tag `v0.1.2`, Release dry run 38067641511,
+  then publish run 38067820360 behind the owner's `vscode-marketplace` approval
+- Evidence: the VSIX built from the merged revision is byte-identical to the one recorded before the capture PR
+  (4,757,069 bytes, SHA-256 `d8ca7887…cc76`), and the public Marketplace copy has the same digest
+- Open: the pointer-position caret mapping when a table cell switches to
+  source, backspace over a list marker, and the waived IME and screen-reader smoke (issue #8) remain; the outline the
+  owner saw missing at about 1460px was not reproduced and is covered by the measured docking added in 0.1.2
