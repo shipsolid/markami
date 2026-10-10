@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { removeDirectory } from './support.js';
 
 suite('frontmatter and unsafe document syntax', function () {
   this.timeout(20_000);
@@ -14,7 +15,7 @@ suite('frontmatter and unsafe document syntax', function () {
 
   teardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   test('csp_editor_preserves_frontmatter_unsafe_html_and_unknown_syntax', async () => {

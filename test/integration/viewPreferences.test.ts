@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
-import { executeWhenReady } from './support.js';
+import { executeWhenReady, removeDirectory } from './support.js';
 
 interface PreferenceState {
   readonly effective: {
@@ -26,7 +26,7 @@ suite('durable view preferences', function () {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.workspace.getConfiguration('markami')
       .update('viewPreferences.rememberPerFile', undefined, vscode.ConfigurationTarget.Global);
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   test('duplicate basenames split views reopen rename and reset without touching source', async () => {

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { removeDirectory } from './support.js';
 
 suite('multi-view synchronization', function () {
   this.timeout(20_000);
@@ -14,7 +15,7 @@ suite('multi-view synchronization', function () {
 
   teardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   test('source_and_custom_views_share_one_canonical_document', async () => {

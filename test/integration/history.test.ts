@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { removeDirectory } from './support.js';
 
 suite('canonical history', function () {
   this.timeout(20_000);
@@ -14,7 +15,7 @@ suite('canonical history', function () {
 
   teardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   test('visual_undo_source_redo_same_history', async () => {

@@ -8,6 +8,14 @@ const READY_TIMEOUT_MS = 15_000;
 const WARM_UP_ATTEMPTS = 3;
 const WARM_UP_TIMEOUT_MS = 10_000;
 
+/**
+ * On Windows VS Code can still hold handles on a document for a moment after its editor closes, which makes
+ * a plain recursive remove fail with EBUSY.
+ */
+export function removeDirectory(directory: string): Promise<void> {
+  return rm(directory, { force: true, recursive: true, maxRetries: 20, retryDelay: 100 });
+}
+
 const wait = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 async function acceptedWithin(timeoutMs: number, command: string, args: readonly unknown[]): Promise<boolean> {
@@ -46,6 +54,6 @@ export async function warmUpMarkamiEditor(): Promise<void> {
     assert.fail(`markami editor never became ready after ${String(WARM_UP_ATTEMPTS)} warm-up attempts`);
   } finally {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   }
 }

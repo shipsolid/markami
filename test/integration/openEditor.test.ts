@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as vscode from 'vscode';
+import { removeDirectory } from './support.js';
 
 suite('custom editor', function () {
   this.timeout(20_000);
@@ -14,7 +15,7 @@ suite('custom editor', function () {
 
   teardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await rm(directory, { force: true, recursive: true });
+    await removeDirectory(directory);
   });
 
   test('opens_md_as_optional_custom_editor', async () => {
