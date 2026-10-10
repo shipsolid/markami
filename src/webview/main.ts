@@ -62,7 +62,7 @@ import {
 import { applyPalette, type DocumentPalette } from './ui/appearance/palette.js';
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
-import { DocumentOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
+import { DocumentOutline, OUTLINE_DOCK_MIN_WIDTH, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
 import { ConflictBanner, ErrorBanner } from './ui/notifications/ConflictBanner.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
@@ -213,7 +213,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   }
 });
 window.addEventListener('resize', () => {
-  documentOutline?.setNarrow(window.innerWidth <= 480);
+  documentOutline?.setNarrow(window.innerWidth < OUTLINE_DOCK_MIN_WIDTH);
   if (toolbar?.capturedContext !== undefined) {
     updateSelectionToolbar();
   }
@@ -402,7 +402,7 @@ function createEditor(text: string): void {
   });
   documentOutline.setEnabled(outlineEnabled);
   documentOutline.setCollapsed(outlineCollapsed);
-  documentOutline.setNarrow(window.innerWidth <= 480);
+  documentOutline.setNarrow(window.innerWidth < OUTLINE_DOCK_MIN_WIDTH);
   updateDocumentOutline();
 }
 

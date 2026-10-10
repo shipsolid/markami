@@ -176,3 +176,16 @@
   padding: 12px var(--markami-card-padding);
   word-spacing: 0;
 }
+
+/* The outline lives in the body, outside the shell, so Document appearance is detected from the document. */
+html:has(.markami-document-shell[data-appearance='document']) .markami-outline {
+  border-radius: 12px;
+  padding: 8px;
+}
+
+html:has(.markami-document-shell[data-appearance='document']) .markami-outline > button {
+  font-family: 'JetBrains Mono Variable', var(--vscode-editor-font-family), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+}

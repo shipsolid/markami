@@ -15,6 +15,9 @@ All notable changes to markami are documented here.
 - Document appearance uses the Catppuccin Mocha palette when VS Code uses a dark theme. It is a remap of the VS Code
   theme tokens, so the outline and popovers follow it; light and high-contrast themes and VS Code appearance keep
   your theme's colors. Set `markami.document.palette` to `vscode` to opt out.
+- The outline docks as a 260px column (300px from 1760px) with a 40px gap in panes at least 1280px wide, so it no
+  longer covers the document or its Copy buttons. Narrower panes show a small pill that opens a drawer; the drawer
+  is session-only and never overwrites the per-file collapsed state.
 - Fenced code blocks wrap long lines by default (`markami.codeBlock.wrap` now defaults to `true`), so a long
   command or token no longer gets its own horizontal scrollbar on every line.
 

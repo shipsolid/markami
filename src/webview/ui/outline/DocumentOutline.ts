@@ -42,6 +42,9 @@ export function sourceOffsetForHeadingFragment(source: string, fragment: string)
   return extractOutline(source).find((heading) => heading.slug === fragment)?.from;
 }
 
+/** Panes at least this wide dock the outline as a column; narrower panes get a pill that opens a drawer. */
+export const OUTLINE_DOCK_MIN_WIDTH = 1280;
+
 export class DocumentOutline {
   public readonly element: HTMLElement;
 
@@ -50,12 +53,14 @@ export class DocumentOutline {
   private headings: readonly OutlineHeading[] = [];
   private source = '';
   private activeIndex = -1;
-  private collapsed = false;
+  // The collapsed state the user saved for this file; a narrow pane never reads or writes it.
+  private savedCollapsed = false;
+  private drawerOpen = false;
   private enabled = true;
   private narrow = false;
 
   public constructor(
-    documentRef: Document,
+    private readonly documentRef: Document,
     private readonly navigate: (sourceOffset: number) => void,
     private readonly onCollapsedChange: (collapsed: boolean) => void
   ) {
@@ -70,7 +75,7 @@ export class DocumentOutline {
     this.list = documentRef.createElement('ol');
     this.element.append(this.collapseButton, this.list);
     documentRef.body.append(this.element);
-    this.setCollapsed(false);
+    this.render();
   }
 
   public update(source: string, sourceOffset: number): void {
@@ -99,9 +104,9 @@ export class DocumentOutline {
       button.title = heading.text;
       button.addEventListener('click', () => {
         this.navigate(heading.from);
-        if (this.narrow && !this.collapsed) {
-          this.setCollapsed(true);
-          this.onCollapsedChange(true);
+        if (this.narrow && this.drawerOpen) {
+          this.drawerOpen = false;
+          this.render();
         }
       });
       item.append(button);
@@ -109,29 +114,35 @@ export class DocumentOutline {
     });
   }
 
+  /** Applies the collapsed state saved for the file; a narrow pane keeps showing its own drawer state. */
   public setCollapsed(collapsed: boolean): void {
-    this.collapsed = collapsed;
-    this.element.dataset.collapsed = String(collapsed);
-    this.list.hidden = collapsed;
-    this.collapseButton.setAttribute('aria-expanded', String(!collapsed));
-    this.collapseButton.setAttribute('aria-label', collapsed ? 'Expand document outline' : 'Collapse document outline');
+    this.savedCollapsed = collapsed;
+    this.render();
   }
 
   public toggleCollapsed(): void {
-    this.setCollapsed(!this.collapsed);
-    this.onCollapsedChange(this.collapsed);
+    if (this.narrow) {
+      this.drawerOpen = !this.drawerOpen;
+      this.render();
+      return;
+    }
+    this.savedCollapsed = !this.savedCollapsed;
+    this.render();
+    this.onCollapsedChange(this.savedCollapsed);
   }
 
   public setNarrow(narrow: boolean): void {
     if (this.narrow === narrow) return;
     this.narrow = narrow;
+    this.drawerOpen = false;
     this.element.dataset.narrow = String(narrow);
-    if (narrow && !this.collapsed) this.setCollapsed(true);
+    this.render();
   }
 
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     this.element.hidden = !enabled;
+    this.render();
   }
 
   public get isEnabled(): boolean {
@@ -140,6 +151,18 @@ export class DocumentOutline {
 
   public destroy(): void {
     this.element.remove();
+    delete this.documentRef.documentElement.dataset.markamiOutline;
+  }
+
+  private render(): void {
+    const collapsed = this.narrow ? !this.drawerOpen : this.savedCollapsed;
+    this.element.dataset.collapsed = String(collapsed);
+    this.element.dataset.layout = this.narrow ? 'overlay' : 'docked';
+    this.list.hidden = collapsed;
+    this.collapseButton.setAttribute('aria-expanded', String(!collapsed));
+    this.collapseButton.setAttribute('aria-label', collapsed ? 'Expand document outline' : 'Collapse document outline');
+    // The document reserves the column only while the outline is docked, visible, and open.
+    this.documentRef.documentElement.dataset.markamiOutline = !this.narrow && this.enabled && !collapsed ? 'docked' : 'none';
   }
 }
 

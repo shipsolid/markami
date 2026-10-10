@@ -200,27 +200,66 @@ describe('document outline', () => {
     expect(outline.element.hidden).toBe(true);
   });
 
-  test('selection-only updates reuse heading controls and narrow navigation closes the drawer', () => {
-    const navigate = vi.fn();
-    const collapse = vi.fn();
-    const outline = new DocumentOutline(document, navigate, collapse);
+  test('selection-only updates reuse heading controls', () => {
+    const outline = new DocumentOutline(document, vi.fn(), vi.fn());
     const source = '# One\n\n## Two';
     outline.update(source, 0);
     const firstButton = outline.element.querySelector<HTMLButtonElement>('[data-heading-index="0"]');
 
     outline.update(source, source.length);
+
     expect(outline.element.querySelector('[data-heading-index="0"]')).toBe(firstButton);
     expect(outline.element.querySelector('[aria-current="location"]')?.textContent).toBe('Two');
+  });
+
+  test('a narrow pane makes the outline a session-only drawer that never overwrites the saved state', () => {
+    const navigate = vi.fn();
+    const collapse = vi.fn();
+    const outline = new DocumentOutline(document, navigate, collapse);
+    outline.update('# One\n\n## Two', 0);
 
     outline.setNarrow(true);
     expect(outline.element.dataset.collapsed).toBe('true');
     outline.toggleCollapsed();
-    outline.setNarrow(true);
     expect(outline.element.dataset.collapsed).toBe('false');
     outline.element.querySelector<HTMLButtonElement>('[data-heading-index="1"]')?.click();
+
     expect(navigate).toHaveBeenCalledWith(7);
     expect(outline.element.dataset.collapsed).toBe('true');
-    expect(collapse).toHaveBeenLastCalledWith(true);
+    expect(collapse).not.toHaveBeenCalled();
+    outline.setNarrow(false);
+    expect(outline.element.dataset.collapsed).toBe('false');
+  });
+
+  test('the saved collapsed state returns when a narrow pane widens', () => {
+    const outline = new DocumentOutline(document, vi.fn(), vi.fn());
+    outline.setCollapsed(true);
+    outline.setNarrow(true);
+    outline.toggleCollapsed();
+    expect(outline.element.dataset.collapsed).toBe('false');
+
+    outline.setNarrow(false);
+
+    expect(outline.element.dataset.collapsed).toBe('true');
+  });
+
+  test('a wide, expanded, enabled outline docks and tells the document to make room', () => {
+    const outline = new DocumentOutline(document, vi.fn(), vi.fn());
+    const state = (): string | undefined => document.documentElement.dataset.markamiOutline;
+
+    expect(state()).toBe('docked');
+    outline.toggleCollapsed();
+    expect(state()).toBe('none');
+    outline.toggleCollapsed();
+    expect(state()).toBe('docked');
+    outline.setEnabled(false);
+    expect(state()).toBe('none');
+    outline.setEnabled(true);
+    outline.setNarrow(true);
+    expect(state()).toBe('none');
+    outline.setNarrow(false);
+    outline.destroy();
+    expect(state()).toBeUndefined();
   });
 
   test('fragment navigation reuses formatted Setext headings and duplicate slugs', () => {

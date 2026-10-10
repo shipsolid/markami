@@ -262,6 +262,29 @@
   width: auto;
 }
 
+/* Wide panes dock the outline as a column; the scroller reserves its width plus a gap so nothing sits underneath. */
+:root {
+  --markami-outline-width: 260px;
+  --markami-outline-gap: 40px;
+  --markami-outline-inset: 24px;
+}
+
+@media (min-width: 1760px) {
+  :root {
+    --markami-outline-width: 300px;
+  }
+}
+
+.markami-outline[data-layout='docked']:not([data-collapsed='true']) {
+  max-width: none;
+  right: var(--markami-outline-inset);
+  width: var(--markami-outline-width);
+}
+
+html[data-markami-outline='docked'] .markami-document-shell .cm-scroller {
+  padding-right: calc(var(--markami-outline-width) + var(--markami-outline-gap) + var(--markami-outline-inset));
+}
+
 .markami-outline ol {
   list-style: none;
   margin: 0;
