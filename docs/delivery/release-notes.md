@@ -76,14 +76,20 @@ the release workflow. Local package evidence is recorded in [`install-smoke.md`]
 - [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
   in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
   CHANGELOG. Revisit before a non-preview release.
-- [ ] Walkthrough rendering on the Welcome page and the default-editor confirmation dialog have not been seen in a real
-  window; the confirmation path is covered by unit tests with an injected host. Look at both before tagging. Also
-  not observed in a real window: markami in a WSL, SSH, or dev-container window, and the `Ctrl+K` chord behavior
-  described in the README (read from VS Code's keybinding resolver, not exercised with key presses).
-- [ ] Push the preparation commit and confirm CI is green on it, then re-check the size and SHA-256 from that
-  revision (the capture PR changed only images, which the VSIX excludes).
-- [ ] Create annotated tag `v0.1.3` only after the owner authorizes the release, then pass the Release workflow dry
-  run; the `vscode-marketplace` deployment is approved by the owner.
+- [x] Walkthrough rendering on the Welcome page, the default-editor confirmation dialog, markami in a WSL, SSH, or
+  dev-container window, and the `Ctrl+K` chord behavior described in the README have **not been observed in a real
+  window**. The confirmation path is covered by unit tests with an injected host, the chord behavior was read from VS
+  Code's keybinding resolver rather than exercised with key presses, and Restricted Mode is exercised natively. The
+  owner asked for the release on 2026-10-11 knowing this gap, so it ships as a disclosed gap for this Preview, not as a
+  pass. Look at all four after installing 0.1.3 and report problems in the issue tracker.
+- [x] Push the preparation commit and confirm CI is green on it, then re-check the size and SHA-256 from that
+  revision. Evidence: the owner pushed the Task 35 changes as `109cc28`. CI run 38076187188 passed `verify`, the
+  integration matrix (Linux, Windows, macOS on stable; Linux on 1.102.0), the `install-smoke` matrix with the new
+  Restricted Mode step on Linux, and `package`; Security run 38076187276 passed. The `markami-vsix` artifact built on
+  the GitHub runner is 4,762,865 bytes with the recorded SHA-256.
+- [x] Create and push annotated tag `v0.1.3` only after the owner authorizes the release. The owner authorized it on
+  2026-10-11 ("tag and publish"); the Release workflow's dry run and the `vscode-marketplace` deployment, which the
+  owner approves themself, follow from the tag.
 
 ## 0.1.2 publication record (history)
 
