@@ -93,12 +93,6 @@
   border-left-color: var(--vscode-editorWarning-foreground);
 }
 
-.markami-block-gutter button,
-.markami-selection-toolbar button,
-.markami-slash-palette button {
-  color: inherit;
-}
-
 .markami-table {
   border: 1px solid var(--vscode-widget-border, transparent);
   display: block;

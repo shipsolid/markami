@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { assertInstalled, assertNotInstalled, parseExtensionList, verifyChecksum } from './installSmoke.mjs';
+import { assertInstalled, assertNotInstalled, cliInvocation, parseExtensionList, verifyChecksum } from './installSmoke.mjs';
 
 const listing = 'vscode.git@1.0.0\nShipSolid.Markami@0.1.0\n\nms-python.python@2025.1.0\n';
 
@@ -29,4 +29,29 @@ test('verifies the published checksum line against the artifact name and digest'
   assert.doesNotThrow(() => verifyChecksum(`${digest}  markami-0.1.0.vsix\n`, 'markami-0.1.0.vsix', digest));
   assert.throws(() => verifyChecksum(`${digest}  markami-0.1.0.vsix\n`, 'markami-0.1.0.vsix', 'b'.repeat(64)), /does not match/iu);
   assert.throws(() => verifyChecksum(`${digest}  other.vsix\n`, 'markami-0.1.0.vsix', digest), /other\.vsix/u);
+});
+
+test('runs the CLI directly on POSIX hosts, including paths that contain spaces', () => {
+  const cli = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+
+  assert.deepEqual(cliInvocation(cli, ['--list-extensions'], 'darwin'), { file: cli, args: ['--list-extensions'], shell: false });
+});
+
+test('runs the Windows .cmd shim through a shell and quotes every argument that needs it', () => {
+  const invocation = cliInvocation(
+    String.raw`C:\Program Files\Code\bin\code.cmd`,
+    ['--extensions-dir', String.raw`C:\Users\run ner\ext`, '--install-extension', String.raw`D:\a\markami.vsix`],
+    'win32'
+  );
+
+  assert.equal(invocation.shell, true);
+  assert.equal(invocation.file, String.raw`"C:\Program Files\Code\bin\code.cmd"`);
+  assert.deepEqual(invocation.args, [
+    '--extensions-dir', String.raw`"C:\Users\run ner\ext"`, '--install-extension', String.raw`D:\a\markami.vsix`
+  ]);
+});
+
+test('refuses Windows arguments that cannot be quoted safely for cmd.exe', () => {
+  assert.throws(() => cliInvocation('code.cmd', ['a"b'], 'win32'), /quote/iu);
+  assert.throws(() => cliInvocation('code.cmd', ['%PATH%'], 'win32'), /percent/iu);
 });

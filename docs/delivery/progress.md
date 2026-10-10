@@ -570,3 +570,25 @@
   while the version was still `Verifying`, and a TLS-intercepting proxy on the owner's network needed
   its CA passed to the verification container
 - Recorded in `docs/delivery/release-notes.md` under Publication record; no GitHub release was created
+
+## Task 27 — Close the post-publish follow-ups
+
+- Status: complete on the PR that adds it; nothing here changes the published 0.1.0 artifact
+- Windows and macOS install smoke: `scripts/installSmoke.mjs` could not start the Windows `.cmd` shim; added
+  `cliInvocation` (RED: the export did not exist; GREEN: POSIX direct, Windows through a shell with cmd.exe
+  quoting, unsafe `"` and `%` refused). CI now packages once on Linux, uploads the VSIX, and an
+  `install-smoke` matrix on ubuntu, windows, and macos downloads it with the same upload/download actions as
+  `release.yml` (run 38048808722: checksum verified, 16 integration tests against the installed VSIX, clean
+  uninstall on all three). The matrix doubles as the handoff test for action bumps
+- Dark-theme polish: `test/visual-browser/themedControls.spec.ts` runs the production webview under dark,
+  light, and high-contrast token sets (harness extracted to `productionWebview.ts`, shared with
+  `technical.spec.ts`). RED: the gutter painted CodeMirror's `rgb(245, 245, 245)` and every button painted
+  the browser default `rgb(239, 239, 239)`. GREEN: the CodeMirror theme takes the gutter from
+  `--vscode-editorGutter-background`, and one element-level `button` rule uses the secondary-button tokens
+  with a contrast border in high contrast. The spec also asserts 4.5:1 text contrast and checks the handle menu
+- Not covered: the find box, link/image popover, and slash palette were themed by the same rule but only the
+  handle menu is exercised by the spec; text inputs inside popovers were not restyled
+- GitHub release v0.1.0 created from the tagged artifact (run 38048666102); its body was replaced because the
+  tagged notes predate publication. Tracking issue #8 holds the waived native IME and screen-reader smoke
+- The published 0.1.0 listing images still show the old gutter and buttons; they change only when a new
+  version is published and the captures are regenerated

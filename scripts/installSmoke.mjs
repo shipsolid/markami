@@ -34,10 +34,25 @@ export function verifyChecksum(checksumText, artifactName, digest) {
   if (recorded !== digest) throw new Error('VSIX SHA-256 does not match the recorded checksum.');
 }
 
+const CMD_SPECIAL = /[\s&|<>^()]/u;
+
+function quoteForCmd(argument) {
+  if (argument.includes('"')) throw new Error(`Cannot quote a double quote for cmd.exe: ${argument}`);
+  if (argument.includes('%')) throw new Error(`Cannot pass a percent sign through cmd.exe unexpanded: ${argument}`);
+  return CMD_SPECIAL.test(argument) ? `"${argument}"` : argument;
+}
+
+// Since Node 20.12 a .cmd shim cannot be spawned without a shell, which then needs its own quoting.
+export function cliInvocation(cli, arguments_, platform = process.platform) {
+  if (platform !== 'win32') return { file: cli, args: arguments_, shell: false };
+  return { file: quoteForCmd(cli), args: arguments_.map(quoteForCmd), shell: true };
+}
+
 function runCli(cli, arguments_) {
   const { ELECTRON_RUN_AS_NODE: _ignored, ...environment } = process.env;
+  const { file, args, shell } = cliInvocation(cli, arguments_);
   // The CLI wrapper otherwise stops to ask for confirmation on WSL kernels, which containers share.
-  return execFileSync(cli, arguments_, { encoding: 'utf8', env: { ...environment, DONT_PROMPT_WSL_INSTALL: '1' } });
+  return execFileSync(file, args, { encoding: 'utf8', env: { ...environment, DONT_PROMPT_WSL_INSTALL: '1' }, shell });
 }
 
 async function main(arguments_) {
@@ -55,7 +70,7 @@ async function main(arguments_) {
   const version = process.env.VSCODE_VERSION ?? 'stable';
   const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
   const [cli, ...cliArguments] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath, { reuseMachineInstall: true });
-  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'markami-install-smoke-'));
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'mk-smoke-'));
   const extensionsDirectory = path.join(temporaryRoot, 'extensions');
   const userDataDirectory = path.join(temporaryRoot, 'user-data');
   const hostDirectory = path.join(temporaryRoot, 'test-host');

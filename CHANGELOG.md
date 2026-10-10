@@ -2,6 +2,14 @@
 
 All notable changes to markami are documented here.
 
+## Unreleased
+
+### Fixed
+
+- The block-handle gutter and every button (table controls, code copy, outline, handle menu, popovers)
+  follow the active VS Code theme. They previously showed CodeMirror's light grey gutter strip and
+  browser-default white buttons in dark and high-contrast themes.
+
 ## 0.1.0 — 2026-10-10
 
 Preview release.

@@ -18,7 +18,7 @@ The tag `v0.1.0` was created from the commit that contains the recorded digest; 
 regenerated the checksum and size from that tag and required them to match the values above. On
 2026-10-10 the same source produced a byte-identical VSIX on the owner's IST host, in a UTC container,
 and on a GitHub runner once packaging was pinned to UTC (ZIP entry times are stored in the packager's
-local time). No GitHub release has been created.
+local time).
 
 ## Publication record
 
@@ -31,6 +31,7 @@ local time). No GitHub release has been created.
 | Public artifact | `.../publishers/shipsolid/vsextensions/markami/0.1.0/vspackage` is 4,211,965 bytes with SHA-256 `c78650fcc2c7053d583bfb5d91c14d8926f9ddda6e24787e5438359927aafe38`, equal to the recorded digest; the workflow's `checkPackage.mjs` accepted it |
 | Clean-profile install | VS Code 1.141.0 with empty `--extensions-dir`/`--user-data-dir`: `code --install-extension shipsolid.markami` reported `v0.1.0 was successfully installed`; `--list-extensions --show-versions` lists `shipsolid.markami@0.1.0` |
 | Installed contents | 279 of the 280 files in the public VSIX are byte-identical to the installed tree; `package.json` differs only by the `__metadata` block VS Code adds at install, and `.vsixmanifest` is written by the installer |
+| GitHub release | Run [38048666102](https://github.com/shipsolid/markami/actions/runs/38048666102) from tag `v0.1.0` (same gates, `github-release` environment approved by the owner) created the [v0.1.0 release](https://github.com/shipsolid/markami/releases/tag/v0.1.0) with `markami-0.1.0.vsix` (GitHub's asset digest equals the recorded SHA-256) and its `.sha256`. The workflow attaches the tagged copy of this file as the body, which still said "not yet published", so the body was replaced by hand with install, verify, and known-limitation text |
 | Listing assets | The gallery serves the manifest, README (Details), CHANGELOG, LICENSE, default and small icons, and the VSIX signature; links point at `shipsolid/markami` (source, issues, README); pricing Free; engine `^1.102.0`; item page returns HTTP 200 |
 
 Scope and gaps: the same bytes passed `npm run smoke:install` (installed-VSIX integration suite and
