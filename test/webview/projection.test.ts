@@ -72,6 +72,18 @@ describe('Markdown projection', () => {
     expect(plan.marks.map((mark) => mark.kind)).toEqual(['strong', 'inlineCode']);
   });
 
+  test('delimiters_inside_inline_code_stay_literal', () => {
+    const markdown = '`**x**` and **y**';
+    const plan = buildProjectionPlan(markdown);
+
+    expect(plan.marks.map((mark) => [mark.kind, markdown.slice(mark.from, mark.to)])).toEqual([
+      ['strong', 'y'],
+      ['inlineCode', '**x**']
+    ]);
+    expect(plan.hiddenTokens).toContainEqual({ from: 0, to: 1 });
+    expect(plan.hiddenTokens.filter((token) => token.from >= 1 && token.to <= 6)).toEqual([]);
+  });
+
   test('indented_list_items_are_styled_as_list_lines', () => {
     const markdown = '- parent\n  - child\n    1. grandchild\n';
     const plan = buildProjectionPlan(markdown);

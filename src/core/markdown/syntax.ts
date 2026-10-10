@@ -53,15 +53,23 @@ export function buildProjectionPlan(source: string, options: ProjectionOptions =
   const fenced = indexRanges(findFencedBlocks(source));
 
   collectLines(source, lineStyles, hiddenTokens, options.selection, sourceIslands, fenced);
-  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hiddenTokens, options.selection, sourceIslands, fenced);
-  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, hiddenTokens, options.selection, sourceIslands, fenced);
-  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, hiddenTokens, options.selection, sourceIslands, fenced);
-  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, hiddenTokens, options.selection, sourceIslands, fenced);
+  collectInlineMarks(source, marks, hiddenTokens, options.selection, sourceIslands, fenced);
 
   if (options.semanticRanges !== undefined && disagrees(marks, options.semanticRanges)) {
     return emptyWithIsland(source.length, 'parser disagreement');
   }
   return { version: 1, marks, hiddenTokens, lineStyles, widgets: [], sourceIslands };
+}
+
+/**
+ * Projects only inline syntax. Table cells hold inline text, so a leading `#`, `>` or `-` there is not a heading,
+ * quote or list and must neither be styled nor hidden.
+ */
+export function buildInlineProjection(source: string): { readonly marks: readonly MarkDecoration[]; readonly hiddenTokens: readonly HiddenToken[] } {
+  const marks: MarkDecoration[] = [];
+  const hiddenTokens: HiddenToken[] = [];
+  collectInlineMarks(source, marks, hiddenTokens, undefined, [], indexRanges([]));
+  return { marks, hiddenTokens };
 }
 
 export interface RawHtmlRange extends SourceRange {
@@ -156,6 +164,23 @@ function collectLines(
   }
 }
 
+function collectInlineMarks(
+  source: string,
+  marks: MarkDecoration[],
+  hidden: HiddenToken[],
+  selection: SourceRange | undefined,
+  islands: readonly SourceIslandSpec[],
+  fenced: RangeIndex
+): void {
+  // Inline code is literal: delimiters inside it must not become bold, emphasis, or strikethrough.
+  const code = indexRanges([...source.matchAll(/`([^`\n]+)`/gu)].map((match) => ({ from: match.index, to: match.index + match[0].length })));
+  const apart = (span: SourceRange): boolean => !code.overlapsSpan(span);
+  collectInline(source, /\*\*([^*\n]+)\*\*/gu, 'strong', 2, marks, hidden, selection, islands, fenced, apart);
+  collectInline(source, /~~([^~\n]+)~~/gu, 'strike', 2, marks, hidden, selection, islands, fenced, apart);
+  collectInline(source, /(?<!\*)\*([^*\n]+)\*(?!\*)/gu, 'emphasis', 1, marks, hidden, selection, islands, fenced, apart);
+  collectInline(source, /`([^`\n]+)`/gu, 'inlineCode', 1, marks, hidden, selection, islands, fenced, () => true);
+}
+
 function collectInline(
   source: string,
   pattern: RegExp,
@@ -165,12 +190,13 @@ function collectInline(
   hidden: HiddenToken[],
   selection: SourceRange | undefined,
   islands: readonly SourceIslandSpec[],
-  fenced: RangeIndex
+  fenced: RangeIndex,
+  allowed: (span: SourceRange) => boolean
 ): void {
   for (const match of source.matchAll(pattern)) {
     const from = match.index;
     const to = from + match[0].length;
-    if (islands.some((island) => overlaps({ from, to }, island)) || fenced.overlapsSpan({ from, to })) {
+    if (!allowed({ from, to }) || islands.some((island) => overlaps({ from, to }, island)) || fenced.overlapsSpan({ from, to })) {
       continue;
     }
     marks.push({ from: from + delimiter, to: to - delimiter, kind });

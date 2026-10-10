@@ -8,6 +8,11 @@ import {
   type GfmTable
 } from '../../../core/markdown/tables.js';
 import { syntaxSelection } from '../../projection/syntaxReveal.js';
+import { renderInlineMarkdown } from './inlineRender.js';
+
+const CELL_POINTER_EVENTS = new Set([
+  'mousedown', 'mouseup', 'click', 'dblclick', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'contextmenu'
+]);
 
 export type TablePlan = GfmTable & { readonly replaceSource: boolean };
 
@@ -90,11 +95,15 @@ class TableWidget extends WidgetType {
         const header = this.table.rows[0]?.cells[column]?.value.trim() || `Column ${String(column + 1)}`;
         editor.setAttribute('aria-label', rowIndex === 0 ? `Column ${header}` : `Row ${String(rowIndex + 1)}, ${header}`);
         editor.tabIndex = 0;
-        editor.textContent = cell?.value ?? '';
+        showRendered(editor, cell?.value ?? '');
         if (cell !== undefined) {
           let committedByTab = false;
+          // A cell shows its inline Markdown rendered and switches to the raw source while it has focus.
+          editor.addEventListener('focus', () => showSource(editor));
           editor.addEventListener('blur', () => {
-            if (!committedByTab) this.commitCell(view, rowIndex, column, editor.textContent);
+            const value = editor.textContent;
+            if (!committedByTab) this.commitCell(view, rowIndex, column, value);
+            showRendered(editor, value);
           });
           editor.addEventListener('keydown', (event) => {
             if (event.key !== 'Tab') return;
@@ -139,8 +148,11 @@ class TableWidget extends WidgetType {
     return root;
   }
 
-  public override ignoreEvent(): boolean {
-    return false;
+  // Pointer events inside a cell belong to the cell: left to the editor they would move the document selection into
+  // the table, which reveals its source and replaces the cell being clicked. Everything else still reaches the editor.
+  public override ignoreEvent(event: Event): boolean {
+    return CELL_POINTER_EVENTS.has(event.type) && event.target instanceof Element &&
+      event.target.closest('[role="gridcell"], [role="columnheader"]') !== null;
   }
 
   private commitCell(view: EditorView, row: number, column: number, value: string): void {
@@ -164,6 +176,30 @@ class TableWidget extends WidgetType {
     const result = planTableOperation(view.state.doc.toString(), this.table, action);
     if (result.ok) dispatch(view, result.edit, true);
   }
+}
+
+/** Renders a cell's inline Markdown; remembers what is shown so focus can tell untouched content from edited. */
+function showRendered(editor: HTMLElement, source: string): void {
+  editor.replaceChildren(renderInlineMarkdown(editor.ownerDocument, source));
+  editor.dataset.rendered = 'true';
+  editor.dataset.rawSource = source;
+  editor.dataset.shownText = editor.textContent;
+}
+
+/** Swaps an untouched rendered cell for its raw source with the caret at the end; plain cells are left alone. */
+function showSource(editor: HTMLElement): void {
+  if (editor.dataset.rendered !== 'true') return;
+  const source = editor.dataset.rawSource ?? '';
+  delete editor.dataset.rendered;
+  if (editor.textContent !== editor.dataset.shownText || editor.dataset.shownText === source) return;
+  editor.textContent = source;
+  const selection = editor.ownerDocument.defaultView?.getSelection();
+  if (selection === null || selection === undefined) return;
+  const range = editor.ownerDocument.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function dispatch(

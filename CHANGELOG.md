@@ -18,6 +18,8 @@ All notable changes to markami are documented here.
   focused table, a code block's language label and **Copy** float over its corner for the hovered block, the block
   holding the caret, or while a tool has keyboard focus, and block handles are invisible until the pointer is in
   the editor. All of them stay keyboard-reachable and take no layout space.
+- Table cells render their inline Markdown (bold, emphasis, strikethrough, code, links) and switch to raw source
+  only while focused. Clicking a cell edits it in place instead of revealing the whole table's source.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10
@@ -55,6 +57,7 @@ in real notes are fixed.
   or `**` lines inside a code block are no longer styled as quotes, lists, or bold. Nested list items are
   recognised as list lines.
 - Frontmatter no longer appears as a heading in the outline.
+- Delimiters inside inline code stay literal: `**x**` in backticks is no longer rendered as bold text.
 - The block-handle gutter and every button (table controls, code copy, outline, handle menu, popovers)
   follow the active VS Code theme. They previously showed CodeMirror's light grey gutter strip and
   browser-default white buttons in dark and high-contrast themes.
