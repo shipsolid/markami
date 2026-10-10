@@ -29,6 +29,9 @@ All notable changes to markami are documented here.
   indentation and markers are untouched and return while an item is edited.
 - Markers shown for editing (`#`, `**`, backticks, list markers) are dimmed instead of full contrast, so a block
   looks rendered even while you edit it.
+- The outline docks only while a readable column (at least 880px) is left beside it and otherwise collapses to the
+  pill, measured from the editor pane with a `ResizeObserver`. It follows window resizes, editor splits, sidebar
+  toggles, and a tab that is hidden and shown again, instead of reading the window width once.
 - The editing surface no longer draws a focus ring; the caret marks focus, as in VS Code's own editor.
 
 ## 0.1.1 — 2026-10-10

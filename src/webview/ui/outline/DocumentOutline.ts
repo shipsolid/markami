@@ -42,8 +42,22 @@ export function sourceOffsetForHeadingFragment(source: string, fragment: string)
   return extractOutline(source).find((heading) => heading.slug === fragment)?.from;
 }
 
-/** Panes at least this wide dock the outline as a column; narrower panes get a pill that opens a drawer. */
-export const OUTLINE_DOCK_MIN_WIDTH = 1280;
+const OUTLINE_COLUMN = 260;
+const OUTLINE_COLUMN_WIDE = 300;
+const OUTLINE_WIDE_FROM = 1760;
+const OUTLINE_GAP = 40;
+const OUTLINE_INSET = 24;
+const OUTLINE_MIN_CONTENT = 880;
+
+/**
+ * The outline docks as a column only while a readable content column is left beside it; otherwise it is a pill that
+ * opens a drawer. The reserved width matches app.css: the column, a 40px gap, and a 24px inset.
+ */
+export function shouldDockOutline(paneWidth: number, contentCap: number): boolean {
+  if (paneWidth <= 0) return false;
+  const column = paneWidth >= OUTLINE_WIDE_FROM ? OUTLINE_COLUMN_WIDE : OUTLINE_COLUMN;
+  return paneWidth - (column + OUTLINE_GAP + OUTLINE_INSET) >= Math.min(contentCap, OUTLINE_MIN_CONTENT);
+}
 
 export class DocumentOutline {
   public readonly element: HTMLElement;

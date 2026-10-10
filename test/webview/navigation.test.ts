@@ -18,6 +18,7 @@ import {
   DocumentOutline,
   activeHeadingIndex,
   extractOutline,
+  shouldDockOutline,
   sourceOffsetForHeadingFragment
 } from '../../src/webview/ui/outline/DocumentOutline.js';
 
@@ -229,6 +230,18 @@ describe('document outline', () => {
     expect(collapse).not.toHaveBeenCalled();
     outline.setNarrow(false);
     expect(outline.element.dataset.collapsed).toBe('false');
+  });
+
+  test('the outline docks only when a readable content column is left beside it', () => {
+    // Reservation is the column (260px, 300px from 1760px) plus a 40px gap and a 24px inset; 880px of content must remain.
+    expect(shouldDockOutline(1203, 1200)).toBe(false);
+    expect(shouldDockOutline(1204, 1200)).toBe(true);
+    expect(shouldDockOutline(1759, 1200)).toBe(true);
+    expect(shouldDockOutline(1760, 1200)).toBe(true);
+    expect(shouldDockOutline(963, 640)).toBe(false);
+    expect(shouldDockOutline(964, 640)).toBe(true);
+    expect(shouldDockOutline(1204, Number.POSITIVE_INFINITY)).toBe(true);
+    expect(shouldDockOutline(0, 1200)).toBe(false);
   });
 
   test('the saved collapsed state returns when a narrow pane widens', () => {

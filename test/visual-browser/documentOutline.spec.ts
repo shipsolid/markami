@@ -113,3 +113,30 @@ test('in Document appearance the outline is a 12px-radius card with a mono label
   expect(card.size).toBe('12px');
   expect(card.spacing).toBeGreaterThan(0.5);
 });
+
+const outlineState = (page: Page): Promise<string | undefined> =>
+  page.evaluate(() => document.documentElement.dataset.markamiOutline);
+
+test('the outline follows the pane as it is resized, docking only while a readable column is left', async ({ page }) => {
+  await open(page, 1300);
+  await expect.poll(() => outlineState(page)).toBe('docked');
+
+  await page.setViewportSize({ width: 1150, height: 900 });
+  await expect.poll(() => outlineState(page)).toBe('none');
+  expect((await layout(page)).outline.collapsed).toBe('true');
+
+  await page.setViewportSize({ width: 1300, height: 900 });
+  await expect.poll(() => outlineState(page)).toBe('docked');
+  expect((await layout(page)).outline.collapsed).toBe('false');
+});
+
+test('a tab that is hidden and shown again measures its pane instead of keeping a stale layout', async ({ page }) => {
+  await open(page, 1300);
+  await expect.poll(() => outlineState(page)).toBe('docked');
+
+  await page.evaluate(() => { document.documentElement.style.display = 'none'; });
+  await expect.poll(() => outlineState(page)).toBe('none');
+
+  await page.evaluate(() => { document.documentElement.style.display = ''; });
+  await expect.poll(() => outlineState(page)).toBe('docked');
+});

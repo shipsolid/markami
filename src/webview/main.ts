@@ -62,7 +62,7 @@ import {
 import { applyPalette, type DocumentPalette } from './ui/appearance/palette.js';
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
-import { DocumentOutline, OUTLINE_DOCK_MIN_WIDTH, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
+import { DocumentOutline, shouldDockOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
 import { ConflictBanner, ErrorBanner } from './ui/notifications/ConflictBanner.js';
 
 declare function acquireVsCodeApi<T = unknown>(): {
@@ -90,6 +90,7 @@ let slashPalette: SlashPalette | undefined;
 let blockHandles: BlockHandles | undefined;
 let documentFind: DocumentFind | undefined;
 let documentOutline: DocumentOutline | undefined;
+let paneObserver: ResizeObserver | undefined;
 let conflictBanner: ConflictBanner | undefined;
 let conflictDraft: string | undefined;
 let errorBanner: ErrorBanner | undefined;
@@ -215,7 +216,6 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   }
 });
 window.addEventListener('resize', () => {
-  documentOutline?.setNarrow(window.innerWidth < OUTLINE_DOCK_MIN_WIDTH);
   if (toolbar?.capturedContext !== undefined) {
     updateSelectionToolbar();
   }
@@ -235,6 +235,7 @@ function createEditor(text: string): void {
   slashPalette?.destroy();
   blockHandles?.destroy();
   documentFind?.destroy();
+  paneObserver?.disconnect();
   documentOutline?.destroy();
   view?.destroy();
   editorRevision = 0;
@@ -403,7 +404,10 @@ function createEditor(text: string): void {
   });
   documentOutline.setEnabled(outlineEnabled);
   documentOutline.setCollapsed(outlineCollapsed);
-  documentOutline.setNarrow(window.innerWidth < OUTLINE_DOCK_MIN_WIDTH);
+  updateOutlineLayout();
+  paneObserver?.disconnect();
+  paneObserver = new ResizeObserver(() => updateOutlineLayout());
+  paneObserver.observe(editorParent);
   updateDocumentOutline();
 }
 
@@ -585,10 +589,18 @@ function executeHostAction(actionId: string, value?: string): void {
   }
 }
 
+/** Docks or collapses the outline from the pane's measured width, so it follows resizes, splits, and hidden tabs. */
+function updateOutlineLayout(): void {
+  const { width, maxContentWidth } = appearancePreferences;
+  const contentCap = width === 'full' ? Number.POSITIVE_INFINITY : width === 'readable' ? Math.min(maxContentWidth, 640) : maxContentWidth;
+  documentOutline?.setNarrow(!shouldDockOutline(editorParent.clientWidth, contentCap));
+}
+
 function updateAppearance(change: AppearanceChange): void {
   const next = normalizeAppearancePreferences({ ...appearancePreferences, ...change });
   appearancePreferences = next;
   applyPalette(document, documentPalette, next.appearance);
+  updateOutlineLayout();
   if (view === undefined) return;
   const anchor = captureScrollAnchor(view);
   applyAppearance(view, next);
