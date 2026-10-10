@@ -3,14 +3,14 @@ version: 0.1.0
 public_release: blocked
 publisher: shipsolid
 repository: shipsolid/markami
-listing_approved: false
+listing_approved: true
 artifact_size: 4210861
 artifact_sha256: 78769743b641bbf1818bbe543734cbc39c407fcd1aea3e38691bf2bb2fde6727
 ---
 
 # markami 0.1.0 release evidence
 
-Status: **locally installable; Marketplace release prepared**.
+Status: **installable; CI green on all platforms; blocked only on native IME and screen-reader smoke and tag authorization**.
 
 This is a preparation record, not a publication claim. No release tag, GitHub release, Marketplace
 listing, or public install has been verified.
@@ -53,17 +53,40 @@ the release workflow. Local package evidence is recorded in
 
 - [x] Use the owner-controlled `shipsolid` Marketplace publisher consistently in the manifest and
   release evidence.
-- [ ] Authorize the Entra managed identity as a Contributor member of the Marketplace publisher and
+- [x] Authorize the Entra managed identity as a Contributor member of the Marketplace publisher and
   protect the `vscode-marketplace` GitHub environment with release-tag restrictions and reviewers.
+  Evidence: both release environments require the owner as reviewer, allow only `v*` tags, and
+  disable admin bypass (read back through the GitHub API on 2026-10-10). The owner attested on
+  2026-10-10 that the identity is a Contributor of the `shipsolid` publisher; that membership cannot be
+  read back, so the first publish run is its proof. GitHub OIDC login for this identity was proven on
+  2026-10-09.
 - [x] Approve the 0.1.0 Preview title, description, categories, keywords, banner, icon,
   privacy/security links, free pricing, and MIT license.
-- [ ] Dispatch the Marketplace capture workflow, review its exact-VSIX images, merge the generated
+- [x] Dispatch the Marketplace capture workflow, review its exact-VSIX images, merge the generated
   listing PR, and only then set `listing_approved: true` above. Generated mockups do not satisfy this
-  gate.
-- [ ] Complete install/edit/save/undo/offline-widget/uninstall smoke from an isolated native profile.
-- [ ] Pass native stable Windows, macOS, and Linux integration runs plus VS Code 1.102 compatibility.
+  gate. Evidence: the workflow ran on `main` twice (runs 38037693672 and 38038916352); the first run
+  exposed a Mermaid sanitizer defect, fixed in PR #5, and the second was merged as PR #6. The images
+  were reviewed by Claude at the owner's instruction and merged under the owner's delegation. Known
+  cosmetic issues accepted for 0.1.0: a bright block-handle gutter and default-styled white buttons
+  in the dark theme.
+- [x] Complete install/edit/save/undo/offline-widget/uninstall smoke from an isolated native profile.
+  Evidence: `npm run smoke:install` verifies the VSIX checksum, installs it into an isolated profile
+  with the VS Code CLI, runs the integration suite against the installed extension, uninstalls it, and
+  confirms a BOM+CRLF Markdown file then opens natively with identical bytes. It passed offline (container
+  with networking disabled, VS Code 1.141.0 Linux x64) and on a GitHub runner in CI run 38039775318. The
+  production webview renders Mermaid, math, and code with zero external requests
+  (`test/visual-browser/technical.spec.ts`). Scope: Linux only and scripted; the manual interaction
+  steps 4 and 6 of the checklist in [`install-smoke.md`](install-smoke.md) were not performed by hand.
+- [x] Pass native stable Windows, macOS, and Linux integration runs plus VS Code 1.102 compatibility.
+  Evidence: CI run 38039775318 on `main` passed the integration suite on `ubuntu-latest`,
+  `windows-latest`, and `macos-latest` with VS Code stable (1.141.0) and on `ubuntu-latest` with
+  VS Code 1.102.0.
 - [ ] Complete real IME and screen-reader smoke on supported native hosts.
-- [ ] Accept or remediate the documented low-severity Mermaid/KaTeX dependency advisories.
+- [x] Accept or remediate the documented low-severity Mermaid/KaTeX dependency advisories.
+  Accepted by the owner's delegation on 2026-10-10 (GHSA-238p-pmpm-9mq7, low): Mermaid 12.1.0 is the
+  latest release and nests KaTeX 0.16.47 (fixed in 0.18.2). It is not reachable here because Mermaid
+  never passes KaTeX's `trust` option, rendered diagrams are stripped of `a` and `href`, and the webview
+  CSP blocks inline script. The extension's own KaTeX is 0.19.0.
 - [ ] Create and push signed/annotated tag `v0.1.0` only after the owner authorizes the release.
 
 After every item is evidenced, the protected workflow must publish the downloaded build artifact and

@@ -73,11 +73,30 @@ because `libnspr4.so` is unavailable; no native or browser result is claimed fro
 7. Uninstall from the isolated extension directory, reopen the same Markdown with the native editor,
    and verify content plus line endings are unchanged.
 
-## Upgrade and capture status
+## Scripted installed-VSIX smoke (2026-10-10)
 
-No prior preview VSIX exists, so upgrade/migration testing is not applicable to this first packaged
-version and remains unverified. The WSL host still cannot produce native captures because its Electron
-runtime does not start. A manually dispatched GitHub workflow now captures the exact packaged VSIX in
-VS Code stable under Xvfb and opens a review PR; that workflow has not been dispatched, so no image is
-yet claimed as approved. No generated mockup is presented as shipped UI; the capture contract is in
-`media/marketplace/README.md`.
+`npm run smoke:install` replaces the unreachable WSL attempt above with a repeatable run of the packaged
+artifact. It verifies the `.sha256`, installs the VSIX with the VS Code CLI into isolated
+`--extensions-dir` and `--user-data-dir` directories, confirms `shipsolid.markami@<version>` is listed,
+runs the integration suite against the installed extension (a throwaway development extension only hosts
+the runner), uninstalls it, confirms it is gone, and checks that a BOM+CRLF Markdown file opens in the
+native editor with identical bytes.
+
+| Run | Host | Result |
+|---|---|---|
+| Container with networking disabled | Playwright Ubuntu 24.04 image on WSL2, VS Code 1.141.0 Linux x64, Xvfb | pass: 16 integration tests against the installed VSIX, clean uninstall |
+| CI `install-smoke` job | GitHub `ubuntu-latest`, VS Code stable | pass in run 38039775318 |
+
+The two view-preference integration tests are skipped because they drive a command that is registered
+only in extension test mode. Offline rendering of Mermaid, math, and code is covered separately by
+`test/visual-browser/technical.spec.ts`, which aborts every non-local request. Not covered: Windows and
+macOS installs, upgrade from a prior version (none exists), and the hand-driven interaction steps 4 and 6
+in the checklist above (slash menu, selection toolbar, block move, outline/find, table edit, and the
+overlapping-edit recovery choices by hand).
+
+## Capture status
+
+The capture workflow was dispatched on `main` twice. The first run exposed a Mermaid sanitizer defect,
+fixed in PR #5; the second produced the committed images (PR #6). Review notes and accepted cosmetic
+issues are recorded in [`release-notes.md`](release-notes.md). No generated mockup is presented as
+shipped UI; the capture contract is in `media/marketplace/README.md`.

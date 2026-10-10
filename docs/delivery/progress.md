@@ -533,3 +533,20 @@
 - Also observed in the draft captures, left for the owner's review: the left block-handle gutter renders as
   a bright strip in the dark theme, and the table and selection controls use default white button styling
 - Publication boundary: no tag, release, or Marketplace publication occurred
+
+## Task 25 — Release gates automated and evidence recorded
+
+- Status: complete on `main`; the release is blocked only on native IME and screen-reader smoke and on
+  tag authorization
+- Added `npm run smoke:install` (tested helpers, `scripts/installSmoke.test.mjs`): checksum, isolated
+  install, integration suite against the installed VSIX, uninstall, native reopen with unchanged bytes
+- Added `test/visual-browser/technical.spec.ts`: production webview with every non-local request aborted;
+  Mermaid, math, and code render and Mermaid labels stay centred. It fails on the pre-fix sanitizer and
+  passes on the fix
+- CI now also runs a VS Code 1.102.0 integration leg, the browser spec, and an `install-smoke` job; CI run
+  38039775318 passed all of them on `main`
+- Release notes: every checklist item with evidence is ticked with its scope, `listing_approved` is
+  true, and the preflight blockers are reduced to the final approval flag and the two unchecked items
+- Not done and not claimed: real IME and screen-reader smoke on native hosts; Windows and macOS install
+  smoke; any tag, Release run, or Marketplace publication
+
