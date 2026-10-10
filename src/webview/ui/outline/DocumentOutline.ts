@@ -1,4 +1,5 @@
 import { markdownLanguage } from '@codemirror/lang-markdown';
+import { findFrontmatter } from '../../../core/markdown/frontmatter.js';
 import { githubSlug } from '../../features/links/links.js';
 import { visibleDocumentText } from '../find/DocumentFind.js';
 
@@ -12,9 +13,11 @@ export interface OutlineHeading {
 
 export function extractOutline(source: string): readonly OutlineHeading[] {
   const candidates: Array<Omit<OutlineHeading, 'text' | 'slug'>> = [];
+  // The Markdown parser reads `key: value` lines above the closing `---` of frontmatter as a Setext heading.
+  const frontmatterEnd = findFrontmatter(source)?.to ?? 0;
   markdownLanguage.parser.parse(source).cursor().iterate((node) => {
     const level = headingLevel(node.name);
-    if (level !== undefined) candidates.push({ level, from: node.from, to: node.to });
+    if (level !== undefined && node.from >= frontmatterEnd) candidates.push({ level, from: node.from, to: node.to });
   });
   const slugs: string[] = [];
   return candidates.map((candidate) => {

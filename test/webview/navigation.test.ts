@@ -168,6 +168,12 @@ describe('document outline', () => {
     ]);
   });
 
+  test('frontmatter is never read as a Setext heading', () => {
+    const source = '---\ntitle: Loki cleanup\ntags: [grafana]\n---\n\n# Real heading\n';
+
+    expect(extractOutline(source).map((heading) => heading.text)).toEqual(['Real heading']);
+  });
+
   test('tracks the nearest preceding heading', () => {
     const headings = extractOutline('# One\ntext\n## Two\nmore');
     expect(activeHeadingIndex(headings, 0)).toBe(0);
