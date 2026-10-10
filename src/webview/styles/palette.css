@@ -1,0 +1,41 @@
+/*
+ * Catppuccin Mocha for Document appearance in dark themes.
+ *
+ * The webview reads colors only through VS Code theme tokens, so the palette is a remap of those tokens on the body.
+ * Everything below it, including the outline and popovers that live directly in the body, follows without a second
+ * set of rules. palette.ts sets data-markami-palette to 'catppuccin-mocha' only for Document appearance; light and
+ * high-contrast themes are not matched, so they keep the colors the user's theme provides.
+ */
+html[data-markami-palette='catppuccin-mocha'] body.vscode-dark:not(.vscode-high-contrast) {
+  --vscode-editor-background: #1e1e2e;
+  --vscode-editor-foreground: #cdd6f4;
+  --vscode-editorGutter-background: #1e1e2e;
+  --vscode-editorLineNumber-foreground: #6c7086;
+  --vscode-textCodeBlock-background: #181825;
+  --vscode-textLink-foreground: #89b4fa;
+  --vscode-textBlockQuote-border: #cba6f7;
+  --vscode-textBlockQuote-foreground: #bac2de;
+  --vscode-textSeparator-foreground: #45475a;
+  --vscode-descriptionForeground: #a6adc8;
+  --vscode-widget-border: #313244;
+  --vscode-widget-shadow: rgba(17, 17, 27, 0.6);
+  --vscode-panel-border: #313244;
+  --vscode-editorWidget-background: #181825;
+  --vscode-editorWidget-foreground: #cdd6f4;
+  --vscode-editorWidget-border: #45475a;
+  --vscode-focusBorder: #b4befe;
+  --vscode-list-activeSelectionBackground: #45475a;
+  --vscode-list-activeSelectionForeground: #cdd6f4;
+  --vscode-button-secondaryBackground: #313244;
+  --vscode-button-secondaryForeground: #cdd6f4;
+  --vscode-button-secondaryHoverBackground: #45475a;
+  --vscode-dropdown-background: #313244;
+  --vscode-dropdown-foreground: #cdd6f4;
+  --vscode-dropdown-border: #45475a;
+  --vscode-badge-background: #cba6f7;
+  --vscode-badge-foreground: #11111b;
+  --vscode-editorWarning-foreground: #f9e2af;
+  --vscode-inputValidation-errorBorder: #f38ba8;
+  --vscode-editor-findMatchBackground: rgba(249, 226, 175, 0.35);
+  --vscode-editor-findMatchHighlightBackground: rgba(249, 226, 175, 0.18);
+}

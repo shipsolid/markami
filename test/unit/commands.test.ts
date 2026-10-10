@@ -18,7 +18,7 @@ interface PackageManifest {
   readonly contributes?: {
     readonly commands?: readonly { readonly command?: string; readonly title?: string }[];
     readonly keybindings?: readonly { readonly command?: string; readonly when?: string }[];
-    readonly configuration?: { readonly properties?: Readonly<Record<string, { readonly default?: unknown }>> };
+    readonly configuration?: { readonly properties?: Readonly<Record<string, { readonly default?: unknown; readonly enum?: unknown }>> };
   };
 }
 
@@ -77,6 +77,7 @@ describe('command and configuration contract', () => {
       'markami.appearance.mode',
       'markami.document.width',
       'markami.document.maxContentWidth',
+      'markami.document.palette',
       'markami.viewPreferences.rememberPerFile',
       'markami.sourceIslands.showLabel',
       'markami.theme.useEditorFont',
@@ -89,6 +90,8 @@ describe('command and configuration contract', () => {
     expect(properties['markami.codeBlock.wrap']?.default).toBe(true);
     expect(properties['markami.appearance.mode']?.default).toBe('document');
     expect(properties['markami.document.maxContentWidth']?.default).toBe(1200);
+    expect(properties['markami.document.palette']?.default).toBe('catppuccin-mocha');
+    expect(properties['markami.document.palette']?.enum).toEqual(['catppuccin-mocha', 'vscode']);
     expect(properties['markami.fidelity.strict']).toBeUndefined();
   });
 
@@ -97,6 +100,7 @@ describe('command and configuration contract', () => {
       'selectionToolbar.enabled': 'yes',
       'outline.enabled': false,
       'theme.useEditorFont': false,
+      'document.palette': 'neon',
       remoteImages: 'unsafe',
       'assets.pasteDirectory': '../outside'
     };
@@ -113,7 +117,8 @@ describe('command and configuration contract', () => {
       showSourceIslandLabels: true,
       debugShowSourceRanges: false,
       codeBlockWrap: true,
-      useEditorFont: false
+      useEditorFont: false,
+      documentPalette: 'catppuccin-mocha'
     });
     expect(readRemoteImagePolicy(configuration)).toBe('prompt');
     expect(readAssetPasteDirectory(configuration)).toBe('assets/${documentBasename}');

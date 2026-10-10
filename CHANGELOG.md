@@ -12,6 +12,9 @@ All notable changes to markami are documented here.
   paragraph gap, tightening under headings. Both fonts are bundled locally (+0.5 MB, SIL Open Font License).
   `markami.appearance.mode` now defaults to `document` and `markami.document.maxContentWidth` to 1200;
   VS Code appearance remains available.
+- Document appearance uses the Catppuccin Mocha palette when VS Code uses a dark theme. It is a remap of the VS Code
+  theme tokens, so the outline and popovers follow it; light and high-contrast themes and VS Code appearance keep
+  your theme's colors. Set `markami.document.palette` to `vscode` to opt out.
 - Fenced code blocks wrap long lines by default (`markami.codeBlock.wrap` now defaults to `true`), so a long
   command or token no longer gets its own horizontal scrollbar on every line.
 

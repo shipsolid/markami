@@ -169,7 +169,8 @@ const hostCoreMessageSchema = z.discriminatedUnion('type', [
     showSourceIslandLabels: z.boolean(),
     debugShowSourceRanges: z.boolean(),
     codeBlockWrap: z.boolean(),
-    useEditorFont: z.boolean()
+    useEditorFont: z.boolean(),
+    documentPalette: z.enum(['catppuccin-mocha', 'vscode'])
   }).strict(),
   z.object({ type: z.literal('showError'), code: z.string().min(1).max(200), message: z.string().min(1).max(16_384) }).strict()
 ]);

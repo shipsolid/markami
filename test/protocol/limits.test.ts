@@ -115,3 +115,29 @@ describe('protocol payload limits', () => {
     expect(parseHostMessage({ type: 'unknown' })).toEqual({ ok: false, requestSnapshot: false });
   });
 });
+
+describe('configuration message', () => {
+  const configuration = {
+    type: 'configuration',
+    selectionToolbarEnabled: true,
+    slashCommandsEnabled: true,
+    mathEnabled: true,
+    blockHandlesEnabled: true,
+    outlineEnabled: true,
+    renderMermaid: true,
+    renderSafeHtml: true,
+    showSourceIslandLabels: true,
+    debugShowSourceRanges: false,
+    codeBlockWrap: true,
+    useEditorFont: true
+  };
+
+  test('carries the document palette and rejects unknown palettes', () => {
+    for (const documentPalette of ['catppuccin-mocha', 'vscode']) {
+      expect(hostMessageSchema.safeParse({ ...configuration, documentPalette }).success).toBe(true);
+    }
+    expect(hostMessageSchema.safeParse({ ...configuration, documentPalette: 'neon' }).success).toBe(false);
+    expect(hostMessageSchema.safeParse(configuration).success).toBe(false);
+  });
+});
+

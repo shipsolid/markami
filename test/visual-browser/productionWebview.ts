@@ -37,7 +37,22 @@ export const DARK_PLUS: WebviewTheme = {
 
 export type WebviewAppearance = 'vscode' | 'document';
 
-function pageHtml(fixture: string, theme: WebviewTheme | undefined, appearance: WebviewAppearance, width: string): string {
+export type WebviewPalette = 'catppuccin-mocha' | 'vscode';
+
+function pageHtml(
+  fixture: string,
+  theme: WebviewTheme | undefined,
+  appearance: WebviewAppearance,
+  width: string,
+  palette: WebviewPalette
+): string {
+  // The host sends its settings right after hydrating; specs pin the palette to the theme unless they test it.
+  const configuration = JSON.stringify({
+    type: 'configuration', selectionToolbarEnabled: true, slashCommandsEnabled: true, mathEnabled: true,
+    blockHandlesEnabled: true, outlineEnabled: true, renderMermaid: true, renderSafeHtml: true,
+    showSourceIslandLabels: true, debugShowSourceRanges: false, codeBlockWrap: true, useEditorFont: true,
+    documentPalette: palette
+  });
   const hydrate = JSON.stringify({
     type: 'hydrate', protocolVersion: 3, viewId: 'view', generation: 1,
     document: { text: fixture, version: 1, eol: '\n' },
@@ -53,7 +68,7 @@ function pageHtml(fixture: string, theme: WebviewTheme | undefined, appearance: 
 <body class="${theme?.bodyClass ?? ''}" style="color: var(--vscode-editor-foreground); font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px"><main id="editor"></main>
 <script>
   window.acquireVsCodeApi = () => ({
-    postMessage(message) { if (message.type === 'ready') setTimeout(() => window.postMessage(${hydrate}, '*'), 0); },
+    postMessage(message) { if (message.type === 'ready') setTimeout(() => { window.postMessage(${hydrate}, '*'); window.postMessage(${configuration}, '*'); }, 0); },
     getState() { return undefined; },
     setState() {}
   });
@@ -64,7 +79,7 @@ function pageHtml(fixture: string, theme: WebviewTheme | undefined, appearance: 
 /** Serves the built webview exactly as packaged and aborts every request that leaves the local origin. */
 export async function openProductionWebview(
   page: Page,
-  options: { readonly fixture: string; readonly theme?: WebviewTheme; readonly appearance?: WebviewAppearance; readonly width?: 'auto' | 'readable' | 'full' }
+  options: { readonly fixture: string; readonly theme?: WebviewTheme; readonly appearance?: WebviewAppearance; readonly width?: 'auto' | 'readable' | 'full'; readonly palette?: WebviewPalette }
 ): Promise<{ readonly external: string[] }> {
   expect(existsSync(path.join(distribution, 'main.js')), 'run npm run build before the browser visual test').toBe(true);
   const external: string[] = [];
@@ -76,7 +91,7 @@ export async function openProductionWebview(
       return;
     }
     if (url.pathname === '/') {
-      await route.fulfill({ contentType: 'text/html', body: pageHtml(options.fixture, options.theme, options.appearance ?? 'document', options.width ?? 'readable') });
+      await route.fulfill({ contentType: 'text/html', body: pageHtml(options.fixture, options.theme, options.appearance ?? 'document', options.width ?? 'readable', options.palette ?? 'vscode') });
       return;
     }
     const file = path.join(distribution, url.pathname);

@@ -59,6 +59,7 @@ import {
   type AppearanceChange,
   type AppearancePreferences
 } from './ui/appearance/DocumentControls.js';
+import { applyPalette, type DocumentPalette } from './ui/appearance/palette.js';
 import { DocumentFind, type FindMatch, type FindMode } from './ui/find/DocumentFind.js';
 import { findHighlights, setFindHighlights } from './ui/find/FindHighlights.js';
 import { DocumentOutline, sourceOffsetForHeadingFragment } from './ui/outline/DocumentOutline.js';
@@ -103,6 +104,7 @@ let renderSafeHtml = true;
 let showSourceIslandLabels = true;
 let debugShowSourceRanges = false;
 let codeBlockWrap = true;
+let documentPalette: DocumentPalette = 'catppuccin-mocha';
 let appearancePreferences: AppearancePreferences = DEFAULT_APPEARANCE;
 let syntaxReveal: SyntaxRevealPolicy = 'activeBlock';
 let outlineCollapsed = false;
@@ -164,6 +166,7 @@ const bridge = new HostBridge(vscode, (message, ownedOrigin, disposition) => {
     showSourceIslandLabels = message.showSourceIslandLabels;
     debugShowSourceRanges = message.debugShowSourceRanges;
     codeBlockWrap = message.codeBlockWrap;
+    documentPalette = message.documentPalette;
     updateAppearance({
       useEditorFont: message.useEditorFont
     });
@@ -349,6 +352,7 @@ function createEditor(text: string): void {
   });
   documentControls = new DocumentControls(document, editorParent, appearancePreferences, requestViewPreferenceChange);
   applyAppearance(view, appearancePreferences);
+  applyPalette(document, documentPalette, appearancePreferences.appearance);
   toolbar = new SelectionToolbar(document, actions, (_actionId, _context, result) => {
     if (_actionId === 'markami.link') {
       linkPopover?.show(_context);
@@ -587,6 +591,7 @@ function executeHostAction(actionId: string, value?: string): void {
 function updateAppearance(change: AppearanceChange): void {
   const next = normalizeAppearancePreferences({ ...appearancePreferences, ...change });
   appearancePreferences = next;
+  applyPalette(document, documentPalette, next.appearance);
   documentControls?.setPreferences(next);
   if (view === undefined) return;
   const anchor = captureScrollAnchor(view);

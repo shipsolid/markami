@@ -932,6 +932,7 @@ The following settings are the initial configuration contract; new controls are 
   "markami.appearance.mode": "document",
   "markami.document.width": "auto",
   "markami.document.maxContentWidth": 1200,
+  "markami.document.palette": "catppuccin-mocha",
   "markami.viewPreferences.rememberPerFile": true,
   "markami.sourceIslands.showLabel": true,
   "markami.theme.useEditorFont": true,
@@ -954,6 +955,7 @@ Strict fidelity is an invariant: unsupported transformations fall back to source
 | `markami.appearance.mode` | `vscode` or `document` / `document` | Resource default; file override permitted |
 | `markami.document.width` | `auto`, `readable`, `full` / `auto` | Resource default; file override permitted |
 | `markami.document.maxContentWidth` | integer 480–2400 / 1200 | CSS pixels; ignored by `full` |
+| `markami.document.palette` | `catppuccin-mocha` or `vscode` / `catppuccin-mocha` | Document appearance only, and only in dark themes; light and high-contrast themes always follow VS Code |
 | `markami.viewPreferences.rememberPerFile` | boolean / true | Window; controls persistence, never edits Markdown |
 | `markami.syntaxReveal` | `activeBlock`, `selection`, `manual` / `activeBlock` | Resource; file policy override permitted |
 

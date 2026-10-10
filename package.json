@@ -330,6 +330,14 @@
           "scope": "resource",
           "description": "Set the default rendered document width. This never changes document source."
         },
+        "markami.document.palette": {
+          "type": "string",
+          "enum": ["catppuccin-mocha", "vscode"],
+          "enumDescriptions": ["Use the Catppuccin Mocha palette in Document appearance when VS Code uses a dark theme.", "Always use the colors of the active VS Code theme."],
+          "default": "catppuccin-mocha",
+          "scope": "resource",
+          "description": "Choose the colors of Document appearance. Light and high-contrast themes, and VS Code appearance, always follow the active VS Code theme."
+        },
         "markami.document.maxContentWidth": {
           "type": "integer",
           "minimum": 480,

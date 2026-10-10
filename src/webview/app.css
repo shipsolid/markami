@@ -5,6 +5,7 @@
 @import './styles/layout.css';
 @import './styles/appearance.css';
 @import './styles/document.css';
+@import './styles/palette.css';
 
 .markami-link {
   color: var(--vscode-textLink-foreground);

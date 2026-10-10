@@ -18,6 +18,7 @@ export interface WebviewConfiguration {
   readonly debugShowSourceRanges: boolean;
   readonly codeBlockWrap: boolean;
   readonly useEditorFont: boolean;
+  readonly documentPalette: 'catppuccin-mocha' | 'vscode';
 }
 
 export function readWebviewConfiguration(configuration: ConfigurationReader): WebviewConfiguration {
@@ -32,7 +33,8 @@ export function readWebviewConfiguration(configuration: ConfigurationReader): We
     showSourceIslandLabels: readBoolean(configuration, 'sourceIslands.showLabel', true),
     debugShowSourceRanges: readBoolean(configuration, 'debug.showSourceRanges', false),
     codeBlockWrap: readBoolean(configuration, 'codeBlock.wrap', true),
-    useEditorFont: readBoolean(configuration, 'theme.useEditorFont', true)
+    useEditorFont: readBoolean(configuration, 'theme.useEditorFont', true),
+    documentPalette: configuration.get('document.palette') === 'vscode' ? 'vscode' : 'catppuccin-mocha'
   };
 }
 

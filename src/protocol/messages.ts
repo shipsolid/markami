@@ -60,6 +60,7 @@ export type HostMessage =
       readonly debugShowSourceRanges: boolean;
       readonly codeBlockWrap: boolean;
       readonly useEditorFont: boolean;
+      readonly documentPalette: 'catppuccin-mocha' | 'vscode';
     }
   | ResourceResponse
   | { readonly type: 'showError'; readonly code: string; readonly message: string };
