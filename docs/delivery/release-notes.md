@@ -1,28 +1,28 @@
 ---
-version: 0.1.2
+version: 0.1.3
 public_release: approved
 publisher: shipsolid
 repository: shipsolid/markami
 listing_approved: true
-artifact_size: 4757069
-artifact_sha256: d8ca78875c54d02e2d40bedb6e9c4e9d9eca26e2ae6cdc15c49a25441136cc76
+artifact_size: 4761599
+artifact_sha256: 8ddeaf79ba02533efc7b880bd18ccf76a7cf48f1b3a577790860683ecdfadfb6
 ---
 
-# markami 0.1.2 release evidence
+# markami 0.1.3 release evidence
 
-Status: **published to the Visual Studio Marketplace as a Preview** (record below). 0.1.1 was published to the Visual Studio Marketplace as a Preview; this release
-makes a clean VS Code Markdown-preview style the default, with the Document style kept as an opt-in, and carries the
-rendering work described below. The digest below was recorded from `main` before the Marketplace captures were
-regenerated and re-checked from the merged revision after the capture pull request (#10, images only, which the VSIX
-excludes): `npm run package` on `38cd011` reproduced the same size and SHA-256.
+Status: **candidate**. 0.1.2 is published to the Visual Studio Marketplace as a Preview; this release adds a first-run
+walkthrough, a sample document, confirmed and reversible default-editor commands, a caret that lands where a table cell
+is clicked, and a listing that shows a real Git diff. The digest below was recorded from the commit that prepares this
+release; the only differences from the CI-verified `d26389e` are the version, changelog, runbook examples, and this file,
+and the VSIX contains the first three.
 
 ## Candidate artifact
 
 | Field | Value |
 |---|---|
-| VSIX | `artifacts/markami-0.1.2.vsix` |
-| Size | 4,757,069 bytes |
-| SHA-256 | `d8ca78875c54d02e2d40bedb6e9c4e9d9eca26e2ae6cdc15c49a25441136cc76` |
+| VSIX | `artifacts/markami-0.1.3.vsix` |
+| Size | 4,761,599 bytes |
+| SHA-256 | `8ddeaf79ba02533efc7b880bd18ccf76a7cf48f1b3a577790860683ecdfadfb6` |
 | Publisher | `shipsolid` — owner-controlled public publisher |
 | Public extension ID | `shipsolid.markami` |
 | License | MIT |
@@ -31,42 +31,48 @@ excludes): `npm run package` on `38cd011` reproduced the same size and SHA-256.
 The checksum, byte size, and package-policy result are regenerated from the final tagged revision by
 the release workflow. Local package evidence is recorded in [`install-smoke.md`](install-smoke.md).
 
-## Changes since 0.1.1
+## Changes since 0.1.2
 
-- The default appearance is the VS Code Markdown-preview style in your exact theme colors (UI font 14px/1.6, ruled
-  h1 and h2, compact lists, pill-style code, quote bar); the Shantell Sans and Catppuccin Mocha Document
-  appearance is opt-in. `markami.appearance.mode` defaults to `vscode` and `markami.theme.useEditorFont` to `false`.
-- The in-page settings bar is replaced by editor-title icons and the new **Toggle Document Appearance** command.
-- Table, code, and block-handle chrome appears on hover or keyboard focus; table cells render inline Markdown and
-  edit in place; code is syntax highlighted with line numbers; lists, alerts, and dimmed revealed markers are
-  rendered; the outline docks by measured room and follows the pane. See [`CHANGELOG.md`](../../CHANGELOG.md) and
-  Task 31 in [`progress.md`](progress.md).
+- A **Get started with markami** walkthrough and **markami: Open Sample Document** (an untitled document, nothing
+  written until saved).
+- **markami: Make markami the Default Markdown Editor** and **markami: Use Native Markdown Editor by Default**: modal
+  confirmation, only the `*.md` and `*.markdown` entries of the user-level `workbench.editorAssociations`, entries for
+  other editors never removed, legacy array form refused. The unused `markami.openAsDefault` setting is removed.
+- Clicking a table cell with inline Markdown places the caret at the matching source position.
+- The listing leads with outcomes and a three-step Get started, and the gallery gains a demo GIF and a real Git-diff
+  capture. See [`CHANGELOG.md`](../../CHANGELOG.md) and Task 33 in [`progress.md`](progress.md).
 
 ## Public release gates
 
 - [x] Publisher, Entra federation, protected environments, license, and advisory acceptance are unchanged and were
-  proven again by the 0.1.1 publish run recorded below.
+  proven again by the 0.1.2 publish run recorded below.
 - [x] Native stable Windows, macOS, and Linux integration plus VS Code 1.102 compatibility, and the packaged-VSIX
-  install smoke on all three systems. Evidence: CI run 38060843361 on `main` (`d659925`) passed the integration
-  matrix and the `install-smoke` matrix, and its `verify` job passed the benchmark gates.
+  install smoke on all three systems. Evidence: CI run 38073661424 on `main` (`d26389e`) passed the integration
+  matrix (Linux, Windows, macOS on stable; Linux on 1.102.0), the `install-smoke` matrix, `verify` with its
+  benchmark gates, and `package`. That run is the source this candidate differs from only as described above; the
+  CI run on the preparation commit repeats it.
+- [x] The packaged 0.1.3 VSIX installs into a clean profile, passes the integration suite against the installed
+  copy (21 tests; the three that need the test-only inspection command run only from source), and uninstalls
+  cleanly with Markdown opening natively and its bytes unchanged (`npm run smoke:install` in the Playwright
+  container, VS Code 1.141.0, Linux).
 - [x] Production-webview rendering verified in a real browser under dark, light, and high-contrast themes (88
-  Playwright specs), and the 19 native VS Code integration tests pass in a container (VS Code 1.141.0, Linux).
-- [x] A full Marketplace capture dry run in real VS Code under Dark Modern rendered the default style correctly.
+  Playwright specs), and 24 native VS Code integration tests pass from source in the same container.
+- [x] The five Marketplace assets (a demo GIF and four screenshots, including a real Git diff) were captured from the
+  exact packaged VSIX by the Marketplace captures workflow (run 38073251476, from `61051af`), reviewed by the owner,
+  and merged as PR #11 (`d26389e`). `marketplaceListing.mjs --validate` accepts all five. The capture run itself
+  asserts that the saved file differs from the committed one in exactly one line.
+- [x] The owner approved the listing (`listing_approved: true`) after reviewing those assets.
 - [x] Real IME and screen-reader smoke remains **waived by the owner for the Preview** (`preview: true`; tracked
   in issue #8); automated composition and accessibility tests pass and the gap is disclosed in the README and
   CHANGELOG. Revisit before a non-preview release.
-- [x] Regenerate the Marketplace captures from the 0.1.2 VSIX, review all three images, merge the capture PR.
-  Evidence: the Marketplace captures workflow (run 38061110112, from `1b68188`) captured the exact packaged VSIX; the
-  three images were reviewed (the default style with rendered table cells, a titled Note alert, highlighted code, and
-  the docked outline; one Document-style shot with source reveal on the active heading; no clipping, private content,
-  or leftover raw markers) and the owner merged PR #10 as `38cd011`.
-- [x] Re-record the final size and SHA-256 from the merged revision (this file's frontmatter and candidate table):
-  `npm run package` on `38cd011` produced 4,757,069 bytes with the same SHA-256.
-- [x] Create and push annotated tag `v0.1.2` only after the owner authorizes the release. The owner asked for the
-  0.1.2 release and merged the capture PR; the Release workflow's dry run and the `vscode-marketplace` deployment,
-  which the owner approves themself, follow from the tag.
+- [ ] Walkthrough rendering on the Welcome page and the default-editor confirmation dialog have not been seen in a real
+  window; the confirmation path is covered by unit tests with an injected host. Look at both before tagging.
+- [ ] Push the preparation commit and confirm CI is green on it, then re-check the size and SHA-256 from that
+  revision (the capture PR changed only images, which the VSIX excludes).
+- [ ] Create annotated tag `v0.1.3` only after the owner authorizes the release, then pass the Release workflow dry
+  run; the `vscode-marketplace` deployment is approved by the owner.
 
-## 0.1.2 publication record
+## 0.1.2 publication record (history)
 
 | Check | Result |
 |---|---|

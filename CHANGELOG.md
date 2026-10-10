@@ -2,6 +2,33 @@
 
 All notable changes to markami are documented here.
 
+## 0.1.3 — 2026-10-10
+
+Preview release. A first-run walkthrough, a one-step and reversible way to make markami the default Markdown
+editor, a caret that lands where you click in table cells, and a listing that shows a real Git diff.
+
+### Added
+
+- A **Get started with markami** walkthrough (Help → Welcome → Walkthroughs) and **markami: Open Sample Document**,
+  which opens a bundled sample as an untitled document in markami. Nothing is written to disk until you save it.
+- **markami: Make markami the Default Markdown Editor** and **markami: Use Native Markdown Editor by Default**. Each
+  asks for confirmation, then adds or removes only the `*.md` and `*.markdown` entries of your user
+  `workbench.editorAssociations` setting. Entries that point at another editor are never removed, and a setting in
+  the legacy array form is left untouched with an explanation.
+
+### Changed
+
+- Clicking a table cell that contains inline Markdown now places the caret at the matching position in its source.
+  Before, the caret landed near the end of the cell whatever you clicked.
+- The Marketplace page opens with what markami does for you and a three-step Get started that uses the editor-title
+  icon. Build-from-source and local VSIX steps moved to the contributor guide. The gallery now includes a short
+  demo and a screenshot of a real Git diff in which promoting a paragraph to a heading changed exactly one line.
+
+### Removed
+
+- The `markami.openAsDefault` setting. Nothing read it, so it advertised a behavior the extension did not have. Use
+  the two commands above, or **Reopen Editor With… → Configure default editor** in VS Code.
+
 ## 0.1.2 — 2026-10-10
 
 Preview release. A cleaner default style that follows your VS Code theme, rendered table cells, syntax-highlighted

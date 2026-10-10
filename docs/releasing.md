@@ -106,8 +106,8 @@ them. This keeps the Marketplace listing, reviewed source revision, and release 
    npm run package
    npm run check:package
    npm run smoke:install
-   npm run release:preflight -- --version 0.1.2 --phase artifact
-   (cd artifacts && sha256sum -c markami-0.1.2.vsix.sha256)
+   npm run release:preflight -- --version 0.1.3 --phase artifact
+   (cd artifacts && sha256sum -c markami-0.1.3.vsix.sha256)
    ```
 
    Copy the package command's exact byte size and SHA-256 into both the release-note frontmatter and
@@ -121,7 +121,7 @@ them. This keeps the Marketplace listing, reviewed source revision, and release 
 5. From a clean revision, verify source metadata:
 
    ```bash
-   npm run release:preflight -- --version 0.1.2 --phase source
+   npm run release:preflight -- --version 0.1.3 --phase source
    ```
 
 Preparation mode reports public blockers without needing credentials. Publish mode fails closed on a
