@@ -5,12 +5,17 @@
 .github/**
 .superpowers/**
 .vscode-test/**
+.worktrees/**
 artifacts/**
 configs/**
 docs/**
 fixtures/**
 media/marketplace/**
 node_modules/**
+out/**
+coverage/**
+test-results/**
+playwright-report/**
 scripts/**
 src/**
 test/**

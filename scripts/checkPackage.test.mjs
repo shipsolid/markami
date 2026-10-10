@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { validateAssetReferences, validatePackageEntries } from './checkPackage.mjs';
@@ -95,3 +96,16 @@ test('requires static imports and re-exports to resolve inside the package', () 
   archive.delete('extension/dist/webview/assets/re-export.js');
   assert.throws(() => validateAssetReferences(archive), /missing referenced package asset.*re-export\.js/iu);
 });
+
+test('keeps every git-ignored working directory out of the VSIX except the build output', async () => {
+  const [gitignore, vscodeignore] = await Promise.all([readFile('.gitignore', 'utf8'), readFile('.vscodeignore', 'utf8')]);
+  const excluded = new Set(vscodeignore.split(/\r?\n/u).map((line) => line.trim()));
+  const directories = gitignore.split(/\r?\n/u).map((line) => line.trim())
+    .filter((line) => line.endsWith('/') && line !== 'dist/');
+
+  assert.ok(directories.length > 0);
+  for (const directory of directories) {
+    assert.ok(excluded.has(`${directory}**`), `.vscodeignore must exclude ${directory}**`);
+  }
+});
+
