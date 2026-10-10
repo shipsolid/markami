@@ -188,7 +188,7 @@ jobs:
     if: ${{ inputs.publish_marketplace }}
     needs: package
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: vscode-marketplace
     permissions:
       actions: read
@@ -234,5 +234,7 @@ jobs:
         run: |
           public_vsix="/tmp/markami-$RELEASE_VERSION-public.vsix"
           url="https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$RELEASE_PUBLISHER/vsextensions/markami/$RELEASE_VERSION/vspackage"
-          curl --fail --location --retry 6 --retry-all-errors --output "$public_vsix" "$url"
+          # A just-published version is served only after Marketplace validation, which can take minutes.
+          curl --fail --location --compressed --retry 30 --retry-delay 30 --retry-all-errors \
+            --output "$public_vsix" "$url"
           node scripts/checkPackage.mjs "$public_vsix"
