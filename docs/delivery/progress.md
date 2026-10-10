@@ -592,3 +592,12 @@
   tagged notes predate publication. Tracking issue #8 holds the waived native IME and screen-reader smoke
 - The published 0.1.0 listing images still show the old gutter and buttons; they change only when a new
   version is published and the captures are regenerated
+- Dependabot PR #3 (checkout 7.0.1, setup-node 7.1.0, upload-artifact 7.0.2, download-artifact 8.0.2,
+  codeql-action 4.38.2) was rebased onto the new CI and merged after every SHA was checked against its release
+  tag. Its CI ran the new upload and download actions through the package-to-install-smoke hand-off on Linux,
+  Windows, and macOS, and the Security workflow ran CodeQL v4; main is green on the merge commit. The Release
+  workflow itself has not run with these versions: `release.yml` in tag v0.1.0 still pins the old ones, and the
+  first release from a newer tag is their real exercise
+- Branch cleanup: remote `fix/mermaid-stylesheet-sanitizer` deleted (the audit branch was already gone); merged
+  local branches and the two clean worktrees removed. The two `automation/marketplace-captures-*` remote
+  branches (one merged PR, one closed superseded PR) were left
